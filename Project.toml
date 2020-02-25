@@ -1,0 +1,10 @@
+name = "InverseTAMP"
+uuid = "3f517155-95b4-4010-b517-e038c017d66c"
+authors = ["Xuan <tanqazx@gmail.com>"]
+version = "0.1.0"
+
+[deps]
+DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
+Gen = "ea4f424c-a589-11e8-07c0-fd5c91b9da4a"
+Julog = "5d8bcb5e-2b2c-4a96-a2b1-d40b3d3c344f"
+PDDL = "2c8894f9-daa1-498a-9e3a-26edd9623db8"
