@@ -7,9 +7,7 @@ function state_to_array(state::State)
     height = evaluate(@julog(height), state).name
     array = ones(Int64, (width, height))
     for x=1:width, y=1:height
-        if satisfy(@julog(wall($x, $y)), state)[1]
-            array[y, x] = 0
-        end
+        if state[:(wall($x, $y))] array[y, x] = 0 end
     end
     return array, (width, height)
 end
@@ -63,8 +61,7 @@ function render(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
     end
     # Plot current position
     if show_pos
-        x = evaluate(@julog(xpos), state).name
-        y = evaluate(@julog(ypos), state).name
+        x, y = state[:xpos], state[:ypos]
         circ = make_circle(x, y, 0.25)
         plot!(plt, circ, color=:black, alpha=1, legend=false)
     end
