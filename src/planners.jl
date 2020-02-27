@@ -3,14 +3,15 @@ using DataStructures: PriorityQueue, OrderedDict, enqueue!, dequeue!
 "Uninformed forward search for a plan."
 function basic_search(goals::Vector{<:Term}, state::State, domain::Domain;
                       horizon::Number=Inf)
-    plan = Term[]
-    queue = [(state, plan)]
+    plan, traj = Term[], State[state]
+    queue = [(plan, traj)]
     while length(queue) > 0
-        state, plan = popfirst!(queue)
+        plan, traj = popfirst!(queue)
         # Only plan up to length of horizon
         step = length(plan) + 1
         if step > horizon continue end
         # Get list of available actions
+        state = traj[end]
         actions = available(state, domain)
         # Iterate over actions
         for act in actions
@@ -20,11 +21,12 @@ function basic_search(goals::Vector{<:Term}, state::State, domain::Domain;
             next_plan = Term[plan; act]
             # Trigger all post-action events
             next_state = trigger(domain.events, next_state, domain)
+            next_traj = State[traj; next_state]
             # Return plan if goals are satisfied
             sat, _ = satisfy(goals, next_state, domain)
-            if sat return next_plan end
+            if sat return (next_plan, next_traj) end
             # Otherwise push to queue
-            push!(queue, (next_state, next_plan))
+            push!(queue, (next_plan, next_traj))
         end
     end
     return nothing
@@ -32,12 +34,13 @@ end
 
 "Reconstruct plan from current state and back-pointers."
 function reconstruct_plan(state::State, parents::Dict{State,Tuple{State,Term}})
-    plan = Term[]
+    plan, traj = Term[], State[state]
     while state in keys(parents)
         state, act = parents[state]
         pushfirst!(plan, act)
+        pushfirst!(traj, state)
     end
-    return plan
+    return plan, traj
 end
 
 "Heuristic-informed forward search for a plan."
@@ -78,31 +81,13 @@ function heuristic_search(goals::Vector{<:Term}, state::State, domain::Domain;
             end
         end
     end
-    return nothing
-end
-
-"Heuristic that counts the number of goals unsatisfied in the domain."
-function goal_count(goals, state, domain)
-    count = 0
-    for g in goals
-        sat, _ = satisfy(g, state, domain)
-        count += sat ? 0 : 1
-    end
-    return count
-end
-
-"Manhattan distance heuristic."
-function manhattan(goals, state, domain; fluents=@julog([xpos, ypos]))
-    goal = PDDL.clauses_to_state(Vector{Clause}(goals))
-    goal_vals = [evaluate(f, goal, domain) for f in fluents]
-    curr_vals = [evaluate(f, state, domain) for f in fluents]
-    dist = sum(abs(g.name - c.name) for (g, c) in zip(goal_vals, curr_vals))
-    return dist
+    return nothing, nothing
 end
 
 "Sample-based heuristic search for a plan."
 @gen function sample_search(goals::Vector{<:Term}, state::State, domain::Domain,
-                            heuristic::Function, search_noise::Float64)
+                            heuristic::Function, search_noise::Float64,
+                            max_nodes::Int)
     # Remove conjunctions in goals
     goals = reduce(vcat, map(g -> (g.name == :and) ? g.args : Term[g], goals))
     # Initialize path costs and priority queue
@@ -122,6 +107,8 @@ end
         # Update trace address, indexing by state and count
         count += 1
         addr = (hash(state), count)
+        # Return plan if max nodes is reached
+        if count == max_nodes return reconstruct_plan(state, parents) end
         # Return plan if goals are satisfied
         sat, _ = satisfy(goals, state, domain)
         if sat return reconstruct_plan(state, parents) end
@@ -148,5 +135,25 @@ end
             end
         end
     end
-    return nothing
+    return nothing, nothing
+end
+
+@gen function replan_search(goals::Vector{<:Term}, state::State, domain::Domain,
+                            heuristic::Function, search_noise::Float64,
+                            persistence::Float64)
+    count = 0
+    plan, traj = Term[], State[]
+    while true
+        max_nodes = @trace(geometric(1-persistence), (:max_nodes, count))
+        part_plan, part_traj =
+            @trace(sample_search(goals, state, domain, heuristic,
+                                 search_noise, max_nodes), (:search, count))
+        if part_plan == nothing return (plan, traj) end
+        append!(plan, part_plan)
+        append!(traj, part_traj)
+        state = traj[end]
+        sat, _ = satisfy(goals, state, domain)
+        if sat return (plan, traj) end
+        count += 1
+    end
 end
