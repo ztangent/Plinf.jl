@@ -8,15 +8,24 @@ path = joinpath(dirname(pathof(InverseTAMP)), "..", "domains", "gridworld")
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-3.pddl"))
 
+# Initialize state, set goal position
 state = initialize(problem)
 start_pos = (state[:xpos], state[:ypos])
-goal_pos = (5, 5)
+goal_pos = (8, 8)
 goal_terms = @julog[xpos == $(goal_pos[1]), ypos == $(goal_pos[2])]
 
+# Check that heuristic search correctly solves the problem
 plan = heuristic_search(goal_terms, state, domain; heuristic=manhattan)
 println("== Plan ==")
 display(plan)
-state = execute(plan, state, domain)
-@test satisfy(goal_terms, state, domain)[1] == true
+render(state; start=start_pos, goal=goal_pos, plan=plan)
+end_state = execute(plan, state, domain)
+@test satisfy(goal_terms, end_state, domain)[1] == true
 
-render(state, start=start_pos, goal=goal_pos, plan=plan)
+# Visualize full horizon sample-based search
+plt = render(state; start=start_pos, goal=goal_pos, show_pos=false)
+@gif for i=1:20
+    plan = sample_search(goal_terms, state, domain, manhattan, 0.1)
+    plt = render!(plan, start_pos; alpha=0.05)
+end
+display(plt)

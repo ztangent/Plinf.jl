@@ -3,11 +3,10 @@ using Plots
 
 "Convert gridworld PDDL state to array for plotting."
 function state_to_array(state::State)
-    width = evaluate(@julog(width), state).name
-    height = evaluate(@julog(height), state).name
-    array = ones(Int64, (width, height))
+    width, height = state[:width], state[:height]
+    array = zeros(Int64, (width, height))
     for x=1:width, y=1:height
-        if state[:(wall($x, $y))] array[y, x] = 0 end
+        if state[:(wall($x, $y))] array[y, x] = 1 end
     end
     return array, (width, height)
 end
@@ -33,16 +32,17 @@ function make_circle(x::Number, y::Number, r::Number)
 end
 
 "Render gridworld state, optionally with start, goal, and the trace of a plan."
-function render(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                show_pos=true, start=nothing, goal=nothing, plan=nothing)
-    plt = plt == nothing ? plot(size=(600,600), framestyle=:box) : plt
+function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
+                 show_pos=false, start=nothing, goal=nothing, plan=nothing)
+    # Get last plot if not provided
+    plt = (plt == nothing) ? plot!() : plt
     # Plot base grid
     array, (w, h) = state_to_array(state)
     plot!(plt, xticks=(collect(0:size(array)[1]+1) .- 0.5, []),
                yticks=(collect(0:size(array)[2]+1) .- 0.5, []))
     xgrid!(plt, :on, :black, 2, :dashdot, 0.75)
     ygrid!(plt, :on, :black, 2, :dashdot, 0.75)
-    cmap = cgrad([RGBA(0,0,0,1), RGBA(1,1,1,0)])
+    cmap = cgrad([RGBA(1,1,1,0), RGBA(0,0,0,1)])
     heatmap!(plt, array, aspect_ratio=1, color=cmap, colorbar_entry=false)
     # Plot start and goal positions
     if isa(start, Tuple{Int,Int})
@@ -53,11 +53,7 @@ function render(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
     end
     # Plot trace of plan
     if plan != nothing && start != nothing
-        traj = plan_to_traj(plan, start)
-        for (x, y) in traj
-            dot = make_circle(x, y, 0.1)
-            plot!(plt, dot, color=:red, alpha=0.25, legend=false)
-        end
+        render!(plan, start, plt)
     end
     # Plot current position
     if show_pos
@@ -67,4 +63,22 @@ function render(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
     end
     xlims!(plt, 0.5, size(array)[1]+0.5)
     ylims!(plt, 0.5, size(array)[2]+0.5)
+    return plt
+end
+
+function render(state::State; kwargs...)
+    # Create new plot and render to it
+    return render!(state, plot(size=(600,600), framestyle=:box); kwargs...)
+end
+
+function render!(plan::Vector{Term}, start::Tuple{Int,Int},
+                 plt::Union{Plots.Plot,Nothing}=nothing; alpha::Float64=0.25)
+     # Get last plot if not provided
+     plt = (plt == nothing) ? plot!() : plt
+     traj = plan_to_traj(plan, start)
+     for (x, y) in traj
+         dot = make_circle(x, y, 0.1)
+         plot!(plt, dot, color=:red, alpha=alpha, legend=false)
+     end
+     return plt
 end

@@ -102,7 +102,7 @@ end
 
 "Sample-based heuristic search for a plan."
 @gen function sample_search(goals::Vector{<:Term}, state::State, domain::Domain,
-                            heuristic::Function)
+                            heuristic::Function, search_noise::Float64)
     # Remove conjunctions in goals
     goals = reduce(vcat, map(g -> (g.name == :and) ? g.args : Term[g], goals))
     # Initialize path costs and priority queue
@@ -114,7 +114,7 @@ end
     addr = (:init, count)
     while length(queue) > 0
         # Sample state from queue with probability exp(-beta*est_cost)
-        probs = [exp(-v) for v in values(queue)]
+        probs = [exp(-search_noise*v) for v in values(queue)]
         probs /= sum(probs)
         idx = @trace(categorical(probs), addr)
         state, _ = iterate(queue, idx)[1]
