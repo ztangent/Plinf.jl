@@ -86,8 +86,8 @@ end
 
 "Sample-based heuristic search for a plan."
 @gen function sample_search(goals::Vector{<:Term}, state::State, domain::Domain,
-                            heuristic::Function, search_noise::Float64,
-                            max_nodes::Int)
+                            search_noise::Float64=0.1, max_nodes::Number=Inf,
+                            heuristic::Function=manhattan)
     # Remove conjunctions in goals
     goals = reduce(vcat, map(g -> (g.name == :and) ? g.args : Term[g], goals))
     # Initialize path costs and priority queue
@@ -108,7 +108,7 @@ end
         count += 1
         addr = (hash(state), count)
         # Return plan if max nodes is reached
-        if count == max_nodes return reconstruct_plan(state, parents) end
+        if count >= max_nodes return reconstruct_plan(state, parents) end
         # Return plan if goals are satisfied
         sat, _ = satisfy(goals, state, domain)
         if sat return reconstruct_plan(state, parents) end
@@ -139,15 +139,14 @@ end
 end
 
 @gen function replan_search(goals::Vector{<:Term}, state::State, domain::Domain,
-                            heuristic::Function, search_noise::Float64,
-                            persistence::Float64)
+                            search_noise::Float64=0.1, persistence::Float64=0.9,
+                            max_plans::Int=10, heuristic::Function=manhattan)
     count = 0
     plan, traj = Term[], State[]
-    while true
+    while count < max_plans
         max_nodes = @trace(geometric(1-persistence), (:max_nodes, count))
-        part_plan, part_traj =
-            @trace(sample_search(goals, state, domain, heuristic,
-                                 search_noise, max_nodes), (:search, count))
+        part_plan, part_traj = @trace(sample_search(goals, state, domain,
+            search_noise, max_nodes, heuristic), (:plan, count))
         if part_plan == nothing return (plan, traj) end
         append!(plan, part_plan)
         append!(traj, part_traj)

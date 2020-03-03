@@ -25,7 +25,7 @@ end_state = execute(plan, state, domain)
 # Visualize full horizon sample-based search
 plt = render(state; start=start_pos, goal=goal_pos, show_pos=false)
 @gif for i=1:20
-    plan, _ = sample_search(goal_terms, state, domain, manhattan, 0.1, 100)
+    plan, _ = sample_search(goal_terms, state, domain, 0.1)
     plt = render!(plan, start_pos; alpha=0.05)
 end
 display(plt)
@@ -33,7 +33,7 @@ display(plt)
 # Visualize sample-based replanning search
 plt = render(state; start=start_pos, goal=goal_pos, show_pos=false)
 @gif for i=1:20
-    plan, _ = replan_search(goal_terms, state, domain, manhattan, 0.1, 0.95)
+    plan, _ = replan_search(goal_terms, state, domain, 0.1, 0.95)
     plt = render!(plan, start_pos; alpha=0.05)
 end
 display(plt)
