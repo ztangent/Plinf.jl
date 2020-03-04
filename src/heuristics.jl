@@ -6,7 +6,7 @@ end
 
 "Manhattan distance heuristic."
 function manhattan(goals, state, domain; fluents=@julog([xpos, ypos]))
-    goal = PDDL.clauses_to_state(Vector{Clause}(goals))
+    goal = State(goals)
     goal_vals = [goal[domain, f] for f in fluents]
     curr_vals = [state[domain, f] for f in fluents]
     dist = sum(abs.(goal_vals - curr_vals))

@@ -95,8 +95,8 @@ end
     path_costs = Dict{State,Int64}(state => 0)
     queue = OrderedDict{State,Int64}(state => heuristic(goals, state, domain))
     # Initialize trace address
-    count = 0
-    addr = (:init, count)
+    node_count = 0
+    addr = (:init, node_count)
     while length(queue) > 0
         # Sample state from queue with probability exp(-beta*est_cost)
         probs = [exp(-search_noise*v) for v in values(queue)]
@@ -105,13 +105,12 @@ end
         state, _ = iterate(queue, idx)[1]
         delete!(queue, state)
         # Update trace address, indexing by state and count
-        count += 1
-        addr = (hash(state), count)
-        # Return plan if max nodes is reached
-        if count >= max_nodes return reconstruct_plan(state, parents) end
-        # Return plan if goals are satisfied
-        sat, _ = satisfy(goals, state, domain)
-        if sat return reconstruct_plan(state, parents) end
+        node_count += 1
+        addr = (hash(state), node_count)
+        # Return plan if max nodes is reached or goals are satisfied
+        if node_count >= max_nodes || satisfy(goals, state, domain)[1]
+            return reconstruct_plan(state, parents)
+        end
         # Get list of available actions
         actions = available(state, domain)
         # Iterate over actions
@@ -144,13 +143,18 @@ end
     count = 0
     plan, traj = Term[], State[]
     while count < max_plans
+        # Sample a maximum number of nodes to expand during search
         max_nodes = @trace(geometric(1-persistence), (:max_nodes, count))
+        # Plan to achieve the goals until the maximum node budget
         part_plan, part_traj = @trace(sample_search(goals, state, domain,
             search_noise, max_nodes, heuristic), (:plan, count))
         if part_plan == nothing return (plan, traj) end
+        # Append the partial plan and state trajectory
         append!(plan, part_plan)
         append!(traj, part_traj)
+        # Continue planning from the end of the trajectory
         state = traj[end]
+        # Return plan if the goals are satisfied
         sat, _ = satisfy(goals, state, domain)
         if sat return (plan, traj) end
         count += 1
