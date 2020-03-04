@@ -1,6 +1,7 @@
-using Julog, PDDL, Test
+using Julog, PDDL, Gen
 using InverseTAMP
 
+include("model.jl")
 include("render.jl")
 
 path = joinpath(dirname(pathof(InverseTAMP)), "..", "domains", "gridworld")
@@ -37,3 +38,8 @@ plt = render(state; start=start_pos, goal=goal_pos, show_pos=false)
     plt = render!(plan, start_pos; alpha=0.05)
 end
 display(plt)
+
+# Visualize sample-based search with observation noise
+traj = model([goal_terms], state, domain)
+plt = render(state; start=start_pos, goal=goal_pos, show_pos=false)
+plt = render!(traj, plt)

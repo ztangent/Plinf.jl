@@ -72,13 +72,26 @@ function render(state::State; kwargs...)
 end
 
 function render!(plan::Vector{Term}, start::Tuple{Int,Int},
-                 plt::Union{Plots.Plot,Nothing}=nothing; alpha::Float64=0.25)
+                 plt::Union{Plots.Plot,Nothing}=nothing;
+                 alpha::Float64=0.25, color=:red)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      traj = plan_to_traj(plan, start)
      for (x, y) in traj
          dot = make_circle(x, y, 0.1)
-         plot!(plt, dot, color=:red, alpha=alpha, legend=false)
+         plot!(plt, dot, color=color, alpha=alpha, legend=false)
+     end
+     return plt
+end
+
+function render!(traj::Vector{State}, plt::Union{Plots.Plot,Nothing}=nothing;
+                 alpha::Float64=0.25, color=:red)
+     # Get last plot if not provided
+     plt = (plt == nothing) ? plot!() : plt
+     for state in traj
+         x, y = state[:xpos], state[:ypos]
+         dot = make_circle(x, y, 0.1)
+         plot!(plt, dot, color=color, alpha=alpha, legend=false)
      end
      return plt
 end
