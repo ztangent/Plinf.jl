@@ -33,7 +33,8 @@ end
 
 "Render gridworld state, optionally with start, goal, and the trace of a plan."
 function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                 show_pos=false, start=nothing, goal=nothing, plan=nothing)
+                 show_pos=false, start=nothing, goals=nothing, plan=nothing,
+                 goal_colors=nothing)
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
     # Plot base grid
@@ -48,8 +49,12 @@ function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
     if isa(start, Tuple{Int,Int})
         annotate!(start[1], start[2], Plots.text("start", 16, :red, :center))
     end
-    if isa(goal, Tuple{Int,Int})
-        annotate!(goal[1], goal[2], Plots.text("goal", 16, :blue, :center))
+    if goals != nothing
+        if isa(goals, Tuple{Int,Int}) goals = [goals] end
+        if goal_colors == nothing goal_colors = fill(:blue, length(goals)) end
+        for (g, col) in zip(goals, goal_colors)
+            annotate!(g[1], g[2], Plots.text("goal", 16, col, :center))
+        end
     end
     # Plot trace of plan
     if plan != nothing && start != nothing
