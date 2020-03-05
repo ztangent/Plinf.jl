@@ -1,4 +1,4 @@
-using Julog, PDDL, Gen
+using Julog, PDDL, Gen, Printf
 using InverseTAMP
 
 include("model.jl")
@@ -21,7 +21,7 @@ println("== Plan ==")
 display(plan)
 render(state; start=start_pos, goals=goal_pos, plan=plan)
 end_state = execute(plan, state, domain)
-@test satisfy(goal_terms, end_state, domain)[1] == true
+@assert satisfy(goal_terms, end_state, domain)[1] == true
 
 # Visualize full horizon sample-based search
 plt = render(state; start=start_pos, goals=goal_pos)
@@ -45,17 +45,24 @@ goal_terms = [@julog([xpos == $(g[1]), ypos == $(g[2])]) for g in goal_set]
 goal_colors = [:orange, :magenta, :blue]
 
 # Sample a trajectory as the ground truth (no observation noise)
-traj = model(goal_terms, state, domain, Dict(:obs_args => (0.0, 0.0)))
-traj = traj[1:length(traj)÷2] # Observe only first half of the trajectory
+likely_traj = true
+if likely_traj
+    # Construct a plan sampled from the prior
+    traj = model(goal_terms, state, domain, Dict(:obs_args => (0.0, 0.0)))
+    traj = traj[1:length(traj)÷2] # Observe only first half of the trajectory
+else
+    # Construct plan that is highly unlikely under the prior
+    wp1 = @julog [xpos == 1, ypos == 8]
+    _, seg1 = heuristic_search(wp1, state, domain; heuristic=manhattan)
+    wp2 = @julog [xpos == 8, ypos == 1]
+    _, seg2 = heuristic_search(wp2, seg1[end], domain; heuristic=manhattan)
+    traj = [seg1; seg2][1:end-4]
+end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
 
 # Construct choicemap from observed partial trajectory
-observations = choicemap()
-for (i, state) in enumerate(traj)
-    i_choices = obs_choicemap(state, Term[], @julog([xpos, ypos]))
-    set_submap!(observations, :traj => i, i_choices)
-end
+observations = traj_choices(traj, @julog([xpos, ypos]))
 
 # Run importance sampling to infer the likely goal
 traces, weights, _ =
@@ -66,7 +73,7 @@ plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 for (tr, w) in zip(traces, weights)
     traj_smp = get_retval(tr)
     color = goal_colors[tr[:goal]]
-    render!(traj_smp[length(traj)+1:end]; alpha=0.5*exp(w), color=color)
+    render!(traj_smp; alpha=0.5*exp(w), color=color, radius=0.15)
 end
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 
