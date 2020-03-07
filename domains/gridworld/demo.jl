@@ -4,16 +4,19 @@ using InverseTAMP
 include("model.jl")
 include("render.jl")
 
+# Load domain and problem
 path = joinpath(dirname(pathof(InverseTAMP)), "..", "domains", "gridworld")
-
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-3.pddl"))
+
+# Define helper function to convert x-y tuples to Julog term
+pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
 
 # Initialize state, set goal position
 state = initialize(problem)
 start_pos = (state[:xpos], state[:ypos])
 goal_pos = (7, 8)
-goal_terms = @julog[xpos == $(goal_pos[1]), ypos == $(goal_pos[2])]
+goal_terms = pos_to_terms(goal_pos)
 
 # Check that heuristic search correctly solves the problem
 plan, _ = heuristic_search(goal_terms, state, domain; heuristic=manhattan)
@@ -41,7 +44,7 @@ display(plt)
 
 # Specify possible goals
 goal_set = [(1, 8), (8, 8), (8, 1)]
-goal_terms = [@julog([xpos == $(g[1]), ypos == $(g[2])]) for g in goal_set]
+goal_terms = [pos_to_terms(g) for g in goal_set]
 goal_colors = [:orange, :magenta, :blue]
 
 # Sample a trajectory as the ground truth (no observation noise)
@@ -65,8 +68,8 @@ plt = render!(traj, plt; alpha=0.5)
 observations = traj_choices(traj, @julog([xpos, ypos]))
 
 # Run importance sampling to infer the likely goal
-traces, weights, _ =
-    importance_sampling(model, (goal_terms, state, domain), observations, 20)
+traces, weights, _ = importance_sampling(model,
+    (goal_terms, state, domain, length(traj)), observations, 20)
 
 # Plot sampled trajectory for each trace
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)

@@ -20,9 +20,7 @@ end
 
 "Construct Gen choicemap from observed terms in a state."
 function state_choices(state::State, terms::Vector{<:Term})
-    choices = choicemap()
-    for t in terms choices[t] = state[t] end
-    return choices
+    return choicemap([t => state[t] for t in terms]...)
 end
 
 "Construct Gen choicemap from observed trajectory."

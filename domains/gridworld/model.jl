@@ -17,7 +17,8 @@ model_args = Dict(:planner => sample_search, :plan_args => (),
                   :observe => observe_traj, :obs_args => ())
 
 "Model of an agent pursuing several possible goals in a gridworld."
-@gen function model(goals, state::State, domain::Domain, args::Dict=Dict())
+@gen function model(goals, state::State, domain::Domain,
+                    timesteps::Int, args::Dict=Dict())
     args = merge(model_args, args)
     planner, plan_args = args[:planner], args[:plan_args]
     observe, obs_args = args[:observe], args[:obs_args]
@@ -25,6 +26,12 @@ model_args = Dict(:planner => sample_search, :plan_args => (),
     goal = goals[@trace(uniform_discrete(1, length(goals)), :goal)]
     # Sample a plan and trajectory from the planner
     plan, traj = @trace(planner(goal, state, domain, plan_args...))
+    # Pad / truncate to number of timesteps
+    if length(traj) < timesteps
+        append!(traj, fill(traj[end], timesteps - length(traj)))
+    else
+        traj = traj[1:timesteps]
+    end
     # Add observation noise
     obs_args = [fill(a, length(traj)) for a in obs_args]
     obs_traj = @trace(observe(traj, obs_args...), :traj)
