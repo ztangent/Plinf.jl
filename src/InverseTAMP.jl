@@ -11,5 +11,6 @@ include("distributions.jl")
 include("heuristics.jl")
 include("planners.jl")
 include("observations.jl")
+include("inference.jl")
 
 end # module
