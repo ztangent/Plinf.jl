@@ -95,20 +95,15 @@ end
     path_costs = Dict{State,Int64}(state => 0)
     queue = OrderedDict{State,Int64}(state => heuristic(goals, state, domain))
     # Initialize trace address
-    node_count = 0
-    addr = (:init, node_count)
+    count = 0
     while length(queue) > 0
         # Sample state from queue with probability exp(-beta*est_cost)
-        probs = [exp(-search_noise*v) for v in values(queue)]
-        probs /= sum(probs)
-        idx = @trace(categorical(probs), addr)
-        state, _ = iterate(queue, idx)[1]
+        probs = softmax([-search_noise*v for v in values(queue)])
+        state = @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
         delete!(queue, state)
-        # Update trace address, indexing by state and count
-        node_count += 1
-        addr = (hash(state), node_count)
+        count += 1
         # Return plan if max nodes is reached or goals are satisfied
-        if node_count >= max_nodes || satisfy(goals, state, domain)[1]
+        if count >= max_nodes || satisfy(goals, state, domain)[1]
             return reconstruct_plan(state, parents)
         end
         # Get list of available actions
