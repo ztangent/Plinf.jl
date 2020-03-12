@@ -19,16 +19,22 @@
 end
 
 "Construct Gen choicemap from observed terms in a state."
-function state_choices(state::State, terms::Vector{<:Term})
-    return choicemap([t => state[t] for t in terms]...)
+function state_choices(state::State, terms::Vector{<:Term}, addr=nothing)
+    choices = choicemap([t => state[t] for t in terms]...)
+    if addr != nothing
+        outer_choices = choicemap()
+        set_submap!(outer_choices, addr, choices)
+        choices = outer_choices
+    end
+    return choices
 end
 
 "Construct Gen choicemap from observed trajectory."
-function traj_choices(traj::Vector{State}, terms::Vector{<:Term})
+function traj_choices(traj::Vector{State}, terms::Vector{<:Term}, addr=nothing)
     choices = choicemap()
     for (i, state) in enumerate(traj)
         i_choices = state_choices(state, terms)
-        set_submap!(choices, :traj => i, i_choices)
+        set_submap!(choices, (addr => i), i_choices)
     end
     return choices
 end

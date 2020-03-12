@@ -51,30 +51,39 @@ goal_colors = [:orange, :magenta, :blue]
 likely_traj = true
 if likely_traj
     # Construct a plan sampled from the prior
-    traj = model(goal_terms, state, domain, Dict(:obs_args => (0.0, 0.0)))
-    traj = traj[1:length(traj)÷2] # Observe only first half of the trajectory
+    _, traj = model(10, goal_terms, state, domain, Dict(:obs_args => (0.0, 0.0)))
 else
     # Construct plan that is highly unlikely under the prior
     wp1 = @julog [xpos == 1, ypos == 8]
     _, seg1 = heuristic_search(wp1, state, domain; heuristic=manhattan)
     wp2 = @julog [xpos == 8, ypos == 1]
     _, seg2 = heuristic_search(wp2, seg1[end], domain; heuristic=manhattan)
-    traj = [seg1; seg2][1:end-4]
+    traj = [seg1; seg2][1:end-3]
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
 
 # Construct choicemap from observed partial trajectory
-observations = traj_choices(traj, @julog([xpos, ypos]))
+observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
 
-# Run importance sampling to infer the likely goal
-traces, weights, _ = importance_sampling(model,
-    (goal_terms, state, domain, length(traj)), observations, 20)
+# Infer likely goals
+method = :pf # :importance
+n_samples = 20
+if method == :importance
+    # Run importance sampling to infer the likely goal
+    traces, weights, _ = importance_sampling(model,
+        (length(traj), goal_terms, state, domain), observations, n_samples)
+elseif method == :pf
+    # Run a particle filter
+    traces, weights =
+        particle_filter(model, (goal_terms, state, domain), traj, n_samples)
+end
 
 # Plot sampled trajectory for each trace
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 for (tr, w) in zip(traces, weights)
-    traj_smp = get_retval(tr)
+    traj_smp = tr[][1]
+    println(w)
     color = goal_colors[tr[:goal]]
     render!(traj_smp; alpha=0.5*exp(w), color=color, radius=0.15)
 end
