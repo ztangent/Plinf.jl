@@ -1,6 +1,7 @@
 "Observation noise model for PDDL states."
-@gen function observe(state::State, facts::Vector{Term}, fluents::Vector{Term},
-                      fact_noise=0.05, fluent_noise=0.25)
+@gen function observe_state(state::State,
+                            facts::Vector{<:Term}, fluents::Vector{<:Term},
+                            fact_noise=0.05, fluent_noise=0.25)
     obs = copy(state)
     # Randomly corrupt some of the facts
     for f in facts
@@ -17,6 +18,9 @@
     end
     return obs
 end
+
+"Observation noise model for PDDL state trajectory."
+observe_traj = Map(observe_state)
 
 "Construct Gen choicemap from observed terms in a state."
 function state_choices(state::State, terms::Vector{<:Term}, addr=nothing)

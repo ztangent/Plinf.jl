@@ -1,5 +1,25 @@
 using DataStructures: PriorityQueue, OrderedDict, enqueue!, dequeue!
 
+"Sample a plan given a planner, goal, initial state and domain."
+@gen function sample_plan(planner, goal, state, domain, args)
+    if isa(planner, GenerativeFunction)
+        return @trace(planner(goal, state, domain, args...))
+    else
+        return planner(goal, state, domain, args...)
+    end
+end
+
+"Reconstruct plan from current state and back-pointers."
+function reconstruct_plan(state::State, parents::Dict{State,Tuple{State,Term}})
+    plan, traj = Term[], State[state]
+    while state in keys(parents)
+        state, act = parents[state]
+        pushfirst!(plan, act)
+        pushfirst!(traj, state)
+    end
+    return plan, traj
+end
+
 "Uninformed forward search for a plan."
 function basic_search(goals::Vector{<:Term}, state::State, domain::Domain;
                       horizon::Number=Inf)
@@ -30,17 +50,6 @@ function basic_search(goals::Vector{<:Term}, state::State, domain::Domain;
         end
     end
     return nothing
-end
-
-"Reconstruct plan from current state and back-pointers."
-function reconstruct_plan(state::State, parents::Dict{State,Tuple{State,Term}})
-    plan, traj = Term[], State[state]
-    while state in keys(parents)
-        state, act = parents[state]
-        pushfirst!(plan, act)
-        pushfirst!(traj, state)
-    end
-    return plan, traj
 end
 
 "Heuristic-informed forward search for a plan."
