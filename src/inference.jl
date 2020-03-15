@@ -1,22 +1,30 @@
 "Online goal inference for a task planning agent using a particle filter."
 function task_agent_pf(agent_args::Tuple, obs_traj::Vector{State},
-                       obs_terms::Vector{<:Term}, n_particles::Int)
+                       obs_terms::Vector{<:Term}, n_particles::Int;
+                       callback=nothing)
     # Initialize particle filter with initial observations
     init_obs = state_choices(obs_traj[1], obs_terms, (:traj => 1))
     pf_state = initialize_particle_filter(task_agent, (1, agent_args...),
-                                          init_obs, n_particles)
+                                                init_obs, n_particles)
     agent_argdiffs = fill(NoChange(), length(agent_args))
+    # Run callback with initial state
+    if callback != nothing
+        trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
+        callback(1, obs_traj[1], trs, ws)
+    end
     # Feed new observations at each timestep
     for t=2:length(obs_traj)
-        maybe_resample!(pf_state, ess_threshold=n_particles/2)
-        obs = state_choices(obs_traj[t], obs_terms, (:traj => t))
+        maybe_resample!(pf_state, ess_threshold=n_particles/2);
+        obs = state_choices(obs_traj[t], obs_terms, (:traj => t));
         particle_filter_step!(pf_state, (t, agent_args...),
             (UnknownChange(), agent_argdiffs...), obs)
+        if callback != nothing
+            trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
+            callback(t, obs_traj[t], trs, ws)
+        end
     end
     # Return particles and their weights
-    weights = get_log_weights(pf_state)
-    weights = weights .- logsumexp(weights)
-    return get_traces(pf_state), weights
+    return get_traces(pf_state), lognorm(get_log_weights(pf_state))
 end
 
 "Propose a plan constrained to be an extension of a partial trajectory."

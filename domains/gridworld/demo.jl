@@ -69,7 +69,7 @@ plt = render!(traj, plt; alpha=0.5)
 agent_args = (goals, state, domain, sample_search, (0.1,),
               Term[], @julog([xpos, ypos]))
 method = :pf # :importance
-n_samples = 30
+n_samples = 20
 if method == :importance
     # Run importance sampling to infer the likely goal
     observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
@@ -78,17 +78,21 @@ if method == :importance
                             observations, n_samples)
 elseif method == :pf
     # Run a particle filter to perform online goal inference
+    anim = Animation()
+    canvas = () ->
+        render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
+    render_cb = (t, s, trs, ws) ->
+        render_pf!(t, s, trs, ws; tr_args=Dict(:goal_colors => goal_colors),
+                   canvas=canvas, animation=anim, liveplot=false)
     traces, weights =
-        task_agent_pf(agent_args, traj, @julog([xpos, ypos]), n_samples)
+        task_agent_pf(agent_args, traj, @julog([xpos, ypos]), n_samples;
+                      callback=render_cb)
+    gif(anim; fps=5)
 end
 
 # Plot sampled trajectory for each trace
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
-for (tr, w) in zip(traces, weights)
-    traj_smp = get_retval(tr)
-    color = goal_colors[tr[:goal]]
-    render!(traj_smp; alpha=0.5*exp(w), color=color, radius=0.15)
-end
+render_traces!(traces, weights, plt; goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 
 # Compute posterior probability of each goal

@@ -57,18 +57,21 @@ function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
         end
     end
     # Plot trace of plan
-    if plan != nothing && start != nothing
-        render!(plan, start, plt)
-    end
+    if (plan != nothing && start != nothing) render!(plan, start, plt) end
     # Plot current position
-    if show_pos
-        x, y = state[:xpos], state[:ypos]
-        circ = make_circle(x, y, 0.25)
-        plot!(plt, circ, color=:black, alpha=1, legend=false)
-    end
+    if show_pos render_pos!(state, plt) end
+    # Resize limits
     xlims!(plt, 0.5, size(array)[1]+0.5)
     ylims!(plt, 0.5, size(array)[2]+0.5)
     return plt
+end
+
+function render_pos!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
+                     radius=0.25, color=:black)
+    plt = (plt == nothing) ? plot!() : plt
+    x, y = state[:xpos], state[:ypos]
+    circ = make_circle(x, y, radius)
+    plot!(plt, circ, color=color, alpha=1, legend=false)
 end
 
 function render(state::State; kwargs...)
@@ -78,25 +81,49 @@ end
 
 function render!(plan::Vector{Term}, start::Tuple{Int,Int},
                  plt::Union{Plots.Plot,Nothing}=nothing;
-                 alpha::Float64=0.25, color=:red, radius=0.1)
+                 alpha::Float64=0.50, color=:red, radius=0.1)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      traj = plan_to_traj(plan, start)
      for (x, y) in traj
          dot = make_circle(x, y, radius)
-         plot!(plt, dot, color=color, alpha=alpha, legend=false)
+         plot!(plt, dot, color=color, linealpha=0, alpha=alpha, legend=false)
      end
      return plt
 end
 
 function render!(traj::Vector{State}, plt::Union{Plots.Plot,Nothing}=nothing;
-                 alpha::Float64=0.25, color=:red, radius=0.1)
+                 alpha::Float64=0.50, color=:red, radius=0.1)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      for state in traj
          x, y = state[:xpos], state[:ypos]
          dot = make_circle(x, y, radius)
-         plot!(plt, dot, color=color, alpha=alpha, legend=false)
+         plot!(plt, dot, color=color, linealpha=0, alpha=alpha, legend=false)
      end
      return plt
+end
+
+"Render trajectories for each (weighted) trace"
+function render_traces!(traces, weights=nothing,
+                        plt::Union{Plots.Plot,Nothing}=nothing;
+                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.75)
+    weights = weights == nothing ? lognorm(get_score.(traces)) : weights
+    for (tr, w) in zip(traces, weights)
+        traj = get_retval(tr)
+        color = goal_colors[tr[:goal]]
+        render!(traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
+    end
+end
+
+"Callback render function for particle filter."
+function render_pf!(t::Int, state, traces, weights;
+                    pos_args=Dict(), tr_args=Dict(), liveplot=true,
+                    canvas=nothing, animation=nothing)
+    if canvas != nothing canvas() end # Render canvas
+    title!("t = $t") # Display current timestep
+    render_pos!(state; pos_args...) # Render agent's current position
+    render_traces!(traces, weights; tr_args...) # Render predicted trajectories
+    if liveplot display(plot!()) end
+    if animation != nothing frame(animation) end # Save frame to animation
 end
