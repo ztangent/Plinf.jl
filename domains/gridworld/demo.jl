@@ -60,7 +60,7 @@ else
     _, seg1 = heuristic_search(wp1, state, domain; heuristic=manhattan)
     wp2 = @julog [xpos == 8, ypos == 1]
     _, seg2 = heuristic_search(wp2, seg1[end], domain; heuristic=manhattan)
-    traj = [seg1; seg2][1:end-3]
+    traj = [seg1; seg2[2:end]][1:end-3]
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
@@ -79,11 +79,10 @@ if method == :importance
 elseif method == :pf
     # Run a particle filter to perform online goal inference
     anim = Animation()
-    canvas = () ->
-        render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
+    plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
     render_cb = (t, s, trs, ws) ->
         render_pf!(t, s, trs, ws; tr_args=Dict(:goal_colors => goal_colors),
-                   canvas=canvas, animation=anim, liveplot=false)
+                   plt=plt, animation=anim, show=true)
     traces, weights =
         task_agent_pf(agent_args, traj, @julog([xpos, ypos]), n_samples;
                       callback=render_cb)
@@ -91,7 +90,7 @@ elseif method == :pf
 end
 
 # Plot sampled trajectory for each trace
-plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
+plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors
 render_traces!(traces, weights, plt; goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 

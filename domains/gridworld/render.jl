@@ -118,12 +118,12 @@ end
 
 "Callback render function for particle filter."
 function render_pf!(t::Int, state, traces, weights;
-                    pos_args=Dict(), tr_args=Dict(), liveplot=true,
-                    canvas=nothing, animation=nothing)
-    if canvas != nothing canvas() end # Render canvas
+                    plt=nothing, animation=nothing, show=true,
+                    pos_args=Dict(), tr_args=Dict())
+    plt = deepcopy((plt == nothing) ? plot!() : plt) # Get last plot if not provided
+    render_pos!(state, plt; pos_args...) # Render agent's current position
+    render_traces!(traces, weights, plt; tr_args...) # Render predicted trajectories
     title!("t = $t") # Display current timestep
-    render_pos!(state; pos_args...) # Render agent's current position
-    render_traces!(traces, weights; tr_args...) # Render predicted trajectories
-    if liveplot display(plot!()) end
+    if show display(plt) end
     if animation != nothing frame(animation) end # Save frame to animation
 end
