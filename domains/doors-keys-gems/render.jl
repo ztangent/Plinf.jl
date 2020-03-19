@@ -6,8 +6,7 @@ function state_to_array(state::State)
     width, height = state[:width], state[:height]
     array = zeros(Int64, (width, height))
     for x=1:width, y=1:height
-        if state[:(wall($x, $y))] array[y, x] = 2
-        elseif state[:(door($x, $y))] array[y, x] = 1 end
+        if state[:(wall($x, $y))] array[y, x] = 1 end
     end
     return array, (width, height)
 end
@@ -32,13 +31,25 @@ function make_circle(x::Real, y::Real, r::Real)
     return Shape(xs, ys)
 end
 
-"Make a gem using Plots.jl shapes."
-function make_gem(x::Real, y::Real, scale::Real)
-    inner = Shape(:hexagon)
-    inner = Plots.scale!(Plots.translate!(inner, x, y), scale*0.45, scale*0.6)
-    outer = Shape(:hexagon)
-    outer = Plots.scale!(Plots.translate!(outer, x, y), scale*0.75, scale)
-    return [outer, inner]
+"Make a door using Plots.jl shapes."
+function make_door(x::Real, y::Real, scale::Real)
+    bg = Plots.scale!(Shape(:rect), 1.0, 1.0)
+    fg = Plots.scale!(Shape(:rect), 0.85, 0.85)
+    hole1 = Plots.translate!(Plots.scale!(Shape(:circle), 0.13, 0.13), 0, 0.15)
+    hole2 = Plots.translate!(Plots.scale!(Shape(:utriangle), 0.15, 0.3), 0, -0.1)
+    return [Plots.translate!(Plots.scale!(s, scale, scale, (0, 0)), x, y)
+            for s in [bg, fg, hole1, hole2]]
+end
+
+"Plot a door with the given position and scale."
+function render_door!(x::Real, y::Real, scale::Real; color=:gray,
+                      plt::Union{Plots.Plot,Nothing}=nothing)
+    plt = (plt == nothing) ? plot!() : plt
+    color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
+    inner_col = HSV(color.h, 0.8*color.s, min(1.25*color.v, 1))
+    door = make_door(x, y, scale)
+    plot!(plt, door, alpha=1, linealpha=[0, 1, 0, 0], legend=false,
+          color=[color, inner_col, :black, :black])
 end
 
 "Make a key using Plots.jl shapes."
@@ -51,17 +62,27 @@ function make_key(x::Real, y::Real, scale::Real)
             for s in [handle, blade, tooth1, tooth2]]
 end
 
-"Plot agent's current location."
-function render_pos!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                     radius=0.25, color=:black)
+"Plot a key with the given position and scale."
+function render_key!(x::Real, y::Real, scale::Real; color=:goldenrod1,
+                     plt::Union{Plots.Plot,Nothing}=nothing)
     plt = (plt == nothing) ? plot!() : plt
-    x, y = state[:xpos], state[:ypos]
-    circ = make_circle(x, y, radius)
-    plot!(plt, circ, color=color, alpha=1, legend=false)
+    key = make_key(x, y, scale)
+    shadow = make_key(x+0.05*scale, y-0.05*scale, scale)
+    plot!(plt, [shadow; key], alpha=1, linealpha=0, legend=false,
+          color=[fill(:black, 4); fill(color, 4)])
+end
+
+"Make a gem using Plots.jl shapes."
+function make_gem(x::Real, y::Real, scale::Real)
+    inner = Shape(:hexagon)
+    inner = Plots.scale!(Plots.translate!(inner, x, y), scale*0.45, scale*0.6)
+    outer = Shape(:hexagon)
+    outer = Plots.scale!(Plots.translate!(outer, x, y), scale*0.75, scale)
+    return [outer, inner]
 end
 
 "Plot a gem with the given position, scale and color."
-function render_gem!(x::Real, y::Real, scale::Real, color,
+function render_gem!(x::Real, y::Real, scale::Real; color=:magenta,
                      plt::Union{Plots.Plot,Nothing}=nothing)
     plt = (plt == nothing) ? plot!() : plt
     outer, inner = make_gem(x, y, scale)
@@ -71,20 +92,37 @@ function render_gem!(x::Real, y::Real, scale::Real, color,
           alpha=1, linealpha=[1, 0], legend=false)
 end
 
-"Plot a key with the given position and scale."
-function render_key!(x::Real, y::Real, scale::Real,
-                     plt::Union{Plots.Plot,Nothing}=nothing)
+"Plot agent's current location."
+function render_pos!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
+                     radius=0.25, color=:black)
     plt = (plt == nothing) ? plot!() : plt
-    key = make_key(x, y, scale)
-    shadow = make_key(x+0.05*scale, y-0.05*scale, scale)
-    plot!(plt, [shadow; key], alpha=1, linealpha=0, legend=false,
-          color=[fill(:black, 4); fill(:goldenrod1, 4)])
+    x, y = state[:xpos], state[:ypos]
+    circ = make_circle(x, y, radius)
+    plot!(plt, circ, color=color, alpha=1, legend=false)
 end
 
+"Render doors, keys and gems present in the given state."
+function render_objects!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
+                         gem_colors=cgrad(:plasma)[1:3:30])
+    obj_queries =
+        @julog [door(X, Y), and(at(K, X, Y), key(K)), and(at(G, X, Y), gem(G))]
+    obj_colors = [:gray, :goldenrod1, gem_colors]
+    obj_renders = [
+        (loc, col) -> render_door!(loc[1], loc[2], 0.7, plt=plt),
+        (loc, col) -> render_key!(loc[1], loc[2], 0.4, plt=plt),
+        (loc, col) -> render_gem!(loc[1], loc[2], 0.3, color=col, plt=plt)
+    ]
+    for (query, colors, fn!) in zip(obj_queries, obj_colors, obj_renders)
+        _, subst = satisfy(query, state; mode=:all)
+        locs = [(s[@julog(X)].name, s[@julog(Y)].name) for s in subst]
+        if !isa(colors, AbstractArray) colors = fill(colors, length(locs)) end
+        for (loc, col) in zip(locs, colors) fn!(loc, col) end
+    end
+end
 
-"Render gridworld state, optionally with start, goal, and the trace of a plan."
+"Render state, optionally with start position and the trace of a plan."
 function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                 show_pos=false, start=nothing, plan=nothing,
+                 show_pos=false, show_objs=true, start=nothing, plan=nothing,
                  gem_colors=cgrad(:plasma)[1:3:30])
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
@@ -94,24 +132,14 @@ function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
                yticks=(collect(0:size(array)[2]+1) .- 0.5, []))
     xgrid!(plt, :on, :black, 2, :dashdot, 0.75)
     ygrid!(plt, :on, :black, 2, :dashdot, 0.75)
-    cmap = cgrad([RGBA(1,1,1,0), RGBA(0.5,0.5,0.5,1), RGBA(0,0,0,1)])
+    cmap = cgrad([RGBA(1,1,1,0), RGBA(0,0,0,1)])
     heatmap!(plt, array, aspect_ratio=1, color=cmap, colorbar_entry=false)
     # Plot start position
     if isa(start, Tuple{Int,Int})
         annotate!(start[1], start[2], Plots.text("start", 16, :red, :center))
     end
-    # Plot gems
-    _, gem_subst = satisfy(@julog([at(G, X, Y), gem(G)]), state; mode=:all)
-    gem_locs = [(s[@julog(X)].name, s[@julog(Y)].name) for s in gem_subst]
-    for (g, col) in zip(gem_locs, gem_colors)
-        render_gem!(g[1], g[2], 0.3, col, plt)
-    end
-    # Plot keys
-    _, key_subst = satisfy(@julog([at(K, X, Y), key(K)]), state; mode=:all)
-    key_locs = [(s[@julog(X)].name, s[@julog(Y)].name) for s in key_subst]
-    for k in key_locs
-        render_key!(k[1], k[2], 0.4, plt)
-    end
+    # Plot objects
+    if show_objs render_objects!(state, plt; gem_colors=gem_colors) end
     # Plot trace of plan
     if (plan != nothing && start != nothing) render!(plan, start, plt) end
     # Plot current position
