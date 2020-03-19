@@ -183,7 +183,7 @@ end
 "Render trajectories for each (weighted) trace"
 function render_traces!(traces, weights=nothing,
                         plt::Union{Plots.Plot,Nothing}=nothing;
-                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.75)
+                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.25)
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     for (tr, w) in zip(traces, weights)
         traj = get_retval(tr)
