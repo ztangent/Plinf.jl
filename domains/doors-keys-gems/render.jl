@@ -114,6 +114,9 @@ function render_objects!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
     ]
     for (query, colors, fn!) in zip(obj_queries, obj_colors, obj_renders)
         _, subst = satisfy(query, state; mode=:all)
+        if query == @julog(and(at(G, X, Y), gem(G)))
+            sort!(subst, by=s->s[@julog(G)].name)
+        end
         locs = [(s[@julog(X)].name, s[@julog(Y)].name) for s in subst]
         if !isa(colors, AbstractArray) colors = fill(colors, length(locs)) end
         for (loc, col) in zip(locs, colors) fn!(loc, col) end
@@ -183,7 +186,7 @@ end
 "Render trajectories for each (weighted) trace"
 function render_traces!(traces, weights=nothing,
                         plt::Union{Plots.Plot,Nothing}=nothing;
-                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.25)
+                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.50)
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     for (tr, w) in zip(traces, weights)
         traj = get_retval(tr)
@@ -195,9 +198,10 @@ end
 "Callback render function for particle filter."
 function render_pf!(t::Int, state, traces, weights;
                     plt=nothing, animation=nothing, show=true,
-                    pos_args=Dict(), tr_args=Dict())
+                    pos_args=Dict(), obj_args=Dict(), tr_args=Dict())
     plt = deepcopy((plt == nothing) ? plot!() : plt) # Get last plot if not provided
     render_pos!(state, plt; pos_args...) # Render agent's current position
+    render_objects!(state, plt; obj_args...) # Render objects in gridworld
     render_traces!(traces, weights, plt; tr_args...) # Render predicted trajectories
     title!("t = $t") # Display current timestep
     if show display(plt) end

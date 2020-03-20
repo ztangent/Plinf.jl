@@ -1,0 +1,25 @@
+(define (problem gridworld-3)
+  (:domain gridworld)
+  (:objects
+    up down right left - direction
+    key1 key2 - key gem1 gem2 gem3 - gem
+  )
+  (:init
+    (= (xdiff up) 0) (= (ydiff up) 1)
+    (= (xdiff down) 0) (= (ydiff down) -1)
+    (= (xdiff right) 1) (= (ydiff right) 0)
+    (= (xdiff left) -1) (= (ydiff left) 0)
+    (= width 8) (= height 8)
+    (= xpos 1) (= ypos 1)
+    (wall 1 2) (wall 2 2) (wall 3 2)
+    (wall 5 1) (wall 5 2) (wall 5 3) (wall 5 4)
+    (wall 7 2) (wall 7 3) (wall 7 4) (wall 7 5) (wall 7 6)
+    (wall 2 4) (wall 2 5) (wall 2 6)
+    (wall 3 6) (wall 4 6) (wall 5 6) (wall 6 6) (wall 7 6)
+    (wall 4 8) (wall 6 7)
+    (door 4 7) (door 5 5) (door 8 6)
+    (at key1 1 7) (at key2 7 7)
+    (at gem1 1 8) (at gem2 8 8) (at gem3 8 1)
+  )
+  (:goal (has gem1))
+)

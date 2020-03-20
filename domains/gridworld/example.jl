@@ -90,7 +90,7 @@ elseif method == :pf
 end
 
 # Plot sampled trajectory for each trace
-plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors
+plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 render_traces!(traces, weights, plt; goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 
