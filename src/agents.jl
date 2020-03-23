@@ -1,7 +1,7 @@
 # Top level models for planning agents
 
 "Model of an agent pursuing several possible goals via task planning."
-@gen (static) function task_agent(
+@gen (static) function plan_agent(
     timesteps::Int, goals::Vector{Vector{<:Term}}, state::State, domain::Domain,
     planner, plan_args, obs_facts, obs_fluents)
     # Sample a goal uniformly at random

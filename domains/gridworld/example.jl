@@ -29,16 +29,16 @@ end_state = execute(plan, state, domain)
 # Visualize full horizon sample-based search
 plt = render(state; start=start_pos, goals=goal_pos)
 @gif for i=1:20
-    plan, _ = sample_search(goal, state, domain, 0.1)
-    plt = render!(plan, start_pos; alpha=0.05)
+    plan, traj = sample_search(goal, state, domain, 0.1)
+    plt = render!(traj; alpha=0.05)
 end
 display(plt)
 
 # Visualize sample-based replanning search
 plt = render(state; start=start_pos, goals=goal_pos)
 @gif for i=1:20
-    plan, _ = replan_search(goal, state, domain, 0.1, 0.95)
-    plt = render!(plan, start_pos; alpha=0.05)
+    plan, traj = replan_search(30, goal, state, domain, 0.5, 0.95)
+    plt = render!(traj; alpha=0.05)
 end
 display(plt)
 
@@ -66,6 +66,7 @@ plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
 
 # Infer likely goals of a gridworld agent
+agent_model = plan_agent # replan_agent
 agent_args = (goals, state, domain, sample_search, (0.1,),
               Term[], @julog([xpos, ypos]))
 method = :pf # :importance
@@ -74,7 +75,7 @@ if method == :importance
     # Run importance sampling to infer the likely goal
     observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
     traces, weights, _ =
-        importance_sampling(task_agent, (length(traj), agent_args...),
+        importance_sampling(agent_model, (length(traj), agent_args...),
                             observations, n_samples)
 elseif method == :pf
     # Run a particle filter to perform online goal inference
@@ -84,8 +85,8 @@ elseif method == :pf
         render_pf!(t, s, trs, ws; tr_args=Dict(:goal_colors => goal_colors),
                    plt=plt, animation=anim, show=true)
     traces, weights =
-        task_agent_pf(agent_args, traj, @julog([xpos, ypos]), n_samples;
-                      callback=render_cb)
+        agent_pf(agent_model, agent_args, traj, @julog([xpos, ypos]),
+                 n_samples; callback=render_cb)
     gif(anim; fps=5)
 end
 

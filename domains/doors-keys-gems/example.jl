@@ -29,16 +29,16 @@ end_state = execute(plan, state, domain)
 # Visualize full horizon sample-based search
 plt = render(state; start=start_pos, gem_colors=gem_colors)
 @gif for i=1:20
-    plan, _ = sample_search(goal, state, domain, 0.1, Inf, goal_count)
-    plt = render!(plan, start_pos; alpha=0.05)
+    plan, traj = sample_search(goal, state, domain, 0.1, Inf, goal_count)
+    plt = render!(traj; alpha=0.05)
 end
 display(plt)
 
 # Visualize sample-based replanning search
-plt = render(state; start=start_pos)
+plt = render(state; start=start_pos, gem_colors=gem_colors)
 @gif for i=1:20
-    plan, _ = replan_search(goal, state, domain, 0.1, 0.95, 10, goal_count)
-    plt = render!(plan, start_pos; alpha=0.05)
+    plan, traj = replan_search(40, goal, state, domain, 0.1, 0.95, goal_count)
+    plt = render!(traj; alpha=0.05)
 end
 display(plt)
 
@@ -56,6 +56,7 @@ plt = render!(traj, plt; alpha=0.5)
 obs_facts = @julog [has(key1), has(key2), has(gem1), has(gem2), has(gem3)]
 obs_fluents = @julog [xpos, ypos]
 obs_terms = [obs_facts; obs_fluents]
+agent_model = plan_agent
 agent_args = (goals, state, domain, sample_search, (0.1, Inf, goal_count),
               obs_facts, obs_fluents)
 method = :pf # :importance
@@ -64,7 +65,7 @@ if method == :importance
     # Run importance sampling to infer the likely goal
     observations = traj_choices(traj, obs_terms, :traj)
     traces, weights, _ =
-        importance_sampling(task_agent, (length(traj), agent_args...),
+        importance_sampling(agent_model, (length(traj), agent_args...),
                             observations, n_samples)
 elseif method == :pf
     # Run a particle filter to perform online goal inference
@@ -75,8 +76,8 @@ elseif method == :pf
                    obj_args=Dict(:gem_colors => gem_colors),
                    tr_args=Dict(:goal_colors => gem_colors))
     traces, weights =
-        task_agent_pf(agent_args, traj, obs_terms, n_samples;
-                      callback=render_cb)
+        agent_pf(agent_model, agent_args, traj, obs_terms, n_samples;
+                 callback=render_cb)
     gif(anim; fps=3)
 end
 

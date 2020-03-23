@@ -17,7 +17,7 @@ function plan_to_traj(plan::Vector{Term}, start::Tuple{Int,Int})
     dirs = Dict(:up => [0, 1], :down => [0, -1],
                 :left => [-1, 0], :right => [1, 0])
     for act in plan
-        next = traj[end] + dirs[act.name]
+        next = traj[end] + get(dirs, act.name, [0, 0])
         push!(traj, next)
     end
     return traj

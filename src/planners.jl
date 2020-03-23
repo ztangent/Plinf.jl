@@ -106,13 +106,18 @@ end
     # Initialize trace address
     count = 0
     while length(queue) > 0
+        # Return plan to state with best heuristic value if max nodes is reached
+        if count >= max_nodes
+            state = findmax(queue)[2]
+            return reconstruct_plan(state, parents)
+        end
         # Sample state from queue with probability exp(-beta*est_cost)
         probs = softmax([-search_noise*v for v in values(queue)])
         state = @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
         delete!(queue, state)
         count += 1
-        # Return plan if max nodes is reached or goals are satisfied
-        if count >= max_nodes || satisfy(goals, state, domain)[1]
+        # Return plan if goals are satisfied
+        if satisfy(goals, state, domain)[1]
             return reconstruct_plan(state, parents)
         end
         # Get list of available actions
@@ -141,26 +146,54 @@ end
     return nothing, nothing
 end
 
-@gen function replan_search(goals::Vector{<:Term}, state::State, domain::Domain,
-                            search_noise::Float64=0.1, persistence::Float64=0.9,
-                            max_plans::Int=10, heuristic::Function=manhattan)
-    count = 0
-    plan, traj = Term[], State[]
-    while count < max_plans
-        # Sample a maximum number of nodes to expand during search
-        max_nodes = @trace(geometric(1-persistence), (:max_nodes, count))
-        # Plan to achieve the goals until the maximum node budget
-        part_plan, part_traj = @trace(sample_search(goals, state, domain,
-            search_noise, max_nodes, heuristic), (:plan, count))
-        if part_plan == nothing return (plan, traj) end
-        # Append the partial plan and state trajectory
-        append!(plan, part_plan)
-        append!(traj, part_traj)
-        # Continue planning from the end of the trajectory
-        state = traj[end]
-        # Return plan if the goals are satisfied
-        sat, _ = satisfy(goals, state, domain)
-        if sat return (plan, traj) end
-        count += 1
+struct ReplanState
+    cur_state::State
+    plan_count::Int
+    plan_length::Int
+    part_plan::Vector{Term}
+    part_traj::Vector{State}
+end
+
+@gen function replan_step(t::Int, rp::ReplanState,
+                          goals::Vector{<:Term}, domain::Domain,
+                          search_noise::Float64=0.1, persistence::Float64=0.9,
+                          heuristic::Function=manhattan)
+    # If plan has already reached this time step, do nothing
+    if t <= rp.plan_length
+        return ReplanState(rp.cur_state, rp.plan_count, rp.plan_length,
+                           Term[], State[])
     end
+    # Get most recent world state
+    state = rp.cur_state
+    # Sample a maximum number of nodes to expand during search
+    max_nodes = @trace(geometric(1-persistence), :max_nodes)
+    # Plan to achieve the goals until the maximum node budget
+    part_plan, part_traj = @trace(sample_search(goals, state, domain,
+        search_noise, max_nodes, heuristic), :plan)
+    if part_plan == nothing || length(part_plan) == 0
+        # Return no-op if goal is reached or no satisfying plan can be found
+        part_plan, part_traj = Term[@julog(idle())], State[state]
+    else
+        # Don't double count initial state
+        part_traj = part_traj[2:end]
+    end
+    plan_count = rp.plan_count + 1
+    plan_length = rp.plan_length + length(part_plan)
+    return ReplanState(part_traj[end], plan_count, plan_length,
+                       part_plan, part_traj)
+end
+
+replan_step_unfold = Unfold(replan_step)
+
+@gen function replan_search(timesteps::Int, goals::Vector{<:Term},
+                            state::State, domain::Domain,
+                            search_noise::Float64=0.1, persistence::Float64=0.9,
+                            heuristic::Function=manhattan)
+    rp_init = ReplanState(state, 0, 0, Term[], [state])
+    rp_states = @trace(replan_step_unfold(timesteps, rp_init, goals, domain,
+                                          search_noise, persistence, heuristic),
+                       :replan)
+    plan = reduce(vcat, [rp.part_plan for rp in rp_states])
+    traj = [state; reduce(vcat, [rp.part_traj for rp in rp_states])]
+    return plan, traj
 end

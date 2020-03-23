@@ -1,11 +1,11 @@
 "Online goal inference for a task planning agent using a particle filter."
-function task_agent_pf(agent_args::Tuple, obs_traj::Vector{State},
-                       obs_terms::Vector{<:Term}, n_particles::Int;
-                       callback=nothing)
+function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
+                  obs_traj::Vector{State}, obs_terms::Vector{<:Term},
+                  n_particles::Int; callback=nothing)
     # Initialize particle filter with initial observations
     init_obs = state_choices(obs_traj[1], obs_terms, (:traj => 1))
-    pf_state = initialize_particle_filter(task_agent, (1, agent_args...),
-                                                init_obs, n_particles)
+    pf_state = initialize_particle_filter(agent_model, (1, agent_args...),
+                                          init_obs, n_particles)
     agent_argdiffs = fill(NoChange(), length(agent_args))
     # Run callback with initial state
     if callback != nothing
