@@ -147,8 +147,7 @@ end
 end
 
 struct ReplanState
-    cur_state::State
-    plan_count::Int
+    rel_step::Int
     plan_length::Int
     part_plan::Vector{Term}
     part_traj::Vector{State}
@@ -157,14 +156,15 @@ end
 @gen function replan_step(t::Int, rp::ReplanState,
                           goals::Vector{<:Term}, domain::Domain,
                           search_noise::Float64=0.1, persistence::Float64=0.9,
-                          heuristic::Function=manhattan)
+                          heuristic::Function=manhattan, observe=nothing)
+    # Get most recent world state
+    state = rp.part_traj[rp.rel_step]
     # If plan has already reached this time step, do nothing
     if t <= rp.plan_length
-        return ReplanState(rp.cur_state, rp.plan_count, rp.plan_length,
-                           Term[], State[])
+        if observe != nothing @trace(observe(state)) end
+        rel_step = rp.rel_step + 1
+        return ReplanState(rel_step, rp.plan_length, rp.part_plan, rp.part_traj)
     end
-    # Get most recent world state
-    state = rp.cur_state
     # Sample a maximum number of nodes to expand during search
     max_nodes = @trace(geometric(1-persistence), :max_nodes)
     # Plan to achieve the goals until the maximum node budget
@@ -177,23 +177,40 @@ end
         # Don't double count initial state
         part_traj = part_traj[2:end]
     end
-    plan_count = rp.plan_count + 1
+    if observe != nothing @trace(observe(part_traj[1])) end
     plan_length = rp.plan_length + length(part_plan)
-    return ReplanState(part_traj[end], plan_count, plan_length,
-                       part_plan, part_traj)
+    return ReplanState(1, plan_length, part_plan, part_traj)
 end
 
 replan_step_unfold = Unfold(replan_step)
+
+function extract_plan(rp_states)
+    plan = Term[rp.part_plan[rp.rel_step] for rp in rp_states]
+    if length(rp_states[end].part_plan) > rp_states[end].rel_step
+        tail = rp_states[end].part_plan[rp_states[end].rel_step+1:end]
+        append!(plan, tail)
+    end
+    return plan
+end
+
+function extract_traj(rp_states)
+    traj = State[rp.part_traj[rp.rel_step] for rp in rp_states]
+    if length(rp_states[end].part_traj) > rp_states[end].rel_step
+        tail = rp_states[end].part_traj[rp_states[end].rel_step+1:end]
+        append!(traj, tail)
+    end
+    return traj
+end
 
 @gen function replan_search(timesteps::Int, goals::Vector{<:Term},
                             state::State, domain::Domain,
                             search_noise::Float64=0.1, persistence::Float64=0.9,
                             heuristic::Function=manhattan)
-    rp_init = ReplanState(state, 0, 0, Term[], [state])
+    rp_init = ReplanState(1, 0, Term[], [state])
     rp_states = @trace(replan_step_unfold(timesteps, rp_init, goals, domain,
                                           search_noise, persistence, heuristic),
                        :replan)
-    plan = reduce(vcat, [rp.part_plan for rp in rp_states])
-    traj = [state; reduce(vcat, [rp.part_traj for rp in rp_states])]
+    plan = extract_plan(rp_states)
+    traj = [state; extract_traj(rp_states)]
     return plan, traj
 end

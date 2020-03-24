@@ -48,7 +48,7 @@ goals = [pos_to_terms(g) for g in goal_set]
 goal_colors = [:orange, :magenta, :blue]
 
 # Sample a trajectory as the ground truth (no observation noise)
-likely_traj = true
+likely_traj = false
 if likely_traj
     # Construct a trajectory sampled from the prior
     goal = goals[uniform_discrete(1, length(goals))]
@@ -65,12 +65,20 @@ end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
 
-# Infer likely goals of a gridworld agent
+# Assume either a planning agent or replanning agent as a model
 agent_model = plan_agent # replan_agent
-agent_args = (goals, state, domain, sample_search, (0.1,),
-              Term[], @julog([xpos, ypos]))
+if agent_model == plan_agent
+    agent_args = (goals, state, domain, sample_search, (0.1,),
+                  Term[], @julog([xpos, ypos]))
+else
+    @gen observe_fn(state::State) =
+        @trace(observe_state(state, Term[], @julog([xpos, ypos])))
+    agent_args = (goals, state, domain, 0.5, 0.975, manhattan, observe_fn)
+end
+
+# Infer likely goals of a gridworld agent
 method = :pf # :importance
-n_samples = 20
+n_samples = 30
 if method == :importance
     # Run importance sampling to infer the likely goal
     observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
