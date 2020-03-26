@@ -18,26 +18,30 @@ start_pos = (state[:xpos], state[:ypos])
 goal_pos = (7, 8)
 goal = pos_to_terms(goal_pos)
 
-# Check that heuristic search correctly solves the problem
-plan, _ = heuristic_search(goal, state, domain; heuristic=manhattan)
+# Check that A* heuristic search correctly solves the problem
+planner = AStarPlanner(heuristic=manhattan)
+plan, _ = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 render(state; start=start_pos, goals=goal_pos, plan=plan)
 end_state = execute(plan, state, domain)
 @assert satisfy(goal, end_state, domain)[1] == true
 
-# Visualize full horizon sample-based search
+# Visualize full horizon probabilistic A* search
+planner = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
 plt = render(state; start=start_pos, goals=goal_pos)
 @gif for i=1:20
-    plan, traj = sample_search(goal, state, domain, 0.1)
+    plan, traj = planner(domain, state, goal)
     plt = render!(traj; alpha=0.05)
 end
 display(plt)
 
 # Visualize sample-based replanning search
+astar = ProbAStarPlanner(heuristic=manhattan, search_noise=0.5)
+replanner = Replanner(planner=astar, persistence=0.95)
 plt = render(state; start=start_pos, goals=goal_pos)
 @gif for i=1:20
-    plan, traj = replan_search(30, goal, state, domain, 0.5, 0.95)
+    plan, traj = replanner(domain, state, goal)
     plt = render!(traj; alpha=0.05)
 end
 display(plt)
@@ -48,18 +52,18 @@ goals = [pos_to_terms(g) for g in goal_set]
 goal_colors = [:orange, :magenta, :blue]
 
 # Sample a trajectory as the ground truth (no observation noise)
-likely_traj = false
+likely_traj = true
 if likely_traj
     # Construct a trajectory sampled from the prior
     goal = goals[uniform_discrete(1, length(goals))]
-    _, traj = sample_search(goal, state, domain, 0.1)
+    _, traj = planner(domain, state, goal)
     traj = traj[1:10]
 else
     # Construct plan that is highly unlikely under the prior
     wp1 = @julog [xpos == 1, ypos == 8]
-    _, seg1 = heuristic_search(wp1, state, domain; heuristic=manhattan)
+    _, seg1 = AStarPlanner()(domain, state, wp1)
     wp2 = @julog [xpos == 8, ypos == 1]
-    _, seg2 = heuristic_search(wp2, seg1[end], domain; heuristic=manhattan)
+    _, seg2 = AStarPlanner()(domain, seg1[end], wp2)
     traj = [seg1; seg2[2:end]][1:end-3]
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
@@ -68,12 +72,11 @@ plt = render!(traj, plt; alpha=0.5)
 # Assume either a planning agent or replanning agent as a model
 agent_model = plan_agent # replan_agent
 if agent_model == plan_agent
-    agent_args = (goals, state, domain, sample_search, (0.1,),
-                  Term[], @julog([xpos, ypos]))
+    agent_args = (planner, domain, state, goals, Term[], @julog([xpos, ypos]))
 else
     @gen observe_fn(state::State) =
         @trace(observe_state(state, Term[], @julog([xpos, ypos])))
-    agent_args = (goals, state, domain, 0.5, 0.975, manhattan, observe_fn)
+    agent_args = (replanner, domain, state, goals, observe_fn)
 end
 
 # Infer likely goals of a gridworld agent

@@ -1,3 +1,5 @@
+export goal_count, manhattan
+
 "Heuristic that counts the number of goals unsatisfied in the domain."
 function goal_count(goals, state, domain)
     count = sum([state[domain, g] for g in goals])

@@ -1,3 +1,5 @@
+export observe_state, observe_traj, state_choices, traj_choices
+
 "Observation noise model for PDDL states."
 @gen function observe_state(state::State,
                             facts::Vector{<:Term}, fluents::Vector{<:Term},

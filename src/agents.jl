@@ -1,14 +1,15 @@
 # Top level models for planning agents
+export plan_agent, replan_agent
 
 "Model of an agent pursuing several possible goals via task planning."
-@gen (static) function plan_agent(
-    timesteps::Int, goals::Vector{Vector{<:Term}}, state::State, domain::Domain,
-    planner, plan_args, obs_facts, obs_fluents)
+@gen (static) function plan_agent(timesteps::Int, planner::AbstractPlanner,
+                                  domain::Domain, state::State, goals::Vector,
+                                  obs_facts, obs_fluents)
     # Sample a goal uniformly at random
     goal_idx = @trace(uniform_discrete(1, length(goals)), :goal)
     goal = goals[goal_idx]
     # Sample a plan and trajectory from the planner
-    ret = @trace(sample_plan(planner, goal, state, domain, plan_args), :plan)
+    ret = @trace(sample_plan(planner, domain, state, goal), :plan)
     traj = ret[2]
     # Add observation noise
     padded_traj = pad_vector(traj, timesteps)
@@ -19,18 +20,16 @@
 end
 
 "Model of an agent pursuing several possible goals via replanning."
-@gen (static) function replan_agent(
-    timesteps::Int, goals::Vector{Vector{<:Term}}, state::State, domain::Domain,
-    search_noise::Float64, persistence::Float64, heuristic::Function,
-    observe::GenerativeFunction)
+@gen (static) function replan_agent(timesteps::Int, replanner::Replanner,
+                                    domain::Domain, state::State, goals::Vector,
+                                    observe_fn::GenerativeFunction)
     # Sample a goal uniformly at random
     goal_idx = @trace(uniform_discrete(1, length(goals)), :goal)
     goal = goals[goal_idx]
     # Sample a trajectory via replanning and observations
-    rp_init = ReplanState(1, 0, Term[], [state])
-    rp_states = @trace(replan_step_unfold(timesteps, rp_init, goal, domain,
-                                          search_noise, persistence,
-                                          heuristic, observe), :traj)
+    rp_init = ReplanState(1, 0, Term[], [state], false)
+    rp_states = @trace(replan_unfold(timesteps, rp_init, replanner,
+                                     domain, goal, observe_fn), :traj)
     traj = [state; extract_traj(rp_states)]
     # Return true state trajectory
     return traj

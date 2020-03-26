@@ -1,3 +1,5 @@
+export agent_pf
+
 "Online goal inference for a task planning agent using a particle filter."
 function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
                   obs_traj::Vector{State}, obs_terms::Vector{<:Term},
