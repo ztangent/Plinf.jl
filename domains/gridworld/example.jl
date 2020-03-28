@@ -69,13 +69,16 @@ end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
 
+# Assume Gaussian observation noise around agent's location
+obs_terms = @julog([xpos, ypos])
+obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
+
 # Assume either a planning agent or replanning agent as a model
 agent_model = plan_agent # replan_agent
 if agent_model == plan_agent
-    agent_args = (planner, domain, state, goals, Term[], @julog([xpos, ypos]))
+    agent_args = (planner, domain, state, goals, obs_params)
 else
-    @gen observe_fn(state::State) =
-        @trace(observe_state(state, Term[], @julog([xpos, ypos])))
+    @gen observe_fn(state::State) = @trace(observe_state(state, obs_params))
     agent_args = (replanner, domain, state, goals, observe_fn)
 end
 
@@ -96,7 +99,7 @@ elseif method == :pf
         render_pf!(t, s, trs, ws; tr_args=Dict(:goal_colors => goal_colors),
                    plt=plt, animation=anim, show=true)
     traces, weights =
-        agent_pf(agent_model, agent_args, traj, @julog([xpos, ypos]),
+        agent_pf(agent_model, agent_args, traj, obs_terms,
                  n_samples; callback=render_cb)
     gif(anim; fps=5)
 end
@@ -107,7 +110,7 @@ render_traces!(traces, weights, plt; goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 
 # Compute posterior probability of each goal
-goal_probs = zeros(3)
+goal_probs = zeros(length(goals))
 for (tr, w) in zip(traces, weights)
     goal_probs[tr[:goal]] += exp(w)
 end

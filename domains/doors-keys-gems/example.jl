@@ -56,16 +56,21 @@ traj = traj[1:min(length(traj), 25)]
 plt = render(state; start=start_pos, gem_colors=gem_colors)
 plt = render!(traj, plt; alpha=0.5)
 
+# Define observation noise model
+obs_params = observe_params(
+    (pddl"(xpos)", normal, 0.25), (pddl"(ypos)", normal, 0.25),
+    (pddl"(door ?x ?y)", 0.05),
+    (pddl"(forall (?obj - item) (has ?obj))", 0.05),
+    (pddl"(forall (?obj - item) (at ?obj ?x ?y))", 0.05)
+)
+obs_terms = collect(keys(obs_params))
+
 # Assume either a planning agent or replanning agent as a model
-agent_model = plan_agent # replan_agent
-obs_facts = @julog [has(key1), has(key2), has(gem1), has(gem2), has(gem3)]
-obs_fluents = @julog [xpos, ypos]
-obs_terms = [obs_facts; obs_fluents]
+agent_model = replan_agent # replan_agent
 if agent_model == plan_agent
-    agent_args = (planner, domain, state, goals, obs_facts, obs_fluents)
+    agent_args = (planner, domain, state, goals, obs_params)
 else
-    @gen observe_fn(state::State) =
-        @trace(observe_state(state, obs_facts, obs_fluents))
+    @gen observe_fn(state::State) = @trace(observe_state(state, obs_params))
     agent_args = (replanner, domain, state, goals, observe_fn)
 end
 
@@ -98,7 +103,7 @@ render_traces!(traces, weights, plt; goal_colors=gem_colors)
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 
 # Compute posterior probability of each goal
-goal_probs = zeros(3)
+goal_probs = zeros(length(goals))
 for (tr, w) in zip(traces, weights)
     goal_probs[tr[:goal]] += exp(w)
 end

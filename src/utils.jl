@@ -12,5 +12,11 @@ lognorm(w) = w .- logsumexp(w)
 softmax(score) =
     (exp_score = exp.(score .- maximum(score)); exp_score ./ sum(exp_score))
 
+"Return output type of distribution."
+dist_type(d::Distribution{T}) where {T} = T
+
 "Labeled categorical distribution."
 @dist labeled_cat(labels, probs) = labels[categorical(probs)]
+
+"Boolean corruption noise."
+@dist flip(val::Bool, prob::Float64) = bernoulli((1-val)*prob + val*(1-prob))
