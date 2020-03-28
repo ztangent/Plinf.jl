@@ -24,8 +24,8 @@ plan, _ = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 render(state; start=start_pos, goals=goal_pos, plan=plan)
-end_state = execute(plan, state, domain)
-@assert satisfy(goal, end_state, domain)[1] == true
+traj = PDDL.simulate(domain, state, plan)
+@assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search
 planner = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)

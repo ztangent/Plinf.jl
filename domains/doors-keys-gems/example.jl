@@ -18,26 +18,30 @@ start_pos = (state[:xpos], state[:ypos])
 goal = [problem.goal]
 gem_colors = [:red, :gold, :blue]
 
-# Check that heuristic search correctly solves the problem
-plan, _ = heuristic_search(goal, state, domain; heuristic=goal_count)
+# Check that A* heuristic search correctly solves the problem
+planner = AStarPlanner(heuristic=goal_count)
+plan, _ = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 render(state; start=start_pos, plan=plan, show_pos=true, gem_colors=gem_colors)
-end_state = execute(plan, state, domain)
-@assert satisfy(goal, end_state, domain)[1] == true
+traj = PDDL.simulate(domain, state, plan)
+@assert satisfy(goal, traj[end], domain)[1] == true
 
-# Visualize full horizon sample-based search
+# Visualize full horizon probabilistic A* search
+planner = ProbAStarPlanner(heuristic=goal_count, search_noise=0.1)
 plt = render(state; start=start_pos, gem_colors=gem_colors)
 @gif for i=1:20
-    plan, traj = sample_search(goal, state, domain, 0.1, Inf, goal_count)
+    plan, traj = planner(domain, state, goal)
     plt = render!(traj; alpha=0.05)
 end
 display(plt)
 
 # Visualize sample-based replanning search
+astar = ProbAStarPlanner(heuristic=goal_count, search_noise=0.5)
+replanner = Replanner(planner=astar, persistence=0.95)
 plt = render(state; start=start_pos, gem_colors=gem_colors)
 @gif for i=1:20
-    plan, traj = replan_search(40, goal, state, domain, 0.1, 0.95, goal_count)
+    plan, traj = replanner(domain, state, goal)
     plt = render!(traj; alpha=0.05)
 end
 display(plt)
@@ -47,20 +51,27 @@ goals = [@julog([has(gem1)]), @julog([has(gem2)]), @julog([has(gem3)])]
 
 # Sample a trajectory as the ground truth (no observation noise)
 goal = goals[uniform_discrete(1, length(goals))]
-_, traj = sample_search(goal, state, domain, 0.1, Inf, goal_count)
-traj = traj[1:15]
+_, traj = planner(domain, state, goal)
+traj = traj[1:min(length(traj), 25)]
 plt = render(state; start=start_pos, gem_colors=gem_colors)
 plt = render!(traj, plt; alpha=0.5)
 
-# Infer likely goals of a gem-seeking agent
+# Assume either a planning agent or replanning agent as a model
+agent_model = plan_agent # replan_agent
 obs_facts = @julog [has(key1), has(key2), has(gem1), has(gem2), has(gem3)]
 obs_fluents = @julog [xpos, ypos]
 obs_terms = [obs_facts; obs_fluents]
-agent_model = plan_agent
-agent_args = (goals, state, domain, sample_search, (0.1, Inf, goal_count),
-              obs_facts, obs_fluents)
+if agent_model == plan_agent
+    agent_args = (planner, domain, state, goals, obs_facts, obs_fluents)
+else
+    @gen observe_fn(state::State) =
+        @trace(observe_state(state, obs_facts, obs_fluents))
+    agent_args = (replanner, domain, state, goals, observe_fn)
+end
+
+# Infer likely goals of a gem-seeking agent
 method = :pf # :importance
-n_samples = 20
+n_samples = 30
 if method == :importance
     # Run importance sampling to infer the likely goal
     observations = traj_choices(traj, obs_terms, :traj)
