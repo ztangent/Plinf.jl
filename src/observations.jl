@@ -49,7 +49,7 @@ function state_choices(state::State, terms::Vector{<:Term}, addr=nothing)
     ground_terms = Term[]
     # Ground terms if necessary
     for t in terms
-        if is_ground(term)
+        if is_ground(t)
             push!(ground_terms, t)
         else
             _, subst = satisfy(t, state)
