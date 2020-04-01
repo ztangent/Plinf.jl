@@ -28,6 +28,19 @@ function hsp(goals, state::State, domain::Domain; op::Function=maximum)
         if satisfy(goals, state, domain)[1]
             return op([fact_costs[g][2] for g in goals])
         end
+        # Compute costs of one-step derivations of domain axioms
+        for axiom in domain.axioms
+            _, subst = resolve(axiom.body, [Clause(f, []) for f in facts])
+            for s in subst
+                body = [substitute(t, s) for t in axiom.body]
+                cost = op([get(fact_costs, f, (0, 0))[2] for f in body])
+                derived = substitute(axiom.head, s)
+                if cost < get(fact_costs, derived, (0, Inf))[2]
+                    fact_costs[derived] = (level+1, cost)
+                end
+            end
+        end
+        # Compute costs of all effects of available actions
         actions = available(state, domain)
         for act in actions
             # Compute cost of reaching each action
@@ -52,7 +65,7 @@ function hsp(goals, state::State, domain::Domain; op::Function=maximum)
 end
 
 "h_max delete relaxation heuristic."
-h_add(goals, state::State, domain::Domain) =
+h_max(goals, state::State, domain::Domain) =
     hsp(goals, state, domain; op=maximum)
 
 "h_add delete relaxation heuristic."
