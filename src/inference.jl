@@ -1,9 +1,9 @@
-export agent_pf
+export agent_pf, replan_rejuvenate
 
 "Online goal inference for a task planning agent using a particle filter."
 function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
                   obs_traj::Vector{State}, obs_terms::Vector{<:Term},
-                  n_particles::Int; callback=nothing)
+                  n_particles::Int; rejuvenate=nothing, callback=nothing)
     # Initialize particle filter with initial observations
     init_obs = state_choices(obs_traj[1], obs_terms, (:traj => 1))
     pf_state = initialize_particle_filter(agent_model, (1, agent_args...),
@@ -16,7 +16,8 @@ function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
     end
     # Feed new observations at each timestep
     for t=2:length(obs_traj)
-        maybe_resample!(pf_state, ess_threshold=n_particles/2);
+        resampled = maybe_resample!(pf_state, ess_threshold=n_particles/4)
+        if rejuvenate != nothing rejuvenate(pf_state, t-1) end
         obs = state_choices(obs_traj[t], obs_terms, (:traj => t));
         particle_filter_step!(pf_state, (t, agent_args...),
             (UnknownChange(), agent_argdiffs...), obs)
@@ -27,6 +28,34 @@ function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
     end
     # Return particles and their weights
     return get_traces(pf_state), lognorm(get_log_weights(pf_state))
+end
+
+"Rejuvenation MCMC move for replanning agent models."
+function replan_rejuvenate(pf_state::Gen.ParticleFilterState, t::Int,
+                           n_steps::Int=1)
+    plan_sel = select(:traj => t => :max_resource, :traj => t => :plan)
+    for (i, trace) in enumerate(pf_state.traces)
+        # Lookup choicemap for the current timestep
+        choices = get_submap(get_choices(trace), :traj => t)
+        if has_value(choices, :max_resource)
+            # If a new plan was made at this step, try a few others via MH
+            for k = 1:n_steps
+                trace, _ = mh(trace, plan_sel)
+            end
+        elseif
+            # Otherwise, resample everything
+            for k = 1:n_steps
+                trace, _ = mh(trace, select(:goal, :traj))
+            end
+        end
+        pf_state.new_traces[i] = trace
+
+    end
+
+    # Swap references
+    tmp = pf_state.traces
+    pf_state.traces = pf_state.new_traces
+    pf_state.new_traces = tmp
 end
 
 "Propose a plan constrained to be an extension of a partial trajectory."
