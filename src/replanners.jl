@@ -15,7 +15,7 @@ get_call(::Replanner)::GenerativeFunction = replan_call
 "Unfold combinator state for a replanning step."
 struct ReplanState
     rel_step::Int
-    plan_length::Int
+    traj_length::Int
     part_plan::Vector{Term}
     part_traj::Vector{State}
     plan_done::Bool
@@ -51,9 +51,10 @@ end
     # Get most recent world state
     state = rp.part_traj[rp.rel_step]
     # If plan has already reached this time step, do nothing
-    if t <= rp.plan_length
+    if t <= rp.traj_length
         if observe_fn != nothing @trace(observe_fn(state)) end
-        return ReplanState(rp.rel_step + 1, rp.plan_length,
+        rel_step = t < rp.traj_length ? rp.rel_step + 1 : rp.rel_step
+        return ReplanState(rel_step, rp.traj_length,
                            rp.part_plan, rp.part_traj, plan_done)
     end
     # Sample a resource bound for the planner
@@ -71,8 +72,8 @@ end
         part_traj = part_traj[2:end]
     end
     if observe_fn != nothing @trace(observe_fn(part_traj[1])) end
-    plan_length = rp.plan_length + length(part_plan)
-    return ReplanState(1, plan_length, part_plan, part_traj, plan_done)
+    traj_length = rp.traj_length + length(part_plan)
+    return ReplanState(1, traj_length, part_plan, part_traj, plan_done)
 end
 
 replan_unfold = Unfold(replan_step)
@@ -83,7 +84,7 @@ replan_unfold = Unfold(replan_step)
     # TODO : Handle states differing from planned trajectory
     # This will occur in stochastic domains
     # Intialize state for replan step
-    rp_states = [ReplanState(1, 0, Term[], [state], false)]
+    rp_states = [ReplanState(1, 1, Term[], [state], false)]
     plan_count, success = 0, false
     while true
         # Take a replanning step
