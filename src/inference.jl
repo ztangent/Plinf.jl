@@ -42,7 +42,7 @@ function replan_rejuvenate(pf_state::Gen.ParticleFilterState, t::Int,
             for k = 1:n_steps
                 trace, _ = mh(trace, plan_sel)
             end
-        elseif
+        else
             # Otherwise, resample everything
             for k = 1:n_steps
                 trace, _ = mh(trace, select(:goal, :traj))

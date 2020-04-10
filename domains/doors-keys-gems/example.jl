@@ -1,11 +1,11 @@
 using Julog, PDDL, Gen, Printf
-using InverseTAMP
+using Plinf
 
 include("render.jl")
 Gen.load_generated_functions()
 
 # Load domain and problem
-path = joinpath(dirname(pathof(InverseTAMP)), "..", "domains", "doors-keys-gems")
+path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-3.pddl"))
 

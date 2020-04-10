@@ -1,4 +1,4 @@
-module InverseTAMP
+module Plinf
 
 using Julog, PDDL, Gen
 

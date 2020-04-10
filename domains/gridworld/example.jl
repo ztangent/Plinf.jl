@@ -1,11 +1,11 @@
 using Julog, PDDL, Gen, Printf
-using InverseTAMP
+using Plinf
 
 include("render.jl")
 Gen.load_generated_functions()
 
 # Load domain and problem
-path = joinpath(dirname(pathof(InverseTAMP)), "..", "domains", "gridworld")
+path = joinpath(dirname(pathof(Plinf)), "..", "domains", "gridworld")
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-3.pddl"))
 
@@ -56,8 +56,8 @@ likely_traj = true
 if likely_traj
     # Construct a trajectory sampled from the prior
     goal = goals[uniform_discrete(1, length(goals))]
-    _, traj = planner(domain, state, goal)
-    traj = traj[1:10]
+    _, traj = replanner(domain, state, goal)
+    traj = traj[1:max(15, length(traj))]
 else
     # Construct plan that is highly unlikely under the prior
     wp1 = @julog [xpos == 1, ypos == 8]
@@ -74,17 +74,28 @@ obs_terms = @julog([xpos, ypos])
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Assume either a planning agent or replanning agent as a model
-agent_model = plan_agent # replan_agent
+agent_model = replan_agent # replan_agent
 if agent_model == plan_agent
     agent_args = (planner, domain, state, goals, obs_params)
+    rejuvenate = nothing
 else
     @gen observe_fn(state::State) = @trace(observe_state(state, obs_params))
     agent_args = (replanner, domain, state, goals, observe_fn)
+    rejuvenate = replan_rejuvenate
+end
+
+# Extract goal probabilities from weighted traces
+function get_goal_probs(n_goals, traces, weights)
+    goal_probs = zeros(n_goals)
+    for (tr, w) in zip(traces, weights)
+        goal_probs[tr[:goal]] += exp(w)
+    end
+    return goal_probs
 end
 
 # Infer likely goals of a gridworld agent
 method = :pf # :importance
-n_samples = 30
+n_samples = 5
 if method == :importance
     # Run importance sampling to infer the likely goal
     observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
@@ -96,12 +107,13 @@ elseif method == :pf
     anim = Animation()
     plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
     render_cb = (t, s, trs, ws) ->
-        render_pf!(t, s, trs, ws; tr_args=Dict(:goal_colors => goal_colors),
-                   plt=plt, animation=anim, show=true)
+        (render_pf!(t, s, trs, ws; tr_args=Dict(:goal_colors => goal_colors),
+                   plt=plt, animation=anim, show=true);
+         println(t, " ", get_goal_probs(length(goals), trs, ws)))
     traces, weights =
         agent_pf(agent_model, agent_args, traj, obs_terms,
-                 n_samples; callback=render_cb)
-    gif(anim; fps=5)
+                 n_samples; rejuvenate=rejuvenate, callback=render_cb)
+    gif(anim; fps=2)
 end
 
 # Plot sampled trajectory for each trace
@@ -110,10 +122,7 @@ render_traces!(traces, weights, plt; goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 
 # Compute posterior probability of each goal
-goal_probs = zeros(length(goals))
-for (tr, w) in zip(traces, weights)
-    goal_probs[tr[:goal]] += exp(w)
-end
+goal_probs = get_goal_probs(length(goals), traces, weights)
 println("Posterior probabilities:")
 for (goal, prob) in zip(goal_set, goal_probs)
     @printf "Goal: %s\t Prob: %0.3f\n" goal prob

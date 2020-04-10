@@ -1,3 +1,3 @@
-# InverseTAMP
+# Plinf
 
-Inverse task and motion planning (TAMP) using PDDL and Gen.
+A library for planning, inverse planning, and inference in planning, using PDDL and Gen.
