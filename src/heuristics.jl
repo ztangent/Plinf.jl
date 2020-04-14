@@ -18,6 +18,10 @@ end
 
 "HSP family of delete relaxation heuristics (h_add, h_max, etc.)."
 function hsp(goals, state::State, domain::Domain; op::Function=maximum)
+    # Remove axioms from domain definition
+    domain = copy(domain)
+    axioms = domain.axioms
+    domain.axioms = Clause[]
     # Initialize fact/action levels/costs in a GraphPlan-style graph
     fact_costs = Dict{Term,Tuple{Int,Float64}}(f => (1, 0) for f in state.facts)
     act_costs = Dict{Term,Tuple{Int,Float64}}()
@@ -29,11 +33,13 @@ function hsp(goals, state::State, domain::Domain; op::Function=maximum)
             return op([fact_costs[g][2] for g in goals])
         end
         # Compute costs of one-step derivations of domain axioms
-        for axiom in domain.axioms
+        for axiom in axioms
+            axiom = Clause(axiom.head,
+                [t for t in axiom.body if !isa(t, Compound) || t.name != :not])
             _, subst = resolve(axiom.body, [Clause(f, []) for f in facts])
             for s in subst
                 body = [substitute(t, s) for t in axiom.body]
-                cost = op([get(fact_costs, f, (0, 0))[2] for f in body])
+                cost = op([0; [get(fact_costs, f, (0, 0))[2] for f in body]])
                 derived = substitute(axiom.head, s)
                 if cost < get(fact_costs, derived, (0, Inf))[2]
                     fact_costs[derived] = (level+1, cost)
