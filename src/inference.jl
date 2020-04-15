@@ -16,11 +16,13 @@ function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
     end
     # Feed new observations at each timestep
     for t=2:length(obs_traj)
-        resampled = maybe_resample!(pf_state, ess_threshold=n_particles/4)
-        if rejuvenate != nothing rejuvenate(pf_state, t-1) end
         obs = state_choices(obs_traj[t], obs_terms, (:traj => t));
         particle_filter_step!(pf_state, (t, agent_args...),
             (UnknownChange(), agent_argdiffs...), obs)
+        resampled = maybe_resample!(pf_state, ess_threshold=n_particles/4)
+        if resampled
+            if rejuvenate != nothing rejuvenate(pf_state) end
+        end
         if callback != nothing
             trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
             callback(t, obs_traj[t], trs, ws)
@@ -31,27 +33,32 @@ function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
 end
 
 "Rejuvenation MCMC move for replanning agent models."
-function replan_rejuvenate(pf_state::Gen.ParticleFilterState, t::Int,
-                           n_steps::Int=1)
-    plan_sel = select(:traj => t => :max_resource, :traj => t => :plan)
+function replan_rejuvenate(pf_state::Gen.ParticleFilterState,
+                           n_rejuv_steps::Int=1, rejuv_temp::Real=log(1.25))
+    # Potentially rejuvenate each trace
     for (i, trace) in enumerate(pf_state.traces)
-        # Lookup choicemap for the current timestep
-        choices = get_submap(get_choices(trace), :traj => t)
-        if has_value(choices, :max_resource)
-            # If a new plan was made at this step, try a few others via MH
-            for k = 1:n_steps
-                trace, _ = mh(trace, plan_sel)
-            end
-        else
-            # Otherwise, resample everything
-            for k = 1:n_steps
+        # Resample everything with some low probability
+        if bernoulli(0.1)
+            for k = 1:n_rejuv_steps
                 trace, _ = mh(trace, select(:goal, :traj))
             end
+            pf_state.new_traces[i] = trace
+            continue
         end
-        pf_state.new_traces[i] = trace
-
+        # Get last step at which replanning occurred
+        rp_states = trace[:traj]
+        t, _ = get_last_plan_step(rp_states)
+        last_plan_length = length(rp_states) - t + 1
+        # Resample final plan with probability decreasing in plan length
+        resample_last_plan = bernoulli(exp(-rejuv_temp * last_plan_length))
+        if resample_last_plan
+            selection = select(:traj => t => :max_resource, :traj => t => :plan)
+            for k = 1:n_rejuv_steps
+                trace, _ = mh(trace, selection)
+            end
+            pf_state.new_traces[i] = trace
+        end
     end
-
     # Swap references
     tmp = pf_state.traces
     pf_state.traces = pf_state.new_traces

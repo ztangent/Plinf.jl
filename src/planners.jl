@@ -151,7 +151,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = prob_astar_call
     count = 0
     while length(queue) > 0
         # Sample state from queue with probability exp(-beta*est_cost)
-        probs = softmax([-search_noise*v for v in values(queue)])
+        probs = softmax([-v / search_noise for v in values(queue)])
         state = @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
         delete!(queue, state)
         count += 1

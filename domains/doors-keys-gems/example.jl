@@ -2,7 +2,6 @@ using Julog, PDDL, Gen, Printf
 using Plinf
 
 include("render.jl")
-Gen.load_generated_functions()
 
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
@@ -28,7 +27,7 @@ traj = PDDL.simulate(domain, state, plan)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=goal_count, search_noise=0.1)
+planner = ProbAStarPlanner(heuristic=goal_count, search_noise=10)
 plt = render(state; start=start_pos, gem_colors=gem_colors)
 @gif for i=1:20
     plan, traj = planner(domain, state, goal)
@@ -37,7 +36,7 @@ end
 display(plt)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=goal_count, search_noise=0.5)
+astar = ProbAStarPlanner(heuristic=goal_count, search_noise=2)
 replanner = Replanner(planner=astar, persistence=0.95)
 plt = render(state; start=start_pos, gem_colors=gem_colors)
 @gif for i=1:20

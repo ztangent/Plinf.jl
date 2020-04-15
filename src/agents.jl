@@ -24,7 +24,7 @@ end
     # Sample a goal uniformly at random
     goal_idx = @trace(uniform_discrete(1, length(goals)), :goal)
     goal = goals[goal_idx]
-    # Sample a trajectory via replanning and observations
+    # Sample a trajectory via replanning
     rp_init = ReplanState(1, 1, Term[], [state], false)
     rp_states = @trace(replan_unfold(n_steps, rp_init, replanner,
                                      domain, goal, observe_fn), :traj)

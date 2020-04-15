@@ -1,16 +1,13 @@
 using Julog, PDDL, Gen, Printf
 using Plinf
 
+include("utils.jl")
 include("render.jl")
-Gen.load_generated_functions()
 
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "gridworld")
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-3.pddl"))
-
-# Define helper function to convert x-y tuples to Julog term
-pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
 
 # Initialize state, set goal position
 state = initialize(problem)
@@ -28,7 +25,7 @@ traj = PDDL.simulate(domain, state, plan)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
+planner = ProbAStarPlanner(heuristic=manhattan, search_noise=10)
 plt = render(state; start=start_pos, goals=goal_pos)
 @gif for i=1:20
     plan, traj = planner(domain, state, goal)
@@ -37,7 +34,7 @@ end
 display(plt)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=manhattan, search_noise=0.5)
+astar = ProbAStarPlanner(heuristic=manhattan, search_noise=2)
 replanner = Replanner(planner=astar, persistence=0.95)
 plt = render(state; start=start_pos, goals=goal_pos)
 @gif for i=1:20
@@ -56,8 +53,8 @@ likely_traj = true
 if likely_traj
     # Construct a trajectory sampled from the prior
     goal = goals[uniform_discrete(1, length(goals))]
-    _, traj = replanner(domain, state, goal)
-    traj = traj[1:max(15, length(traj))]
+    _, traj = planner(domain, state, goal)
+    traj = traj[1:min(20, length(traj))]
 else
     # Construct plan that is highly unlikely under the prior
     wp1 = @julog [xpos == 1, ypos == 8]
@@ -84,18 +81,9 @@ else
     rejuvenate = replan_rejuvenate
 end
 
-# Extract goal probabilities from weighted traces
-function get_goal_probs(n_goals, traces, weights)
-    goal_probs = zeros(n_goals)
-    for (tr, w) in zip(traces, weights)
-        goal_probs[tr[:goal]] += exp(w)
-    end
-    return goal_probs
-end
-
 # Infer likely goals of a gridworld agent
 method = :pf # :importance
-n_samples = 5
+n_samples = 20
 if method == :importance
     # Run importance sampling to infer the likely goal
     observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
@@ -109,7 +97,8 @@ elseif method == :pf
     render_cb = (t, s, trs, ws) ->
         (render_pf!(t, s, trs, ws; tr_args=Dict(:goal_colors => goal_colors),
                    plt=plt, animation=anim, show=true);
-         println(t, " ", get_goal_probs(length(goals), trs, ws)))
+         print("t=$t\t");
+         print_goal_probs(1:length(goals), get_goal_probs(trs, ws)))
     traces, weights =
         agent_pf(agent_model, agent_args, traj, obs_terms,
                  n_samples; rejuvenate=rejuvenate, callback=render_cb)

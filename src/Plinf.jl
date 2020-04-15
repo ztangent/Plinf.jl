@@ -10,4 +10,6 @@ include("observations.jl")
 include("agents.jl")
 include("inference.jl")
 
+Gen.@load_generated_functions()
+
 end # module

@@ -43,6 +43,15 @@ function extract_traj(rp_states)
     return traj
 end
 
+"Find the most recent timestep at which replanning occured."
+function get_last_plan_step(rp_states)
+    for (t, rp) in enumerate(reverse(rp_states))
+        if rp.rel_step == 1
+            return (length(rp_states) - t + 1, rp)
+        end
+    end
+end
+
 "Checks whether a plan already reaches a timestep t, and extends it if not."
 @gen function replan_step(t::Int, rp::ReplanState, replanner::Replanner,
                           domain::Domain, goal_spec, observe_fn=nothing)
