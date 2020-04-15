@@ -1,4 +1,5 @@
 using Julog, PDDL, Gen, Printf
+using OrderedCollections : OrderedDict
 using Plinf
 
 include("utils.jl")
@@ -20,7 +21,7 @@ planner = AStarPlanner(heuristic=manhattan)
 plan, _ = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
-render(state; start=start_pos, goals=goal_pos, plan=plan)
+plt = render(state; start=start_pos, goals=goal_pos, plan=plan)
 traj = PDDL.simulate(domain, state, plan)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
@@ -71,7 +72,7 @@ obs_terms = @julog([xpos, ypos])
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Assume either a planning agent or replanning agent as a model
-agent_model = replan_agent # replan_agent
+agent_model = plan_agent # replan_agent
 if agent_model == plan_agent
     agent_args = (planner, domain, state, goals, obs_params)
     rejuvenate = nothing
@@ -83,7 +84,7 @@ end
 
 # Infer likely goals of a gridworld agent
 method = :pf # :importance
-n_samples = 20
+n_samples = 10
 if method == :importance
     # Run importance sampling to infer the likely goal
     observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
@@ -95,14 +96,15 @@ elseif method == :pf
     anim = Animation()
     plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
     render_cb = (t, s, trs, ws) ->
-        (render_pf!(t, s, trs, ws; tr_args=Dict(:goal_colors => goal_colors),
-                   plt=plt, animation=anim, show=true);
+        (render_pf!(t, s, trs, ws; plt=plt, animation=anim, show=true,
+                    plot_probs=true, goal_colors=goal_colors,
+                    goal_names=[string(g) for g in goal_set]);
          print("t=$t\t");
-         print_goal_probs(1:length(goals), get_goal_probs(trs, ws)))
+         print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))
     traces, weights =
         agent_pf(agent_model, agent_args, traj, obs_terms,
                  n_samples; rejuvenate=rejuvenate, callback=render_cb)
-    gif(anim; fps=2)
+    gif(anim; fps=5)
 end
 
 # Plot sampled trajectory for each trace
@@ -111,8 +113,8 @@ render_traces!(traces, weights, plt; goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 
 # Compute posterior probability of each goal
-goal_probs = get_goal_probs(length(goals), traces, weights)
+goal_probs = get_goal_probs(traces, weights, 1:length(goal_set))
 println("Posterior probabilities:")
-for (goal, prob) in zip(goal_set, goal_probs)
+for (goal, prob) in zip(goal_set, values(sort(goal_probs)))
     @printf "Goal: %s\t Prob: %0.3f\n" goal prob
 end

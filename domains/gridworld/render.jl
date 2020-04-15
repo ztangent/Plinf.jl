@@ -51,7 +51,7 @@ function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
     end
     if goals != nothing
         if isa(goals, Tuple{Int,Int}) goals = [goals] end
-        if goal_colors == nothing goal_colors = fill(:blue, length(goals)) end
+        if goal_colors == nothing goal_colors = cgrad(:plasma)[1:3:30] end
         for (g, col) in zip(goals, goal_colors)
             annotate!(g[1], g[2], Plots.text("goal", 16, col, :center))
         end
@@ -67,7 +67,7 @@ function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
 end
 
 function render_pos!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                     radius=0.25, color=:black)
+                     radius=0.25, color=:black, args...)
     plt = (plt == nothing) ? plot!() : plt
     x, y = state[:xpos], state[:ypos]
     circ = make_circle(x, y, radius)
@@ -105,9 +105,9 @@ function render!(traj::Vector{State}, plt::Union{Plots.Plot,Nothing}=nothing;
 end
 
 "Render trajectories for each (weighted) trace"
-function render_traces!(traces, weights=nothing,
-                        plt::Union{Plots.Plot,Nothing}=nothing;
-                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.75)
+function render_traces!(traces, weights=nothing, plt=nothing;
+                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.75,
+                        args...)
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     for (tr, w) in zip(traces, weights)
         traj = get_retval(tr)
@@ -118,12 +118,48 @@ end
 
 "Callback render function for particle filter."
 function render_pf!(t::Int, state, traces, weights;
-                    plt=nothing, animation=nothing, show=true,
-                    pos_args=Dict(), tr_args=Dict())
-    plt = deepcopy((plt == nothing) ? plot!() : plt) # Get last plot if not provided
-    render_pos!(state, plt; pos_args...) # Render agent's current position
-    render_traces!(traces, weights, plt; tr_args...) # Render predicted trajectories
-    title!("t = $t") # Display current timestep
-    if show display(plt) end
+                    plt=nothing, animation=nothing, show=true, plot_probs=false,
+                    pos_args=Dict(), tr_args=Dict(), probs_args=Dict(),
+                    shared_args...)
+    # Get last plot if not provided
+    plt = deepcopy((plt == nothing) ? plot!() : plt)
+    # Render agent's current position
+    render_pos!(state, plt; pos_args..., shared_args...)
+    # Render predicted trajectories
+    render_traces!(traces, weights, plt; tr_args..., shared_args...)
+    if plot_probs # Graph goal probabilities
+        goal_names = get(probs_args, :goal_names,
+                         get(shared_args, :goal_names, []))
+        goal_idxs = collect(1:length(goal_names))
+        goal_probs = get_goal_probs(traces, weights, goal_idxs)
+        probs_plt = plot_goal_probs!(goal_probs; t=t,
+                                     probs_args..., shared_args...)
+        full_plt = plot(plt, probs_plt, layout=(1, 2),
+                        size=(1200, 600), margin=10*Plots.mm)
+    end
+    title!(full_plt, "t = $t") # Display current timestep
+    if show display(full_plt) end
     if animation != nothing frame(animation) end # Save frame to animation
+end
+
+"Plot goal probabilities."
+function plot_goal_probs!(goal_probs; plt=nothing, style=:bar, t=0,
+                          goal_names=nothing, goal_colors=cgrad(:plasma)[1:3:30])
+    if isa(goal_probs, Dict)
+        goal_probs = sort(goal_probs)
+        if goal_names == nothing goal_names = collect(keys(goal_probs)) end
+        goal_probs = collect(values(goal_probs))
+    else
+        if goal_names == nothing goal_names = collect(1:length(goal_probs)) end
+    end
+    plt = (plt == nothing) ?
+        plot(size=(600,600), framestyle=:grid, margin=4*Plots.mm) : plt
+    goal_colors = goal_colors[1:length(goal_probs)]
+    if style == :bar
+        plt = bar!(plt, goal_names, goal_probs; legend=false,
+                   color=goal_colors, xlabel="Goals", ylabel="Probability",
+                   guidefontsize=16, tickfontsize=14)
+        ylims!(plt, (0.0, 1.0))
+    end
+    return plt
 end
