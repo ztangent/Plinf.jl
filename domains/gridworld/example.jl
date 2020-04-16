@@ -97,7 +97,7 @@ elseif method == :pf
     plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
     render_cb = (t, s, trs, ws) ->
         (render_pf!(t, s, trs, ws; plt=plt, animation=anim, show=true,
-                    plot_probs=true, goal_colors=goal_colors,
+                    plot_probs=false, goal_colors=goal_colors,
                     goal_names=[string(g) for g in goal_set]);
          print("t=$t\t");
          print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))

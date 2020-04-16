@@ -136,7 +136,7 @@ function render_pf!(t::Int, state, traces, weights;
                                      probs_args..., shared_args...)
         full_plt = plot(plt, probs_plt, layout=(1, 2),
                         size=(1200, 600), margin=10*Plots.mm)
-    end
+    else full_plt = plt end
     title!(full_plt, "t = $t") # Display current timestep
     if show display(full_plt) end
     if animation != nothing frame(animation) end # Save frame to animation
