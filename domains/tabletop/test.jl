@@ -18,7 +18,9 @@ function test()
 
     state = initialize(problem)
     @test satisfy(@julog(on(table, block1)), state, domain)[1] == true
-    @test satisfy(@julog(handempty()), state, domain)[1] == true
+    @test satisfy(@julog(handempty), state, domain)[1] == true
+    @test satisfy(@julog(amounton(block1) == 0), state, domain)[1] == true
+    @test available(@julog(pickup(table, block1)), state, domain)[1] == true
     state = execute(@julog(pickup(table, block1)), state, domain)
     @test satisfy(@julog(holding(block1)), state, domain)[1] == true
     @test satisfy(problem.goal, state, domain)[1] == true
