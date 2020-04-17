@@ -1,5 +1,4 @@
 using Julog, PDDL, Gen, Printf
-using OrderedCollections : OrderedDict
 using Plinf
 
 include("utils.jl")
@@ -82,30 +81,12 @@ else
     rejuvenate = replan_rejuvenate
 end
 
-# Infer likely goals of a gridworld agent
-method = :pf # :importance
-n_samples = 10
-if method == :importance
-    # Run importance sampling to infer the likely goal
-    observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
-    traces, weights, _ =
-        importance_sampling(agent_model, (length(traj), agent_args...),
-                            observations, n_samples)
-elseif method == :pf
-    # Run a particle filter to perform online goal inference
-    anim = Animation()
-    plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
-    render_cb = (t, s, trs, ws) ->
-        (render_pf!(t, s, trs, ws; plt=plt, animation=anim, show=true,
-                    plot_probs=false, goal_colors=goal_colors,
-                    goal_names=[string(g) for g in goal_set]);
-         print("t=$t\t");
-         print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))
-    traces, weights =
-        agent_pf(agent_model, agent_args, traj, obs_terms,
-                 n_samples; rejuvenate=rejuvenate, callback=render_cb)
-    gif(anim; fps=5)
-end
+# Run importance sampling to infer the likely goal
+n_samples = 20
+observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
+traces, weights, _ =
+    importance_sampling(agent_model, (length(traj), agent_args...),
+                        observations, n_samples)
 
 # Plot sampled trajectory for each trace
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
@@ -117,4 +98,33 @@ goal_probs = get_goal_probs(traces, weights, 1:length(goal_set))
 println("Posterior probabilities:")
 for (goal, prob) in zip(goal_set, values(sort(goal_probs)))
     @printf "Goal: %s\t Prob: %0.3f\n" goal prob
+end
+
+begin
+    # Set up visualization and logging callbacks for online goal inference
+    anim = Animation() # Animation to store each plotted frame
+    goal_probs = [] # Buffer of goal probabilities over time
+    plotters = [ # List of subplot callbacks:
+        render_cb,
+        goal_lines_cb,
+        # goal_bars_cb,
+        plan_lengths_cb,
+        particle_weights_cb,
+    ]
+    canvas = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
+    callback = (t, s, trs, ws) ->
+        (multiplot_cb(t, s, trs, ws, plotters;
+                      canvas=canvas, animation=anim, show=true,
+                      goal_colors=goal_colors, goal_probs=goal_probs,
+                      goal_names=[string(g) for g in goal_set]);
+         print("t=$t\t");
+         print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))
+
+    # Run a particle filter to perform online goal inference
+    n_samples = 20
+    traces, weights =
+        agent_pf(agent_model, agent_args, traj, obs_terms, n_samples;
+                 rejuvenate=rejuvenate, callback=callback)
+    # Show animation of goal inference
+    gif(anim; fps=5)
 end
