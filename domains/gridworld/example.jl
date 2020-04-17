@@ -4,6 +4,8 @@ using Plinf
 include("utils.jl")
 include("render.jl")
 
+#--- Initial Setup ---#
+
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "gridworld")
 domain = load_domain(joinpath(path, "domain.pddl"))
@@ -14,6 +16,8 @@ state = initialize(problem)
 start_pos = (state[:xpos], state[:ypos])
 goal_pos = (7, 8)
 goal = pos_to_terms(goal_pos)
+
+#--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
 planner = AStarPlanner(heuristic=manhattan)
@@ -42,6 +46,8 @@ plt = render(state; start=start_pos, goals=goal_pos)
     plt = render!(traj; alpha=0.05)
 end
 display(plt)
+
+#--- Goal Inference Setup ---#
 
 # Specify possible goals
 goal_set = [(1, 8), (8, 8), (8, 1)]
@@ -81,6 +87,8 @@ else
     rejuvenate = replan_rejuvenate
 end
 
+#--- Offline Goal Inference ---#
+
 # Run importance sampling to infer the likely goal
 n_samples = 20
 observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
@@ -100,31 +108,31 @@ for (goal, prob) in zip(goal_set, values(sort(goal_probs)))
     @printf "Goal: %s\t Prob: %0.3f\n" goal prob
 end
 
-begin
-    # Set up visualization and logging callbacks for online goal inference
-    anim = Animation() # Animation to store each plotted frame
-    goal_probs = [] # Buffer of goal probabilities over time
-    plotters = [ # List of subplot callbacks:
-        render_cb,
-        goal_lines_cb,
-        # goal_bars_cb,
-        plan_lengths_cb,
-        particle_weights_cb,
-    ]
-    canvas = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
-    callback = (t, s, trs, ws) ->
-        (multiplot_cb(t, s, trs, ws, plotters;
-                      canvas=canvas, animation=anim, show=true,
-                      goal_colors=goal_colors, goal_probs=goal_probs,
-                      goal_names=[string(g) for g in goal_set]);
-         print("t=$t\t");
-         print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))
+#--- Online Goal Inference ---#
 
-    # Run a particle filter to perform online goal inference
-    n_samples = 20
-    traces, weights =
-        agent_pf(agent_model, agent_args, traj, obs_terms, n_samples;
-                 rejuvenate=rejuvenate, callback=callback)
-    # Show animation of goal inference
-    gif(anim; fps=5)
-end
+# Set up visualization and logging callbacks for online goal inference
+anim = Animation() # Animation to store each plotted frame
+goal_probs = [] # Buffer of goal probabilities over time
+plotters = [ # List of subplot callbacks:
+    render_cb,
+    goal_lines_cb,
+    # goal_bars_cb,
+    # plan_lengths_cb,
+    # particle_weights_cb,
+]
+canvas = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
+callback = (t, s, trs, ws) ->
+    (multiplot_cb(t, s, trs, ws, plotters;
+                  canvas=canvas, animation=anim, show=true,
+                  goal_colors=goal_colors, goal_probs=goal_probs,
+                  goal_names=[string(g) for g in goal_set]);
+     print("t=$t\t");
+     print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))
+
+# Run a particle filter to perform online goal inference
+n_samples = 20
+traces, weights =
+    agent_pf(agent_model, agent_args, traj, obs_terms, n_samples;
+             rejuvenate=rejuvenate, callback=callback)
+# Show animation of goal inference
+gif(anim; fps=5)
