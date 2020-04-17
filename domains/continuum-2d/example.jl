@@ -17,7 +17,7 @@ start_pos = (state[:xpos], state[:ypos])
 goal = [problem.goal]
 
 # Check that we can only move into free space and not walls
-# TODO : Check for line collisions, not just ponit collisions
+# TODO : Check for line collisions, not just point collisions
 @assert available(@julog(move(3.5, 5)), state, domain)[1] == false
 @assert available(@julog(move(5, 2)), state, domain)[1] == true
 
