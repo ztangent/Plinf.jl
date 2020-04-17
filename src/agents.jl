@@ -12,7 +12,8 @@ export plan_agent, replan_agent
     plan, traj = @trace(sample_plan(planner, domain, state, goal), :plan)
     # Add observation noise
     padded_traj = pad_vector(traj, n_steps)
-    @trace(observe_traj(padded_traj, fill(obs_params, n_steps)), :traj)
+    @trace(observe_traj(padded_traj, fill(domain, n_steps),
+                        fill(obs_params, n_steps)), :traj)
     # Return true state trajectory
     return traj
 end

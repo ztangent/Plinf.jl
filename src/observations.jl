@@ -21,16 +21,18 @@ observe_params_entry(entry::Tuple{Term, Real}) =
     entry[1] => (flip, (entry[2],))
 
 "Observation noise model for PDDL states."
-@gen function observe_state(state::State, params::ObserveParams)
+@gen function observe_state(state::State, domain::Domain, params::ObserveParams)
     obs = copy(state)
     for (term, (dist, args)) in params
         # Ground terms if necessary
         if is_ground(term)
             terms = Term[term]
+        elseif term.name == :forall # Handle foralls
+            cond, body = term.args
+            _, subst = satisfy(@julog(and(:cond, :body)), state; mode=:all)
+            terms = Term[substitute(body, s) for s in subst]
         else
-            _, subst = satisfy(term, state)
-            # If a forall is given, ground the body
-            if term.name == :forall term = term.args[2] end
+            _, subst = satisfy(term, state; mode=:all)
             terms = Term[substitute(term, s) for s in subst]
         end
         for t in terms
@@ -45,15 +47,20 @@ end
 observe_traj = Map(observe_state)
 
 "Construct Gen choicemap from observed terms in a state."
-function state_choices(state::State, terms::Vector{<:Term}, addr=nothing)
+function state_choices(state::State, domain::Union{Domain,Nothing},
+                       terms::Vector{<:Term}, addr=nothing)
     ground_terms = Term[]
     # Ground terms if necessary
     for t in terms
         if is_ground(t)
             push!(ground_terms, t)
+        elseif t.name == :forall # Handle foralls
+            cond, body = t.args
+            t = @julog(and(:cond, :body))
+            _, subst = satisfy(t, state, domain; mode=:all)
+            append!(ground_terms, Term[substitute(body, s) for s in subst])
         else
-            _, subst = satisfy(t, state)
-            if t.name == :forall t = t.args[2] end
+            _, subst = satisfy(t, state, domain; mode=:all)
             append!(ground_terms, Term[substitute(t, s) for s in subst])
         end
     end
@@ -66,12 +73,19 @@ function state_choices(state::State, terms::Vector{<:Term}, addr=nothing)
     return choices
 end
 
+state_choices(state::State, terms::Vector{<:Term}, addr=nothing) =
+    state_choices(state, nothing, terms, addr)
+
 "Construct Gen choicemap from observed trajectory."
-function traj_choices(traj::Vector{State}, terms::Vector{<:Term}, addr=nothing)
+function traj_choices(traj::Vector{State}, domain::Union{Domain,Nothing},
+                      terms::Vector{<:Term}, addr=nothing)
     choices = choicemap()
     for (i, state) in enumerate(traj)
-        i_choices = state_choices(state, terms)
+        i_choices = state_choices(state, domain, terms)
         set_submap!(choices, (addr => i), i_choices)
     end
     return choices
 end
+
+traj_choices(traj::Vector{State}, terms::Vector{<:Term}, addr=nothing) =
+    traj_choices(traj, nothing, terms, addr)

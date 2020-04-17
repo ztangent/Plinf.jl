@@ -82,7 +82,8 @@ if agent_model == plan_agent
     agent_args = (planner, domain, state, goals, obs_params)
     rejuvenate = nothing
 else
-    @gen observe_fn(state::State) = @trace(observe_state(state, obs_params))
+    @gen observe_fn(state::State) =
+        @trace(observe_state(state, domain, obs_params))
     agent_args = (replanner, domain, state, goals, observe_fn)
     rejuvenate = replan_rejuvenate
 end
@@ -91,7 +92,7 @@ end
 
 # Run importance sampling to infer the likely goal
 n_samples = 20
-observations = traj_choices(traj, @julog([xpos, ypos]), :traj)
+observations = traj_choices(traj, domain, @julog([xpos, ypos]), :traj)
 traces, weights, _ =
     importance_sampling(agent_model, (length(traj), agent_args...),
                         observations, n_samples)
@@ -132,7 +133,7 @@ callback = (t, s, trs, ws) ->
 # Run a particle filter to perform online goal inference
 n_samples = 20
 traces, weights =
-    agent_pf(agent_model, agent_args, traj, obs_terms, n_samples;
+    agent_pf(agent_model, agent_args, traj, obs_terms, domain, n_samples;
              rejuvenate=rejuvenate, callback=callback)
 # Show animation of goal inference
 gif(anim; fps=5)

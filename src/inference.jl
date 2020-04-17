@@ -3,7 +3,8 @@ export agent_pf, replan_rejuvenate
 "Online goal inference for a task planning agent using a particle filter."
 function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
                   obs_traj::Vector{State}, obs_terms::Vector{<:Term},
-                  n_particles::Int; rejuvenate=nothing, callback=nothing)
+                  domain::Domain, n_particles::Int;
+                  rejuvenate=nothing, callback=nothing)
     # Initialize particle filter with initial observations
     init_obs = state_choices(obs_traj[1], obs_terms, (:traj => 1))
     pf_state = initialize_particle_filter(agent_model, (1, agent_args...),
@@ -16,7 +17,7 @@ function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
     end
     # Feed new observations at each timestep
     for t=2:length(obs_traj)
-        obs = state_choices(obs_traj[t], obs_terms, (:traj => t));
+        obs = state_choices(obs_traj[t], domain, obs_terms, (:traj => t));
         particle_filter_step!(pf_state, (t, agent_args...),
             (UnknownChange(), agent_argdiffs...), obs)
         resampled = maybe_resample!(pf_state, ess_threshold=n_particles/4)
