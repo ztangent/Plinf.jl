@@ -21,5 +21,5 @@
     (at key1 1 7) (at key2 7 7)
     (at gem1 1 8) (at gem2 8 8) (at gem3 8 1)
   )
-  (:goal (has gem1))
+  (:goal (has gem3))
 )

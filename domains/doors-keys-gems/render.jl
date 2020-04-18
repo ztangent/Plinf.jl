@@ -1,6 +1,8 @@
 using Julog, PDDL
 using Plots
 
+## Utility functions ##
+
 "Convert PDDL state to array of wall locations."
 function state_to_array(state::State)
     width, height = state[:width], state[:height]
@@ -22,6 +24,8 @@ function plan_to_traj(plan::Vector{Term}, start::Tuple{Int,Int})
     end
     return traj
 end
+
+## Object rendering functions ##
 
 "Make a circle as a Plots.jl shape."
 function make_circle(x::Real, y::Real, r::Real)
@@ -92,9 +96,11 @@ function render_gem!(x::Real, y::Real, scale::Real; color=:magenta,
           alpha=1, linealpha=[1, 0], legend=false)
 end
 
+## Gridworld rendering functions ##
+
 "Plot agent's current location."
 function render_pos!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                     radius=0.25, color=:black)
+                     radius=0.25, color=:black, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
     x, y = state[:xpos], state[:ypos]
     circ = make_circle(x, y, radius)
@@ -103,30 +109,33 @@ end
 
 "Render doors, keys and gems present in the given state."
 function render_objects!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                         gem_colors=cgrad(:plasma)[1:3:30])
+                         gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
     obj_queries =
-        @julog [door(X, Y), and(at(K, X, Y), key(K)), and(at(G, X, Y), gem(G))]
+        @julog [door(X, Y), and(at(O, X, Y), key(O)), and(at(O, X, Y), gem(O))]
     obj_colors = [:gray, :goldenrod1, gem_colors]
-    obj_renders = [
+    obj_renderers = [
         (loc, col) -> render_door!(loc[1], loc[2], 0.7, plt=plt),
         (loc, col) -> render_key!(loc[1], loc[2], 0.4, plt=plt),
         (loc, col) -> render_gem!(loc[1], loc[2], 0.3, color=col, plt=plt)
     ]
-    for (query, colors, fn!) in zip(obj_queries, obj_colors, obj_renders)
+    for (query, colors, rndr!) in zip(obj_queries, obj_colors, obj_renderers)
         _, subst = satisfy(query, state; mode=:all)
-        if query == @julog(and(at(G, X, Y), gem(G)))
-            sort!(subst, by=s->s[@julog(G)].name)
-        end
+        sort!(subst, by=s->get(s, @julog(O), Const(0)).name)
         locs = [(s[@julog(X)].name, s[@julog(Y)].name) for s in subst]
-        if !isa(colors, AbstractArray) colors = fill(colors, length(locs)) end
-        for (loc, col) in zip(locs, colors) fn!(loc, col) end
+        if isa(colors, AbstractDict)
+            obj_terms = [s[@julog(O)] for s in subst]
+            colors = [colors[o] for o in obj_terms]
+        elseif !isa(colors, AbstractArray)
+            colors = fill(colors, length(locs))
+        end
+        for (loc, col) in zip(locs, colors) rndr!(loc, col) end
     end
 end
 
 "Render state, optionally with start position and the trace of a plan."
 function render!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
                  show_pos=false, show_objs=true, start=nothing, plan=nothing,
-                 gem_colors=cgrad(:plasma)[1:3:30])
+                 gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
     # Plot base grid
@@ -160,7 +169,7 @@ end
 
 function render!(plan::Vector{Term}, start::Tuple{Int,Int},
                  plt::Union{Plots.Plot,Nothing}=nothing;
-                 alpha::Float64=0.50, color=:red, radius=0.1)
+                 alpha::Float64=0.50, color=:red, radius=0.1, kwargs...)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      traj = plan_to_traj(plan, start)
@@ -171,8 +180,8 @@ function render!(plan::Vector{Term}, start::Tuple{Int,Int},
      return plt
 end
 
-function render!(traj::Vector{State}, plt::Union{Plots.Plot,Nothing}=nothing;
-                 alpha::Float64=0.50, color=:red, radius=0.1)
+function render!(traj::Vector{State}, plt=nothing;
+                 alpha::Float64=0.50, color=:red, radius=0.1, kwargs...)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      for state in traj
@@ -184,9 +193,9 @@ function render!(traj::Vector{State}, plt::Union{Plots.Plot,Nothing}=nothing;
 end
 
 "Render trajectories for each (weighted) trace"
-function render_traces!(traces, weights=nothing,
-                        plt::Union{Plots.Plot,Nothing}=nothing;
-                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.50)
+function render_traces!(traces, weights=nothing, plt=nothing;
+                        goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.60,
+                        kwargs...)
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     for (tr, w) in zip(traces, weights)
         traj = get_retval(tr)
@@ -195,15 +204,145 @@ function render_traces!(traces, weights=nothing,
     end
 end
 
-"Callback render function for particle filter."
-function render_pf!(t::Int, state, traces, weights;
-                    plt=nothing, animation=nothing, show=true,
-                    pos_args=Dict(), obj_args=Dict(), tr_args=Dict())
-    plt = deepcopy((plt == nothing) ? plot!() : plt) # Get last plot if not provided
-    render_pos!(state, plt; pos_args...) # Render agent's current position
-    render_objects!(state, plt; obj_args...) # Render objects in gridworld
-    render_traces!(traces, weights, plt; tr_args...) # Render predicted trajectories
-    title!("t = $t") # Display current timestep
-    if show display(plt) end
+## Diagnostic and statistic plotters ##
+
+"Make default plot canvas with appropriate size and margin."
+plot_canvas() = plot(size=(600,600), framestyle=:box, margin=4*Plots.mm)
+
+"""Plot goal probabilities at a particular timestep as a bar chart.
+`goal_probs` should be a dictionary or array of goal probabilities."""
+function plot_goal_bars!(goal_probs, goal_names=nothing,
+                         goal_colors=cgrad(:plasma)[1:3:30]; plt=nothing)
+    # Construct new plot if not provided
+    if (plt == nothing) plt = plot_canvas() end
+    # Extract goal names and probabilities
+    if isa(goal_probs, AbstractDict)
+        goal_probs = sort(goal_probs)
+        if goal_names == nothing goal_names = collect(keys(goal_probs)) end
+        goal_probs = collect(values(goal_probs))
+    elseif goal_names == nothing
+        goal_names = collect(1:length(goal_probs))
+    end
+    goal_colors = goal_colors[1:length(goal_probs)]
+    # Plot bar chart
+    plt = bar!(plt, goal_names, goal_probs; color=goal_colors, legend=false,
+               ylims=(0.0, 1.0), xlabel="Goals", ylabel="Probability",
+               guidefontsize=16, tickfontsize=14)
+    ylims!(plt, (0.0, 1.0))
+    return plt
+end
+
+"""Plot goal probabilities over time as a line graph.
+`goal_probs` should be a 2D array of goal probabilities over time."""
+function plot_goal_lines!(goal_probs, goal_names=nothing,
+                          goal_colors=cgrad(:plasma)[1:3:30];
+                          timesteps=nothing, plt=nothing)
+    # Construct new plot if not provided
+    if (plt == nothing) plt = plot_canvas() end
+    # Set default goal names and timesteps
+    if (goal_names == nothing)
+        goal_names = ["Goal $i" for i in 1:size(goal_probs, 1)] end
+    if (timesteps == nothing)
+        timesteps = collect(1:size(goal_probs, 2)) end
+    # Plot line graph, one series per goal
+    plt = plot!(plt, timesteps, goal_probs'; linewidth=3,
+                legend=:topright, legendtitle="Goals",
+                fg_legend=:transparent, bg_legend=:transparent,
+                labels=permutedims(goal_names), color=permutedims(goal_colors),
+                ylims=(0.0, 1.0), xlabel="Time", ylabel="Probability",
+                guidefontsize=16, tickfontsize=14)
+    return plt
+end
+
+"Plot histogram of particle weights."
+function plot_particle_weights!(weights; plt=nothing)
+    # Construct new plot if not provided
+    if (plt == nothing) plt = plot_canvas() end
+    # Plot histogram
+    weights = exp.(weights)
+    plt = histogram!(plt, weights; normalize=:probability, legend=false,
+                     xlabel="Particle Weights", ylabel="Frequency",
+                     guidefontsize=16, tickfontsize=14)
+end
+
+"Plot histogram of partial plan lengths."
+function plot_plan_lengths!(traces, weights; plt=nothing)
+    # Construct new plot if not provided
+    if (plt == nothing) plt = plot_canvas() end
+    # Get plan lengths from traces
+    plan_lengths = map(traces) do tr
+        traj_ret = tr[:traj]
+        if isa(traj_ret[end], Plinf.ReplanState)
+            _, rp = Plinf.get_last_plan_step(traj_ret)
+            return length(rp.part_plan)
+        else
+            plan, traj = tr[:plan]
+            return length(plan)
+        end
+    end
+    weights = exp.(weights)
+    # Plot histogram
+    plt = histogram!(plt, plan_lengths, weights=weights;
+                     guidefontsize=16, tickfontsize=14, legend=false,
+                     xlabel="Plan lengths", ylabel="Frequency")
+end
+
+## Particle filter callback functions ##
+
+"Callback function that renders each state."
+function render_cb(t::Int, state, traces, weights; canvas=nothing, kwargs...)
+    # Render canvas if not provided
+    plt = canvas == nothing ? render(state; kwargs...) : deepcopy(canvas)
+    render_pos!(state, plt; kwargs...)  # Render agent's current position
+    render_objects!(state, plt; kwargs...) # Render objects in gridworld
+    render_traces!(traces, weights, plt; kwargs...) # Render trajectories
+    title!(plt, "t = $t")
+    return plt
+end
+
+"Callback function for plotting goal probability bar chart."
+function goal_bars_cb(t::Int, state, traces, weights; kwargs...)
+    goal_names = get(kwargs, :goal_names, [])
+    goal_colors = get(kwargs, :goal_colors, cgrad(:plasma)[1:3:30])
+    goal_idxs = collect(1:length(goal_names))
+    goal_probs = sort(get_goal_probs(traces, weights, goal_idxs))
+    plt = plot_goal_bars!(goal_probs, goal_names, goal_colors)
+    title!(plt, "t = $t")
+    return plt
+end
+
+"Callback function for plotting goal probability line graph."
+function goal_lines_cb(t::Int, state, traces, weights;
+                       goal_probs=[], kwargs...)
+    goal_names = get(kwargs, :goal_names, [])
+    goal_colors = get(kwargs, :goal_colors, cgrad(:plasma)[1:3:30])
+    goal_idxs = collect(1:length(goal_names))
+    goal_probs_t = sort(get_goal_probs(traces, weights, goal_idxs))
+    push!(goal_probs, collect(values(goal_probs_t)))
+    plt = plot_goal_lines!(reduce(hcat, goal_probs), goal_names, goal_colors)
+    title!(plt, "t = $t")
+    return plt
+end
+
+"Callback function for plotting particle weights."
+particle_weights_cb(t, state, traces, weights; kwargs...) =
+    plot_particle_weights!(weights)
+
+"Callback function for plotting plan lengths."
+plan_lengths_cb(t, state, traces, weights; kwargs...) =
+    plot_plan_lengths!(traces, weights)
+
+"Callback function that combines a number of subplots."
+function multiplot_cb(t::Int, state, traces, weights,
+                      plotters=[render_cb]; layout=nothing,
+                      animation=nothing, show=true, kwargs...)
+    subplots = [p(t, state, traces, weights; kwargs...) for p in plotters]
+    margin = plotters == [render_cb] ? 2*Plots.mm : 10*Plots.mm
+    if layout == nothing
+        layout = length(subplots) > 1 ? (length(subplots) ÷ 2, 2) : (1, 1) end
+    plt = plot(subplots...; layout=layout, margin=margin,
+               size=(layout[2], layout[1]) .* 600)
+    if show display(plt) end # Display the plot in the GUI
     if animation != nothing frame(animation) end # Save frame to animation
+    return plt
 end

@@ -53,6 +53,7 @@ display(plt)
 goal_set = [(1, 8), (8, 8), (8, 1)]
 goals = [pos_to_terms(g) for g in goal_set]
 goal_colors = [:orange, :magenta, :blue]
+goal_names = [string(g) for g in goal_set]
 
 # Sample a trajectory as the ground truth (no observation noise)
 likely_traj = true
@@ -109,6 +110,9 @@ for (goal, prob) in zip(goal_set, values(sort(goal_probs)))
     @printf "Goal: %s\t Prob: %0.3f\n" goal prob
 end
 
+# Plot bar chart of goal probabilities
+plot_goal_bars!(goal_probs, goal_names, goal_colors)
+
 #--- Online Goal Inference ---#
 
 # Set up visualization and logging callbacks for online goal inference
@@ -126,7 +130,7 @@ callback = (t, s, trs, ws) ->
     (multiplot_cb(t, s, trs, ws, plotters;
                   canvas=canvas, animation=anim, show=true,
                   goal_colors=goal_colors, goal_probs=goal_probs,
-                  goal_names=[string(g) for g in goal_set]);
+                  goal_names=goal_names);
      print("t=$t\t");
      print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))
 
@@ -136,4 +140,4 @@ traces, weights =
     agent_pf(agent_model, agent_args, traj, obs_terms, domain, n_samples;
              rejuvenate=rejuvenate, callback=callback)
 # Show animation of goal inference
-gif(anim; fps=5)
+gif(anim; fps=3)
