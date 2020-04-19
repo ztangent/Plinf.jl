@@ -21,11 +21,11 @@ goal = pos_to_terms(goal_pos)
 
 # Check that A* heuristic search correctly solves the problem
 planner = AStarPlanner(heuristic=manhattan)
-plan, _ = planner(domain, state, goal)
+plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 plt = render(state; start=start_pos, goals=goal_pos, plan=plan)
-traj = PDDL.simulate(domain, state, plan)
+anim = anim_traj(traj, plt)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search

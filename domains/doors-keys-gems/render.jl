@@ -46,13 +46,13 @@ function make_door(x::Real, y::Real, scale::Real)
 end
 
 "Plot a door with the given position and scale."
-function render_door!(x::Real, y::Real, scale::Real; color=:gray,
+function render_door!(x::Real, y::Real, scale::Real; color=:gray, alpha=1,
                       plt::Union{Plots.Plot,Nothing}=nothing)
     plt = (plt == nothing) ? plot!() : plt
     color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
     inner_col = HSV(color.h, 0.8*color.s, min(1.25*color.v, 1))
     door = make_door(x, y, scale)
-    plot!(plt, door, alpha=1, linealpha=[0, 1, 0, 0], legend=false,
+    plot!(plt, door, alpha=alpha, linealpha=[0, 1, 0, 0], legend=false,
           color=[color, inner_col, :black, :black])
 end
 
@@ -67,12 +67,12 @@ function make_key(x::Real, y::Real, scale::Real)
 end
 
 "Plot a key with the given position and scale."
-function render_key!(x::Real, y::Real, scale::Real; color=:goldenrod1,
+function render_key!(x::Real, y::Real, scale::Real; color=:goldenrod1, alpha=1,
                      plt::Union{Plots.Plot,Nothing}=nothing)
     plt = (plt == nothing) ? plot!() : plt
     key = make_key(x, y, scale)
     shadow = make_key(x+0.05*scale, y-0.05*scale, scale)
-    plot!(plt, [shadow; key], alpha=1, linealpha=0, legend=false,
+    plot!(plt, [shadow; key], alpha=alpha, linealpha=0, legend=false,
           color=[fill(:black, 4); fill(color, 4)])
 end
 
@@ -86,37 +86,37 @@ function make_gem(x::Real, y::Real, scale::Real)
 end
 
 "Plot a gem with the given position, scale and color."
-function render_gem!(x::Real, y::Real, scale::Real; color=:magenta,
+function render_gem!(x::Real, y::Real, scale::Real; color=:magenta, alpha=1,
                      plt::Union{Plots.Plot,Nothing}=nothing)
     plt = (plt == nothing) ? plot!() : plt
     outer, inner = make_gem(x, y, scale)
     color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
     inner_col = HSV(color.h, 0.6*color.s, min(1.5*color.v, 1))
     plot!(plt, [outer, inner], color=[color, inner_col],
-          alpha=1, linealpha=[1, 0], legend=false)
+          alpha=alpha, linealpha=[1, 0], legend=false)
 end
 
 ## Gridworld rendering functions ##
 
 "Plot agent's current location."
 function render_pos!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                     radius=0.25, color=:black, kwargs...)
+                     radius=0.25, color=:black, alpha=1, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
     x, y = state[:xpos], state[:ypos]
     circ = make_circle(x, y, radius)
-    plot!(plt, circ, color=color, alpha=1, legend=false)
+    plot!(plt, circ, color=color, alpha=alpha, legend=false)
 end
 
 "Render doors, keys and gems present in the given state."
 function render_objects!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
                          gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
     obj_queries =
-        @julog [door(X, Y), and(at(O, X, Y), key(O)), and(at(O, X, Y), gem(O))]
+        @julog [door(X, Y), and(key(O), at(O, X, Y)), and(gem(O), at(O, X, Y))]
     obj_colors = [:gray, :goldenrod1, gem_colors]
     obj_renderers = [
-        (loc, col) -> render_door!(loc[1], loc[2], 0.7, plt=plt),
-        (loc, col) -> render_key!(loc[1], loc[2], 0.4, plt=plt),
-        (loc, col) -> render_gem!(loc[1], loc[2], 0.3, color=col, plt=plt)
+        (l, c) -> render_door!(l[1], l[2], 0.7, plt=plt),
+        (l, c) -> render_key!(l[1], l[2], 0.4, plt=plt),
+        (l, c) -> render_gem!(l[1], l[2], 0.3, color=c, plt=plt)
     ]
     for (query, colors, rndr!) in zip(obj_queries, obj_colors, obj_renderers)
         _, subst = satisfy(query, state; mode=:all)
@@ -202,6 +202,26 @@ function render_traces!(traces, weights=nothing, plt=nothing;
         color = goal_colors[tr[:goal]]
         render!(traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
     end
+end
+
+"Render animation of state trajectory/ies."
+function anim_traj(trajs, canvas=nothing;
+                   show=true, fps=3, kwargs...)
+    canvas = canvas == nothing ?
+        render(state; show_objs=false, kwargs...) : canvas
+    animation = Animation()
+    if isa(trajs, Vector{State}) trajs = [trajs] end
+    for t in 1:maximum(length.(trajs))
+        plt = deepcopy(canvas)
+        for traj in trajs
+            state = t <= length(traj) ? traj[t] : traj[end]
+            render_pos!(state, plt; kwargs...)
+            render_objects!(state, plt; kwargs...)
+        end
+        frame(animation)
+    end
+    if show display(gif(animation; fps=fps)) end
+    return animation
 end
 
 ## Diagnostic and statistic plotters ##

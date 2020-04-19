@@ -2,7 +2,7 @@ export goal_count, manhattan
 
 "Heuristic that counts the number of goals unsatisfied in the domain."
 function goal_count(goals, state::State, domain::Domain)
-    count = sum([state[domain, g] for g in goals])
+    count = sum([!state[domain, g] for g in goals])
     return count
 end
 

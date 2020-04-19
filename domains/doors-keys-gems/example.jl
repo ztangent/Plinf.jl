@@ -22,32 +22,26 @@ gem_colors = Dict(zip(gem_terms, goal_colors))
 #--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(heuristic=goal_count)
-plan, _ = planner(domain, state, goal)
+planner = AStarPlanner(heuristic=gem_heuristic)
+plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 plt = render(state; start=start_pos, plan=plan, gem_colors=gem_colors)
-traj = PDDL.simulate(domain, state, plan)
+anim = anim_traj(traj; gem_colors=gem_colors)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=goal_count, search_noise=10)
-plt = render(state; start=start_pos, gem_colors=gem_colors)
-@gif for i=1:20
-    plan, traj = planner(domain, state, goal)
-    plt = render!(traj; alpha=0.05)
-end
-display(plt)
+planner = ProbAStarPlanner(heuristic=gem_heuristic, search_noise=10)
+plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=false)
+trajs = [planner(domain, state, goal)[2] for i in 1:20]
+anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=goal_count, search_noise=2)
-replanner = Replanner(planner=astar, persistence=0.95)
-plt = render(state; start=start_pos, gem_colors=gem_colors)
-@gif for i=1:20
-    plan, traj = replanner(domain, state, goal)
-    plt = render!(traj; alpha=0.05)
-end
-display(plt)
+astar = ProbAStarPlanner(heuristic=gem_heuristic, search_noise=2)
+replanner = Replanner(planner=astar, persistence=0.975)
+plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=false)
+trajs = [replanner(domain, state, goal)[2] for i in 1:20]
+anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
 
 #--- Goal Inference Setup ---#
 
@@ -61,6 +55,7 @@ _, traj = planner(domain, state, goal)
 traj = traj[1:min(length(traj), 25)]
 plt = render(state; start=start_pos, gem_colors=gem_colors)
 plt = render!(traj, plt; alpha=0.5)
+anim = anim_traj(traj; gem_colors=gem_colors)
 
 # Define observation noise model
 obs_params = observe_params(
@@ -72,7 +67,7 @@ obs_params = observe_params(
 obs_terms = collect(keys(obs_params))
 
 # Assume either a planning agent or replanning agent as a model
-agent_model = plan_agent # replan_agent
+agent_model = replan_agent # plan_agent
 if agent_model == plan_agent
     agent_args = (planner, domain, state, goals, obs_params)
 else
