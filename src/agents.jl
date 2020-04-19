@@ -26,7 +26,7 @@ end
     goal_idx = @trace(uniform_discrete(1, length(goals)), :goal)
     goal = goals[goal_idx]
     # Sample a trajectory via replanning
-    rp_init = ReplanState(1, 1, Term[], [state], false)
+    rp_init = ReplanState(0, Term[], [state], false)
     rp_states = @trace(replan_unfold(n_steps, rp_init, replanner,
                                      domain, goal, observe_fn), :traj)
     traj = [state; extract_traj(rp_states)]

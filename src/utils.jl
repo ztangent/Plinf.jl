@@ -1,3 +1,5 @@
+export labeled_cat, flip
+
 "Pad / truncate vector to specified length."
 pad_vector(v::Vector, n::Int) =
     length(v) < n ? [v; fill(v[end], n - length(v))] : v[1:n]

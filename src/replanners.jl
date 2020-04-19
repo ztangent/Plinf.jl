@@ -4,7 +4,7 @@ using Parameters: @with_kw
 "Wraps any planner in a replanning algorithm."
 @kwdef struct Replanner <: AbstractPlanner
     planner::AbstractPlanner
-    persistence::Float64 = 0.95
+    persistence::Real = 0.95
     max_plans::Real = 100
 end
 
@@ -15,7 +15,6 @@ get_call(::Replanner)::GenerativeFunction = replan_call
 "Unfold combinator state for a replanning step."
 struct ReplanState
     rel_step::Int
-    traj_length::Int
     part_plan::Vector{Term}
     part_traj::Vector{State}
     plan_done::Bool
@@ -35,7 +34,7 @@ end
 "Extract trajectory from a collection of ReplanStates."
 function extract_traj(rp_states)
     traj = State[rp.part_traj[rp.rel_step] for rp in rp_states if
-                length(rp.part_plan) > 0]
+                 length(rp.part_plan) > 0]
     if length(rp_states[end].part_traj) > rp_states[end].rel_step
         tail = rp_states[end].part_traj[rp_states[end].rel_step+1:end]
         append!(traj, tail)
@@ -46,9 +45,7 @@ end
 "Find the most recent timestep at which replanning occured."
 function get_last_plan_step(rp_states)
     for (t, rp) in enumerate(reverse(rp_states))
-        if rp.rel_step == 1
-            return (length(rp_states) - t + 1, rp)
-        end
+        if (rp.rel_step == 1) return (length(rp_states) - t + 1, rp) end
     end
 end
 
@@ -56,16 +53,26 @@ end
 @gen function replan_step(t::Int, rp::ReplanState, replanner::Replanner,
                           domain::Domain, goal_spec, observe_fn=nothing)
     @unpack planner, persistence = replanner
-    plan_done = false
-    # Get most recent world state
-    state = rp.part_traj[rp.rel_step]
-    # If plan has already reached this time step, do nothing
-    if t <= rp.traj_length
-        if observe_fn != nothing @trace(observe_fn(state)) end
-        rel_step = t < rp.traj_length ? rp.rel_step + 1 : rp.rel_step
-        return ReplanState(rel_step, rp.traj_length,
-                           rp.part_plan, rp.part_traj, plan_done)
+    plan_done = rp.plan_done
+    rel_step = rp.rel_step + 1 # Compute relative step for current timestep
+    if plan_done
+        # Return no-op if plan is done
+        state = rp.part_traj[end]
+        if observe_fn != nothing # Observe current state
+            @trace(observe_fn(state)) end
+        part_plan, part_traj = Term[Compound(Symbol("--"), [])], State[state]
+        return ReplanState(1, part_plan, part_traj, plan_done)
+    elseif rel_step <= length(rp.part_traj)
+        # If plan has already reached this time step, just advance the step
+        state = rp.part_traj[rel_step] # Get state for this timestep
+        if !plan_done && rel_step == length(rp.part_traj)
+            plan_done = satisfy(goal_spec, state, domain)[1] end
+        if observe_fn != nothing # Observe current state
+            @trace(observe_fn(state)) end
+        return ReplanState(rel_step, rp.part_plan, rp.part_traj, plan_done)
     end
+    # Get final state of past trajectory
+    state = rp.part_traj[end]
     # Sample a resource bound for the planner
     max_resource = @trace(geometric(1-persistence), :max_resource)
     planner = set_max_resource(planner, max_resource)
@@ -73,16 +80,18 @@ end
     part_plan, part_traj =
         @trace(sample_plan(planner, domain, state, goal_spec), :plan)
     if part_plan == nothing || length(part_plan) == 0
-        # Return no-op if goal is reached or no satisfying plan can be found
+        # Return no-op if goal cannot be reached, or plan is of zero-length
         part_plan, part_traj = Term[Compound(Symbol("--"), [])], State[state]
-        plan_done = true
     else
         # Don't double count initial state
         part_traj = part_traj[2:end]
     end
-    if observe_fn != nothing @trace(observe_fn(part_traj[1])) end
-    traj_length = rp.traj_length + length(part_plan)
-    return ReplanState(1, traj_length, part_plan, part_traj, plan_done)
+    state = part_traj[1]
+    if !plan_done # Check if plan is done
+        plan_done = satisfy(goal_spec, state, domain)[1] end
+    if observe_fn != nothing # Observe current state
+        @trace(observe_fn(state)) end
+    return ReplanState(1, part_plan, part_traj, plan_done)
 end
 
 replan_unfold = Unfold(replan_step)
@@ -93,7 +102,7 @@ replan_unfold = Unfold(replan_step)
     # TODO : Handle states differing from planned trajectory
     # This will occur in stochastic domains
     # Intialize state for replan step
-    rp_states = [ReplanState(1, 1, Term[], [state], false)]
+    rp_states = [ReplanState(0, Term[], [state], false)]
     plan_count, success = 0, false
     while true
         # Take a replanning step
@@ -109,8 +118,5 @@ replan_unfold = Unfold(replan_step)
     end
     plan = extract_plan(rp_states)
     traj = [state; extract_traj(rp_states)]
-    if plan[end].name == Symbol("--")
-        plan, traj = plan[1:end-1], traj[1:end-1]
-    end
     return plan, traj
 end

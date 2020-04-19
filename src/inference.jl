@@ -17,13 +17,13 @@ function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
     end
     # Feed new observations at each timestep
     for t=2:length(obs_traj)
-        obs = state_choices(obs_traj[t], domain, obs_terms, (:traj => t));
-        particle_filter_step!(pf_state, (t, agent_args...),
-            (UnknownChange(), agent_argdiffs...), obs)
         resampled = maybe_resample!(pf_state, ess_threshold=n_particles/4)
         if resampled
             if rejuvenate != nothing rejuvenate(pf_state) end
         end
+        obs = state_choices(obs_traj[t], domain, obs_terms, (:traj => t));
+        particle_filter_step!(pf_state, (t, agent_args...),
+            (UnknownChange(), agent_argdiffs...), obs)
         if callback != nothing
             trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
             callback(t, obs_traj[t], trs, ws)
