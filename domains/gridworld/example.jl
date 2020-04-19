@@ -31,21 +31,15 @@ traj = PDDL.simulate(domain, state, plan)
 # Visualize full horizon probabilistic A* search
 planner = ProbAStarPlanner(heuristic=manhattan, search_noise=10)
 plt = render(state; start=start_pos, goals=goal_pos)
-@gif for i=1:20
-    plan, traj = planner(domain, state, goal)
-    plt = render!(traj; alpha=0.05)
-end
-display(plt)
+trajs = [planner(domain, state, goal)[2] for i in 1:20]
+anim = anim_traj(trajs, plt; alpha=0.1)
 
 # Visualize sample-based replanning search
 astar = ProbAStarPlanner(heuristic=manhattan, search_noise=2)
 replanner = Replanner(planner=astar, persistence=0.95)
 plt = render(state; start=start_pos, goals=goal_pos)
-@gif for i=1:20
-    plan, traj = replanner(domain, state, goal)
-    plt = render!(traj; alpha=0.05)
-end
-display(plt)
+trajs = [replanner(domain, state, goal)[2] for i in 1:20]
+anim = anim_traj(trajs, plt; alpha=0.1)
 
 #--- Goal Inference Setup ---#
 
@@ -60,7 +54,7 @@ likely_traj = true
 if likely_traj
     # Construct a trajectory sampled from the prior
     goal = goals[uniform_discrete(1, length(goals))]
-    _, traj = planner(domain, state, goal)
+    _, traj = replanner(domain, state, goal)
     traj = traj[1:min(20, length(traj))]
 else
     # Construct plan that is highly unlikely under the prior
@@ -72,13 +66,14 @@ else
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
+anim_traj(traj, plt)
 
 # Assume Gaussian observation noise around agent's location
 obs_terms = @julog([xpos, ypos])
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Assume either a planning agent or replanning agent as a model
-agent_model = plan_agent # replan_agent
+agent_model = replan_agent # plan_agent
 if agent_model == plan_agent
     agent_args = (planner, domain, state, goals, obs_params)
     rejuvenate = nothing

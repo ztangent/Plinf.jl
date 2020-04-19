@@ -101,11 +101,11 @@ end
 
 "Render position of agent."
 function render_pos!(state::State, plt::Union{Plots.Plot,Nothing}=nothing;
-                     radius=0.25, color=:black, kwargs...)
+                     radius=0.25, color=:black, alpha=1, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
     x, y = state[:xpos], state[:ypos]
     circ = make_circle(x, y, radius)
-    plot!(plt, circ, color=color, alpha=1, legend=false)
+    plot!(plt, circ, color=color, alpha=alpha, legend=false)
 end
 
 "Render trajectories for each (weighted) trace"
@@ -118,6 +118,24 @@ function render_traces!(traces, weights=nothing, plt=nothing;
         color = goal_colors[tr[:goal]]
         render!(traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
     end
+end
+
+"Render animation of state trajectory/ies."
+function anim_traj(trajs, canvas=nothing;
+                   show=true, fps=3, kwargs...)
+    canvas = canvas == nothing ? render(state; kwargs...) : canvas
+    animation = Animation()
+    if isa(trajs, Vector{State}) trajs = [trajs] end
+    for t in 1:maximum(length.(trajs))
+        plt = deepcopy(canvas)
+        for traj in trajs
+            state = t <= length(traj) ? traj[t] : traj[end]
+            render_pos!(state, plt; kwargs...)
+        end
+        frame(animation)
+    end
+    if show display(gif(animation; fps=fps)) end
+    return animation
 end
 
 ## Diagnostic and statistic plotters ##
@@ -175,9 +193,10 @@ function plot_particle_weights!(weights; plt=nothing)
     # Construct new plot if not provided
     if (plt == nothing) plt = plot_canvas() end
     # Plot histogram
-    weights = exp.(weights)
-    plt = histogram!(plt, weights; normalize=:probability, legend=false,
-                     xlabel="Particle Weights", ylabel="Frequency",
+    bins = [10.0^i for i in -3:0.5:1]
+    plt = histogram!(plt, exp.(weights), bins=bins; legend=false,
+                     xlims=(0.001, 10), xscale=:log10,
+                     xlabel="Log Particle Weights", ylabel="Frequency",
                      guidefontsize=16, tickfontsize=14)
 end
 
