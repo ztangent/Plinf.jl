@@ -1,6 +1,5 @@
-using Julog, PDDL
-
 # Functions for generating gridworld PDDL problems
+using Julog, PDDL
 
 "Converts ASCII gridworlds to PDDL problem."
 function ascii_to_pddl(str::String, name="gridworld-problem")

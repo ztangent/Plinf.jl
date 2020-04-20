@@ -1,15 +1,9 @@
 pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
 
-"Custom heuristic: manhattan distance to nearest subgoal."
+"Custom heuristic: manhattan distance to goal."
 function gem_heuristic(goals, state::State, domain::Domain)
     goal_objs = [g.args[1] for g in goals if g.name == :has]
     queries = [@julog(at(:obj, X, Y)) for obj in goal_objs]
-    has_key = satisfy(@julog([key(O), has(O)]), state, domain)[1]
-    if !has_key
-        push!(queries, @julog(and(key(O), at(O, X, Y))))
-    else
-        push!(queries, @julog(door(X, Y)))
-    end
     _, subst = satisfy(Compound(:or, queries), state, domain, mode=:all)
     locs = [[s[@julog(X)].name, s[@julog(Y)].name] for s in subst]
     pos = [state[:xpos], state[:ypos]]

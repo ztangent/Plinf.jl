@@ -13,8 +13,9 @@ problem = load_problem(joinpath(path, "problem-3.pddl"))
 
 # Initialize state, set goal position
 state = initialize(problem)
+goal = [problem.goal]
 start_pos = (state[:xpos], state[:ypos])
-goal_pos = (7, 8)
+goal_pos = (12, 14)
 goal = pos_to_terms(goal_pos)
 
 #--- Visualize Plans ---#
