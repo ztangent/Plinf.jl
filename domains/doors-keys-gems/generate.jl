@@ -20,7 +20,7 @@ function ascii_to_pddl(str::String, name="gridworld-problem")
     gems, keys = Const[], Const[]
     start, goal = Term[], @julog(and())
     for (y, row) in enumerate(reverse(rows))
-        for (x, char) in enumerate(row)
+        for (x, char) in enumerate(strip(row))
             if char == '.'
                 continue
             elseif char == 'W' # Wall
@@ -43,7 +43,7 @@ function ascii_to_pddl(str::String, name="gridworld-problem")
             end
         end
     end
-    width, height = maximum(length.(rows)), length(rows)
+    width, height = maximum(length.(strip.(rows))), length(rows)
     dims = @julog [width == $width, height == $height]
     init = Term[dir_diffs; dims; start; init]
     objs = Const[dir_objs; keys; gems]
@@ -53,4 +53,9 @@ function ascii_to_pddl(str::String, name="gridworld-problem")
     problem = Problem(Symbol(name), :gridworld, objs, objtypes,
                       init, goal, (-1, pddl"(total-cost)"))
     return problem
+end
+
+function load_ascii_problem(path::String)
+    str = open(f->read(f, String), path)
+    return ascii_to_pddl(str)
 end

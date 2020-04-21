@@ -2,6 +2,7 @@ using Julog, PDDL, Gen, Printf
 using Plinf
 
 include("utils.jl")
+include("generate.jl")
 include("render.jl")
 
 #--- Initial Setup ---#
