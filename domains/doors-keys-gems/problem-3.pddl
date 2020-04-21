@@ -1,3 +1,13 @@
+;; ASCII ;;
+; W: wall, D: door, k: key, g: gem, G: goal-gem, s: start, .: empty
+; g..W...g
+; k..D.Wk.
+; .WWWWWWD
+; .W..D.W.
+; .W..W.W.
+; ....W.W.
+; WWW.W.W.
+; s...W..G
 (define (problem gridworld-3)
   (:domain gridworld)
   (:objects

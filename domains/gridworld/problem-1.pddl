@@ -1,3 +1,8 @@
+;; ASCII ;;
+; W: wall, g: goal, s: start, .: empty
+; sWg
+; .W.
+; .D.
 (define (problem gridworld-1)
   (:domain gridworld)
   (:init

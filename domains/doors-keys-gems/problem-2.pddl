@@ -1,3 +1,10 @@
+;; ASCII ;;
+; W: wall, D: door, k: key, g: gem, G: goal-gem, s: start, .: empty
+; ...D.
+; .W.Wg
+; sWkW.
+; .W.WG
+; ...D.
 (define (problem doors-keys-gems-2)
   (:domain doors-keys-gems)
   (:objects

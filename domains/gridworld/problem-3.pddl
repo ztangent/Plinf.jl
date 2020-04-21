@@ -1,3 +1,13 @@
+;; ASCII ;;
+; W: wall, g: goal, s: start, .: empty
+; ...W..g.
+; .W...W..
+; .WWWWWW.
+; .W....W.
+; .W..W.W.
+; ....W.W.
+; WWW.W.W.
+; s...W...
 (define (problem gridworld-3)
   (:domain gridworld)
   (:init
