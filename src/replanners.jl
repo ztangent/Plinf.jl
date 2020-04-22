@@ -81,6 +81,7 @@ end
         @trace(sample_plan(planner, domain, state, goal_spec), :plan)
     if part_plan == nothing || length(part_plan) == 0
         # Return no-op if goal cannot be reached, or plan is of zero-length
+        plan_done |= (part_plan == nothing) # Terminate if goal is unreachable
         part_plan, part_traj = Term[Compound(Symbol("--"), [])], State[state]
     else
         # Don't double count initial state
