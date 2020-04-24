@@ -33,13 +33,21 @@ anim = anim_traj(traj, plt)
 # Visualize full horizon probabilistic A* search
 planner = ProbAStarPlanner(heuristic=manhattan, search_noise=10)
 plt = render(state; start=start_pos, goals=goal_pos)
+tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
+anim = anim_plan(tr, plt)
+
+# Visualize distribution over trajectories induced by planner
 trajs = [planner(domain, state, goal)[2] for i in 1:20]
 anim = anim_traj(trajs, plt; alpha=0.1)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=manhattan, search_noise=2)
+astar = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
 replanner = Replanner(planner=astar, persistence=(2, 0.95))
 plt = render(state; start=start_pos, goals=goal_pos)
+tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))
+anim = anim_replan(tr, plt)
+
+# Visualize distribution over trajectories induced by replanner
 trajs = [replanner(domain, state, goal)[2] for i in 1:20]
 anim = anim_traj(trajs, plt; alpha=0.1)
 
