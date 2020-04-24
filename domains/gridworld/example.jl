@@ -12,11 +12,13 @@ path = joinpath(dirname(pathof(Plinf)), "..", "domains", "gridworld")
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-3.pddl"))
 
+problem = load_ascii_problem(joinpath(path, "problem-4.txt"))
+
 # Initialize state, set goal position
 state = initialize(problem)
 goal = [problem.goal]
 start_pos = (state[:xpos], state[:ypos])
-goal_pos = (7, 8)
+goal_pos = goal_to_pos(problem.goal)
 goal = pos_to_terms(goal_pos)
 
 #--- Visualize Plans ---#
