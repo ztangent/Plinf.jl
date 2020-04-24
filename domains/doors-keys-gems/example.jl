@@ -39,7 +39,7 @@ anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
 
 # Visualize sample-based replanning search
 astar = ProbAStarPlanner(heuristic=gem_heuristic, search_noise=2)
-replanner = Replanner(planner=astar, persistence=0.975)
+replanner = Replanner(planner=astar, persistence=(2, 0.95))
 plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=false)
 trajs = [replanner(domain, state, goal)[2] for i in 1:20]
 anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)

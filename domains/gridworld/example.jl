@@ -16,7 +16,7 @@ problem = load_problem(joinpath(path, "problem-3.pddl"))
 state = initialize(problem)
 goal = [problem.goal]
 start_pos = (state[:xpos], state[:ypos])
-goal_pos = (12, 14)
+goal_pos = (7, 8)
 goal = pos_to_terms(goal_pos)
 
 #--- Visualize Plans ---#
@@ -38,7 +38,7 @@ anim = anim_traj(trajs, plt; alpha=0.1)
 
 # Visualize sample-based replanning search
 astar = ProbAStarPlanner(heuristic=manhattan, search_noise=2)
-replanner = Replanner(planner=astar, persistence=0.95)
+replanner = Replanner(planner=astar, persistence=(2, 0.95))
 plt = render(state; start=start_pos, goals=goal_pos)
 trajs = [replanner(domain, state, goal)[2] for i in 1:20]
 anim = anim_traj(trajs, plt; alpha=0.1)
@@ -56,7 +56,7 @@ likely_traj = true
 if likely_traj
     # Construct a trajectory sampled from the prior
     goal = goals[uniform_discrete(1, length(goals))]
-    _, traj = replanner(domain, state, goal)
+    _, traj = planner(domain, state, goal)
     traj = traj[1:min(20, length(traj))]
 else
     # Construct plan that is highly unlikely under the prior
@@ -68,7 +68,7 @@ else
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
-anim_traj(traj, plt)
+anim = anim_traj(traj, plt)
 
 # Assume Gaussian observation noise around agent's location
 obs_terms = @julog([xpos, ypos])
@@ -83,7 +83,7 @@ else
     @gen observe_fn(state::State) =
         @trace(observe_state(state, domain, obs_params))
     agent_args = (replanner, domain, state, goals, observe_fn)
-    rejuvenate = replan_rejuvenate
+    rejuvenate = nothing # replan_rejuvenate
 end
 
 #--- Offline Goal Inference ---#

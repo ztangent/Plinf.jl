@@ -4,7 +4,7 @@ using Parameters: @with_kw
 "Wraps any planner in a replanning algorithm."
 @kwdef struct Replanner <: AbstractPlanner
     planner::AbstractPlanner
-    persistence::Real = 0.95
+    persistence::Tuple{Real,Real} = (2, 0.95)
     max_plans::Real = 100
 end
 
@@ -74,7 +74,8 @@ end
     # Get final state of past trajectory
     state = rp.part_traj[end]
     # Sample a resource bound for the planner
-    max_resource = @trace(geometric(1-persistence), :max_resource)
+    n_attempts, p_continue = persistence
+    max_resource = @trace(neg_binom(n_attempts, 1-p_continue), :max_resource)
     planner = set_max_resource(planner, max_resource)
     # Plan to achieve the goals until the maximum node budget
     part_plan, part_traj =
