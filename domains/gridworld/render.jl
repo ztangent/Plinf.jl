@@ -120,12 +120,14 @@ function render_traces!(traces, weights=nothing, plt=nothing;
     end
 end
 
+## Gridworld animation functions ##
+
 "Render animation of state trajectory/ies."
 function anim_traj(trajs, canvas=nothing, animation=nothing;
                    show=true, fps=3, kwargs...)
     if isa(trajs, Vector{State}) trajs = [trajs] end
-    state = trajs[1][1]
-    canvas = canvas == nothing ? render(state; kwargs...) : canvas
+    canvas = canvas == nothing ?
+        render(trajs[1][1]; show_objs=false, kwargs...) : canvas
     animation = animation == nothing ? Animation() : animation
     for t in 1:maximum(length.(trajs))
         plt = deepcopy(canvas)

@@ -204,21 +204,74 @@ function render_traces!(traces, weights=nothing, plt=nothing;
     end
 end
 
+## Gridworld animation functions ##
+
 "Render animation of state trajectory/ies."
-function anim_traj(trajs, canvas=nothing;
-                   show=true, fps=3, kwargs...)
-    canvas = canvas == nothing ?
-        render(state; show_objs=false, kwargs...) : canvas
-    animation = Animation()
+function anim_traj(trajs, canvas=nothing, animation=nothing;
+                   show=true, fps=3, show_objs=true, kwargs...)
     if isa(trajs, Vector{State}) trajs = [trajs] end
+    canvas = canvas == nothing ?
+        render(trajs[1][1]; show_objs=false, kwargs...) : canvas
+    animation = animation == nothing ? Animation() : animation
     for t in 1:maximum(length.(trajs))
         plt = deepcopy(canvas)
         for traj in trajs
             state = t <= length(traj) ? traj[t] : traj[end]
             render_pos!(state, plt; kwargs...)
-            render_objects!(state, plt; kwargs...)
+            if show_objs render_objects!(state, plt; kwargs...) end
         end
         frame(animation)
+    end
+    if show display(gif(animation; fps=fps)) end
+    return animation
+end
+
+"Animate planner node expansions during tree search."
+function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
+                   node_radius=0.1, search_color=:red, search_alpha=0.3,
+                   plan_color=:blue, plan_alpha=0.5, kwargs...)
+    plt = deepcopy(canvas)
+    animation = animation == nothing ? Animation() : animation
+    node_choices = sort(Dict(get_values_shallow(get_choices(trace))))
+    # Render each node expanded in sequence
+    for state in values(node_choices)
+        dot = make_circle(state[:xpos], state[:ypos], node_radius)
+        plt = plot!(plt, dot, color=search_color, alpha=search_alpha,
+                    linealpha=0, legend=false)
+        frame(animation, plt)
+    end
+    # Render final plan
+    plan, traj = get_retval(trace)
+    plt = render!(traj, plt; alpha=plan_alpha,
+                  color=plan_color, radius=node_radius*1.5)
+    if show display(plt) end
+    frame(animation, plt)
+    frame(animation, plt)
+    if show display(gif(animation; fps=fps)) end
+    return animation
+end
+
+"Animate interleaved search and execution of a replanner."
+function anim_replan(trace, canvas, animation=nothing;
+                     show=true, fps=10, kwargs...)
+    animation = animation == nothing ? Animation() : animation
+    # Iterate over time steps
+    step_submaps = sort(Dict(get_submaps_shallow(get_choices(trace))))
+    for (addr, submap) in step_submaps
+        # Get subtrace for this step
+        step_trace = Gen.get_call(trace, addr).subtrace
+        # Skip steps where no new plans were made
+        if !Gen.has_call(step_trace, :plan) continue end
+        plan_trace = Gen.get_call(step_trace, :plan).subtrace
+        # Render agent's position
+        _, _, state, _ = Gen.get_args(plan_trace)
+        plt = render_pos!(state, deepcopy(canvas); alpha=0.5, kwargs...)
+        # Render subtrace corresponding to base planner
+        animation = anim_plan(plan_trace, plt, animation; show=false, kwargs...)
+        # Animate trajectory over most recent plot
+        plt = plot!()
+        plan, traj = get_retval(plan_trace)
+        animation = anim_traj(traj, plt, animation; show=false, kwargs...)
     end
     if show display(gif(animation; fps=fps)) end
     return animation
