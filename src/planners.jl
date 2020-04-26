@@ -1,4 +1,5 @@
-export AbstractPlanner, set_max_resource, get_call, sample_plan
+export AbstractPlanner
+export set_max_resource, get_call, sample_plan, get_proposal, propose_plan
 export BFSPlanner, AStarPlanner, ProbAStarPlanner
 
 "Abstract planner type, which defines the interface for planners."
@@ -22,7 +23,7 @@ get_call(::AbstractPlanner)::GenerativeFunction = planner_call
 
 "Abstract planner call interface."
 @gen function planner_call(planner::AbstractPlanner,
-                           domain::Domain, state::State, goal_spec)
+                           domain::Domain, state::State, goal_spec::GoalSpec)
     error("Not implemented.")
     return plan, traj
 end
@@ -30,9 +31,29 @@ end
 "Sample a plan given a planner, domain, initial state and goal specification."
 @gen function sample_plan(planner::AbstractPlanner,
                           domain::Domain, state::State, goal_spec)
-    call = get_call(planner)
     goal_spec = isa(goal_spec, GoalSpec) ? goal_spec : GoalSpec(goal_spec)
+    call = get_call(planner)
     return @trace(call(planner, domain, state, goal_spec))
+end
+
+"Returns the data-driven proposal associated with the planning algorithm."
+get_proposal(::AbstractPlanner)::GenerativeFunction = planner_propose
+
+"Default data-driven proposal to the planner's internal random choices."
+@gen function planner_propose(planner::AbstractPlanner,
+                              domain::Domain, state::State, goal_spec::GoalSpec,
+                              obs_states::Vector{<:Union{State,Nothing}})
+    call = get_call(planner) # Default to proposing from the prior
+    return @trace(call(planner, domain, state, goal_spec))
+end
+
+"Propose a plan given a planner and a sequence of observed states."
+@gen function propose_plan(planner::AbstractPlanner,
+                           domain::Domain, state::State, goal_spec,
+                           obs_states::Vector{<:Union{State,Nothing}})
+    goal_spec = isa(goal_spec, GoalSpec) ? goal_spec : GoalSpec(goal_spec)
+    proposal = get_proposal(planner)
+    return @trace(proposal(planner, domain, state, goal_spec, obs_states))
 end
 
 "Uninformed breadth-first search planner."
