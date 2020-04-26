@@ -5,10 +5,8 @@ export GoalSpec
     goals::Vector{Term} = Term[] # Goal terms to be satisfied
     metric::Union{Term,Nothing} = nothing # Metric to be minimized
     constraints::Vector{Term} = Term[] # Trajectory constraints
-    obs_acts::Vector{Term} = Term[] # Action observations to (approx.) match
-    obs_states::Vector{State} = State[] # State observations to (approx.) match
-    GoalSpec(goals, metric, constaints, obs_acts, obs_states) =
-        new(flatten_conjs(goals), metric, constaints, obs_acts, obs_states)
+    GoalSpec(goals, metric, constraints) =
+        new(flatten_conjs(goals), metric, Vector{Term}(constraints))
 end
 
 GoalSpec(goals::Vector{<:Term}) = GoalSpec(goals=goals)

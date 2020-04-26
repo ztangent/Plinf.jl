@@ -88,7 +88,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
 "Deterministic A* search for a plan."
 @gen function astar_call(planner::AStarPlanner,
                          domain::Domain, state::State, goal_spec::GoalSpec)
-    @unpack goals = goal_spec
+    @unpack goals, metric, constraints = goal_spec
     @unpack max_nodes, heuristic = planner
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
@@ -107,7 +107,13 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
         for act in actions
             # Execute action and trigger all post-action events
             next_state = transition(domain, state, act)
-            path_cost = path_costs[state] + 1
+            # Check if next state satisfies trajectory constraints
+            if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
+                continue end
+            # Compute path cost
+            act_cost = metric == nothing ? 1 :
+                next_state[domain, metric] - state[domain, metric]
+            path_cost = path_costs[state] + act_cost
             # Update path costs if new path is shorter
             cost_diff = get(path_costs, next_state, Inf) - path_cost
             if cost_diff > 0
@@ -140,7 +146,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = prob_astar_call
 "Probabilistic A* search for a plan."
 @gen function prob_astar_call(planner::ProbAStarPlanner,
                               domain::Domain, state::State, goal_spec::GoalSpec)
-    @unpack goals = goal_spec
+    @unpack goals, metric, constraints = goal_spec
     @unpack heuristic, max_nodes, search_noise = planner
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
@@ -164,7 +170,13 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = prob_astar_call
         for act in actions
             # Execute action and trigger all post-action events
             next_state = transition(domain, state, act)
-            path_cost = path_costs[state] + 1
+            # Check if next state satisfies trajectory constraints
+            if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
+                continue end
+            # Compute path cost
+            act_cost = metric == nothing ? 1 :
+                next_state[domain, metric] - state[domain, metric]
+            path_cost = path_costs[state] + act_cost
             # Update path costs if new path is shorter
             cost_diff = get(path_costs, next_state, Inf) - path_cost
             if cost_diff > 0
