@@ -1,8 +1,3 @@
-using Base: @kwdef
-using Parameters: @unpack
-using Setfield: @set
-using DataStructures: PriorityQueue, OrderedDict, enqueue!, dequeue!
-
 export AbstractPlanner, set_max_resource, get_call, sample_plan
 export BFSPlanner, AStarPlanner, ProbAStarPlanner
 
@@ -10,8 +5,14 @@ export BFSPlanner, AStarPlanner, ProbAStarPlanner
 abstract type AbstractPlanner end
 
 "Call planner without tracing internal random choices."
-(planner::AbstractPlanner)(domain::Domain, state::State, goal_spec) =
+(planner::AbstractPlanner)(domain::Domain, state::State, goal_spec::GoalSpec) =
     get_call(planner)(planner, domain, state, goal_spec)
+
+(planner::AbstractPlanner)(domain::Domain, state::State, goals::Vector{<:Term}) =
+    get_call(planner)(planner, domain, state, GoalSpec(goals))
+
+(planner::AbstractPlanner)(domain::Domain, state::State, goal::Term) =
+    get_call(planner)(planner, domain, state, GoalSpec(goal))
 
 "Return copy of the planner with adjusted resource bound."
 set_max_resource(planner::AbstractPlanner, val) = planner
@@ -30,6 +31,7 @@ end
 @gen function sample_plan(planner::AbstractPlanner,
                           domain::Domain, state::State, goal_spec)
     call = get_call(planner)
+    goal_spec = isa(goal_spec, GoalSpec) ? goal_spec : GoalSpec(goal_spec)
     return @trace(call(planner, domain, state, goal_spec))
 end
 
@@ -44,7 +46,8 @@ get_call(::BFSPlanner)::GenerativeFunction = bfs_call
 
 "Uninformed breadth-first search for a plan."
 @gen function bfs_call(planner::BFSPlanner,
-                       domain::Domain, state::State, goals::Vector{Term})
+                       domain::Domain, state::State, goal_spec::GoalSpec)
+    @unpack goals = goal_spec
     plan, traj = Term[], State[state]
     queue = [(plan, traj)]
     while length(queue) > 0
@@ -61,8 +64,6 @@ get_call(::BFSPlanner)::GenerativeFunction = bfs_call
             next_state = transition(domain, state, act)
             # Add action term to plan sequence
             next_plan = Term[plan; act]
-            # Trigger all post-action events
-            next_state = trigger(domain.events, next_state, domain)
             next_traj = State[traj; next_state]
             # Return plan if goals are satisfied
             sat, _ = satisfy(goals, next_state, domain)
@@ -86,10 +87,9 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
 
 "Deterministic A* search for a plan."
 @gen function astar_call(planner::AStarPlanner,
-                         domain::Domain, state::State, goals::Vector{Term})
+                         domain::Domain, state::State, goal_spec::GoalSpec)
+    @unpack goals = goal_spec
     @unpack max_nodes, heuristic = planner
-    # Remove conjunctions in goals
-    goals = reduce(vcat, map(g -> (g.name == :and) ? g.args : Term[g], goals))
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
     path_costs = Dict{State,Int64}(state => 0)
@@ -139,10 +139,9 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = prob_astar_call
 
 "Probabilistic A* search for a plan."
 @gen function prob_astar_call(planner::ProbAStarPlanner,
-                              domain::Domain, state::State, goals::Vector{Term})
+                              domain::Domain, state::State, goal_spec::GoalSpec)
+    @unpack goals = goal_spec
     @unpack heuristic, max_nodes, search_noise = planner
-    # Remove conjunctions in goals
-    goals = reduce(vcat, map(g -> (g.name == :and) ? g.args : Term[g], goals))
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
     path_costs = Dict{State,Int64}(state => 0)

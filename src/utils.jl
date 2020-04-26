@@ -22,3 +22,7 @@ dist_type(d::Distribution{T}) where {T} = T
 
 "Boolean corruption noise."
 @dist flip(val::Bool, prob::Float64) = bernoulli((1-val)*prob + val*(1-prob))
+
+"Flatten conjunctions in term to a list."
+flatten_conjs(t::Term) = t.name == :and ? flatten_conjs(Julog.get_args(t)) : t
+flatten_conjs(t::Vector{<:Term}) = reduce(vcat, flatten_conjs.(t); init=Term[])

@@ -7,7 +7,7 @@ export plan_agent, replan_agent
                                   obs_params::ObserveParams)
     # Sample a goal uniformly at random
     goal_idx = @trace(uniform_discrete(1, length(goals)), :goal)
-    goal = goals[goal_idx]
+    goal = GoalSpec(goals[goal_idx])
     # Sample a plan and trajectory from the planner
     plan, traj = @trace(sample_plan(planner, domain, state, goal), :plan)
     # Add observation noise
@@ -24,7 +24,7 @@ end
                                     observe_fn::GenerativeFunction)
     # Sample a goal uniformly at random
     goal_idx = @trace(uniform_discrete(1, length(goals)), :goal)
-    goal = goals[goal_idx]
+    goal = GoalSpec(goals[goal_idx])
     # Sample a trajectory via replanning
     rp_init = ReplanState(0, Term[], [state], false)
     rp_states = @trace(replan_unfold(n_steps, rp_init, replanner,

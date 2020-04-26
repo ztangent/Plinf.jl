@@ -51,7 +51,7 @@ end
 
 "Checks whether a plan already reaches a timestep t, and extends it if not."
 @gen function replan_step(t::Int, rp::ReplanState, replanner::Replanner,
-                          domain::Domain, goal_spec, observe_fn=nothing)
+                          domain::Domain, goal_spec::GoalSpec, observe_fn=nothing)
     @unpack planner, persistence = replanner
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
@@ -66,7 +66,7 @@ end
         # If plan has already reached this time step, just advance the step
         state = rp.part_traj[rel_step] # Get state for this timestep
         if !plan_done && rel_step == length(rp.part_traj)
-            plan_done = satisfy(goal_spec, state, domain)[1] end
+            plan_done = satisfy(goal_spec.goals, state, domain)[1] end
         if observe_fn != nothing # Observe current state
             @trace(observe_fn(state)) end
         return ReplanState(rel_step, rp.part_plan, rp.part_traj, plan_done)
@@ -90,7 +90,7 @@ end
     end
     state = part_traj[1]
     if !plan_done # Check if plan is done
-        plan_done = satisfy(goal_spec, state, domain)[1] end
+        plan_done = satisfy(goal_spec.goals, state, domain)[1] end
     if observe_fn != nothing # Observe current state
         @trace(observe_fn(state)) end
     return ReplanState(1, part_plan, part_traj, plan_done)
@@ -100,7 +100,7 @@ replan_unfold = Unfold(replan_step)
 
 "Plan to achieve a goal by repeated planning calls"
 @gen function replan_call(replanner::Replanner,
-                          domain::Domain, state::State, goal_spec)
+                          domain::Domain, state::State, goal_spec::GoalSpec)
     # TODO : Handle states differing from planned trajectory
     # This will occur in stochastic domains
     # Intialize state for replan step
