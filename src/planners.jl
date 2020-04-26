@@ -162,29 +162,29 @@ end
 
 set_max_resource(planner::ProbAStarPlanner, val) = @set planner.max_nodes = val
 
-get_call(::ProbAStarPlanner)::GenerativeFunction = prob_astar_call
+get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
 
 "Probabilistic A* search for a plan."
-@gen function prob_astar_call(planner::ProbAStarPlanner,
-                              domain::Domain, state::State, goal_spec::GoalSpec)
+@gen function aprob_call(planner::ProbAStarPlanner,
+                         domain::Domain, state::State, goal_spec::GoalSpec)
     @unpack goals, metric, constraints = goal_spec
     @unpack heuristic, max_nodes, search_noise = planner
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
     path_costs = Dict{State,Int64}(state => 0)
     queue = OrderedDict{State,Int64}(state => heuristic(goals, state, domain))
-    # Initialize trace address
-    count = 0
+    # Initialize node count
+    count = 1
     while length(queue) > 0
         # Sample state from queue with probability exp(-beta*est_cost)
         probs = softmax([-v / search_noise for v in values(queue)])
         state = @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
         delete!(queue, state)
-        count += 1
         # Return plan if search budget is reached or goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
             return reconstruct_plan(state, parents)
         end
+        count += 1
         # Get list of available actions
         actions = available(state, domain)
         # Iterate over actions
@@ -215,6 +215,105 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = prob_astar_call
     end
     return nothing, nothing
 end
+
+"Returns the data-driven proposal associated with the planning algorithm."
+get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
+
+"Data-driven proposal for probabilistic A* search."
+@gen function aprob_propose(planner::ProbAStarPlanner,
+                            domain::Domain, state::State, goal_spec::GoalSpec,
+                            obs_states::Vector{<:Union{State,Nothing}})
+    @param obs_bias::Float64 # How much more likely an observed state is sampled
+    @unpack goals, metric, constraints = goal_spec
+    @unpack heuristic, max_nodes, search_noise = planner
+    # Initialize path costs and priority queue
+    parents = Dict{State,Tuple{State,Term}}()
+    path_costs = Dict{State,Int64}(state => 0)
+    queue = OrderedDict{State,Int64}(state => heuristic(goals, state, domain))
+    # Initialize observation queue and descendants
+    obs_queue = copy(obs_states)
+    last_idx = findlast(s -> s != nothing, obs_states)
+    obs_descs = last_idx == nothing ?
+        Set{State}() : Set{State}([obs_states[last_idx]])
+    # Initialize node count
+    count = 1
+    while length(queue) > 0
+        # Compute (un-normalized) original probabilities of sampling each state
+        max_score = - minimum(values(queue)) / search_noise
+        probs = OrderedDict(s => exp(-v / search_noise - max_score)
+                            for (s, v) in queue)
+        if count >= max_nodes && isempty(obs_queue) &&
+           !isempty(intersect(obs_descs, keys(probs)))
+            # Select final node to be a descendant of the last observation
+            probs = [s in obs_descs ? p : 0 for (s, p) in probs]
+            probs = probs ./ sum(probs)
+            state = @trace(labeled_cat(collect(keys(queue)), probs),
+                           (:node, count))
+            return reconstruct_plan(state, parents)
+        elseif isempty(obs_queue)
+            for state in obs_descs # Bias search towards descendants
+                if (state in keys(probs))
+                    probs[state] += obs_bias * probs[state] end
+            end
+        elseif obs_queue[1] != nothing && obs_queue[1] in keys(probs)
+            obs = obs_queue[1]
+            nodes_left = max_nodes - count + 1
+            if nodes_left <= length(obs_queue)
+                # Use remaining node budget on remaining observations
+                probs = OrderedDict(s => s == obs ? 1. : 0. for (s, v) in queue)
+            else # Bias search towards observed states
+                probs[obs] += obs_bias * probs[obs]
+            end
+        end
+        probs = collect(values(probs)) ./ sum(values(probs))
+        state = @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
+        # Remove states / observations from respective queues
+        delete!(queue, state)
+        if !isempty(obs_queue) &&
+            (obs_queue[1] == nothing || obs_queue[1] == state)
+            popfirst!(obs_queue) end
+        # Return plan if goals are satisfied
+        if count >= max_nodes || satisfy(goals, state, domain)[1]
+            return reconstruct_plan(state, parents)
+        end
+        count += 1
+        # Get list of available actions
+        actions = available(state, domain)
+        # Iterate over actions
+        for act in actions
+            # Execute action and trigger all post-action events
+            next_state = transition(domain, state, act)
+            # Check if next state satisfies trajectory constraints
+            if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
+                continue end
+            # Compute path cost
+            act_cost = metric == nothing ? 1 :
+                next_state[domain, metric] - state[domain, metric]
+            path_cost = path_costs[state] + act_cost
+            # Update path costs if new path is shorter
+            cost_diff = get(path_costs, next_state, Inf) - path_cost
+            if cost_diff > 0
+                parents[next_state] = (state, act)
+                path_costs[next_state] = path_cost
+                # Update estimated cost from next state to goal
+                if !(next_state in keys(queue))
+                    est_cost = path_cost + heuristic(goals, state, domain)
+                    queue[next_state] = est_cost
+                else
+                    queue[next_state] -= cost_diff
+                end
+                # Add next state to descendants of observations
+                if state in obs_descs push!(obs_descs, next_state) end
+            end
+        end
+        # Remove state from observation descendants once expanded
+        if state in obs_descs delete!(obs_descs, state) end
+    end
+    return nothing, nothing
+end
+
+# Initialize bias towards sampling observed states
+init_param!(aprob_propose, :obs_bias, 2)
 
 "Reconstruct plan from current state and back-pointers."
 function reconstruct_plan(state::State, parents::Dict{State,Tuple{State,Term}})
