@@ -30,14 +30,14 @@
            (assign (pitch ?y) 0)
            (assign (roll ?y) 0)))
   (:action putdown
-    :parameters (?x ?y)
+    :parameters (?x ?y ?xoff ?yoff)
     :precondition (and (holding ?y) (fits ?x ?y))
     :effect
       (and (not (holding ?y))
            (on ?x ?y)
            (increase (amounton ?x) (size ?y))
-           (assign (posx ?y) 0)
-           (assign (posy ?y) 0)
+           (assign (posx ?y) ?xoff)
+           (assign (posy ?y) ?yoff)
            (assign (posz ?y) -1)
            (assign (yaw ?y) 0)
            (assign (pitch ?y) -1)

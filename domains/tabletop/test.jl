@@ -33,6 +33,10 @@ function test1()
 
     scene_graph_after = pddl_to_scene_graph(state)
     visualize(scene_graph_after, save_path, "after")
+
+    state = execute(@julog(putdown(table, block1, 3, 3)), state, domain)
+    scene_graph_putdown = pddl_to_scene_graph(state)
+    visualize(scene_graph_putdown, save_path, "putdown")
 end
 
 function test2()
