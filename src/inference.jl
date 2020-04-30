@@ -1,15 +1,17 @@
-export agent_pf, replan_rejuvenate
+export goal_pf, replan_rejuvenate
 
-"Online goal inference for a task planning agent using a particle filter."
-function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
-                  obs_traj::Vector{State}, obs_terms::Vector{<:Term},
-                  domain::Domain, n_particles::Int;
-                  rejuvenate=nothing, callback=nothing)
+"Online goal inference using a particle filter."
+function goal_pf(world_init::WorldInit, world_config::WorldConfig,
+                 obs_traj::Vector{State}, obs_terms::Vector{<:Term},
+                 n_particles::Int; rejuvenate=nothing, callback=nothing)
+    # Construct choicemaps from observed trajectory
+    @unpack domain = world_config
+    obs_choices = traj_choicemaps(obs_traj, domain, obs_terms)
     # Initialize particle filter with initial observations
-    init_obs = state_choices(obs_traj[1], obs_terms, (:traj => 1))
-    pf_state = initialize_particle_filter(agent_model, (1, agent_args...),
-                                          init_obs, n_particles)
-    agent_argdiffs = fill(NoChange(), length(agent_args))
+    world_args = (world_init, world_config)
+    argdiffs = (UnknownChange(), NoChange(), NoChange())
+    pf_state = initialize_particle_filter(world_model, (1, world_args...),
+                                          obs_choices[1], n_particles)
     # Run callback with initial state
     if callback != nothing
         trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
@@ -21,9 +23,8 @@ function agent_pf(agent_model::GenerativeFunction, agent_args::Tuple,
         if resampled
             if rejuvenate != nothing rejuvenate(pf_state) end
         end
-        obs = state_choices(obs_traj[t], domain, obs_terms, (:traj => t));
-        particle_filter_step!(pf_state, (t, agent_args...),
-            (UnknownChange(), agent_argdiffs...), obs)
+        particle_filter_step!(pf_state, (t, world_args...),
+                              argdiffs, obs_choices[t])
         if callback != nothing
             trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
             callback(t, obs_traj[t], trs, ws)
@@ -41,19 +42,21 @@ function replan_rejuvenate(pf_state::Gen.ParticleFilterState,
         # Resample everything with some low probability
         if bernoulli(0.1)
             for k = 1:n_rejuv_steps
-                trace, _ = mh(trace, select(:goal, :traj))
+                trace, _ = mh(trace, select(:goal_init, :timestep))
             end
             pf_state.new_traces[i] = trace
             continue
         end
         # Get last step at which replanning occurred
-        rp_states = trace[:traj]
+        world_states = get_retval(tr)
+        rp_states = [ws.plan_state for ws in world_states]
         t, _ = get_last_plan_step(rp_states)
         last_plan_length = length(rp_states) - t + 1
         # Resample final plan with probability decreasing in plan length
         resample_last_plan = bernoulli(exp(-rejuv_temp * last_plan_length))
         if resample_last_plan
-            selection = select(:traj => t => :max_resource, :traj => t => :plan)
+            selection = select(:timestep => t => :plan => :max_resource,
+                               :timestep => t => :plan => :subplan)
             for k = 1:n_rejuv_steps
                 trace, _ = mh(trace, selection)
             end

@@ -26,3 +26,14 @@ dist_type(d::Distribution{T}) where {T} = T
 "Flatten conjunctions in term to a list."
 flatten_conjs(t::Term) = t.name == :and ? flatten_conjs(Julog.get_args(t)) : t
 flatten_conjs(t::Vector{<:Term}) = reduce(vcat, flatten_conjs.(t); init=Term[])
+
+"Sample functions passed as args to a static generative function."
+@gen function sample_fn(fn, args::Tuple=())
+    if isa(fn, GenerativeFunction)
+        return @trace(fn(args...))
+    elseif isa(fn, Function)
+        return fn(args...)
+    else
+        return fn
+    end
+end

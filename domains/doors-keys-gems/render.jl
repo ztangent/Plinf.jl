@@ -192,15 +192,17 @@ function render!(traj::Vector{State}, plt=nothing;
      return plt
 end
 
-"Render trajectories for each (weighted) trace"
+"Render planned trajectories for each (weighted) trace of the world model."
 function render_traces!(traces, weights=nothing, plt=nothing;
                         goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.60,
                         kwargs...)
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     for (tr, w) in zip(traces, weights)
-        traj = get_retval(tr)
-        color = goal_colors[tr[:goal]]
-        render!(traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
+        world_traj = get_retval(tr)
+        plan_traj = [ws.plan_state for ws in world_traj]
+        env_traj = extract_traj(plan_traj)
+        color = goal_colors[tr[:goal_init => :goal]]
+        render!(env_traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
     end
 end
 
@@ -261,8 +263,8 @@ function anim_replan(trace, canvas, animation=nothing;
         # Get subtrace for this step
         step_trace = Gen.get_call(trace, addr).subtrace
         # Skip steps where no new plans were made
-        if !Gen.has_call(step_trace, :plan) continue end
-        plan_trace = Gen.get_call(step_trace, :plan).subtrace
+        if !Gen.has_call(step_trace, :subplan) continue end
+        plan_trace = Gen.get_call(step_trace, :subplan).subtrace
         # Render agent's position
         _, _, state, _ = Gen.get_args(plan_trace)
         plt = render_pos!(state, deepcopy(canvas); alpha=0.5, kwargs...)
@@ -344,13 +346,15 @@ function plot_plan_lengths!(traces, weights; plt=nothing)
     if (plt == nothing) plt = plot_canvas() end
     # Get plan lengths from traces
     plan_lengths = map(traces) do tr
-        traj_ret = tr[:traj]
-        if isa(traj_ret[end], Plinf.ReplanState)
-            _, rp = Plinf.get_last_plan_step(traj_ret)
+        world_states = get_retval(tr)
+        plan_states = [ws.plan_state for ws in world_states]
+        if isa(plan_states[end], Plinf.ReplanState)
+            _, rp = Plinf.get_last_plan_step(plan_states)
             return length(rp.part_plan)
+        elseif isa(plan_states[end], Plinf.PlanState)
+            return length(plan_states[end].plan)
         else
-            plan, traj = tr[:plan]
-            return length(plan)
+            return 0
         end
     end
     weights = exp.(weights)

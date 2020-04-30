@@ -12,7 +12,7 @@ include("heuristics.jl")
 include("planners.jl")
 include("replanners.jl")
 include("observations.jl")
-include("agents.jl")
+include("worlds.jl")
 include("inference.jl")
 
 Gen.@load_generated_functions()

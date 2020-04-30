@@ -18,3 +18,5 @@ function GoalSpec(problem::Problem)
     if sign > 0 metric = Compound(:-, [metric]) end
     return GoalSpec(goals=goals, metric=metric)
 end
+
+get_goal(goal_spec::GoalSpec) = goal_spec

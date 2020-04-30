@@ -58,6 +58,11 @@ goals = [pos_to_terms(g) for g in goal_set]
 goal_colors = [:orange, :magenta, :blue]
 goal_names = [string(g) for g in goal_set]
 
+# Define uniform prior over possible goals
+@gen function goal_prior()
+    GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
+end
+
 # Sample a trajectory as the ground truth (no observation noise)
 likely_traj = true
 if likely_traj
@@ -67,10 +72,8 @@ if likely_traj
     traj = traj[1:min(20, length(traj))]
 else
     # Construct plan that is highly unlikely under the prior
-    wp1 = @julog [xpos == 1, ypos == 8]
-    _, seg1 = AStarPlanner()(domain, state, wp1)
-    wp2 = @julog [xpos == 8, ypos == 1]
-    _, seg2 = AStarPlanner()(domain, seg1[end], wp2)
+    _, seg1 = AStarPlanner()(domain, state, pos_to_terms((1, 8)))
+    _, seg2 = AStarPlanner()(domain, seg1[end], pos_to_terms((8, 1)))
     traj = [seg1; seg2[2:end]][1:end-3]
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
@@ -82,24 +85,19 @@ obs_terms = @julog([xpos, ypos])
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Assume either a planning agent or replanning agent as a model
-agent_model = replan_agent # plan_agent
-if agent_model == plan_agent
-    agent_args = (planner, domain, state, goals, obs_params)
-    rejuvenate = nothing
-else
-    @gen observe_fn(state::State) =
-        @trace(observe_state(state, domain, obs_params))
-    agent_args = (replanner, domain, state, goals, observe_fn)
-    rejuvenate = nothing # replan_rejuvenate
-end
+agent_planner = replanner # replanner
+
+# Intialize world model with planner, goal prior, initial state, and obs params
+world_init = WorldInit(agent_planner, goal_prior, state)
+world_config = WorldConfig(domain, agent_planner, obs_params)
 
 #--- Offline Goal Inference ---#
 
 # Run importance sampling to infer the likely goal
 n_samples = 20
-observations = traj_choices(traj, domain, @julog([xpos, ypos]), :traj)
+observations = traj_choicemaps(traj, domain, obs_terms; as_choicemap=true)
 traces, weights, _ =
-    importance_sampling(agent_model, (length(traj), agent_args...),
+    importance_sampling(world_model, (length(traj), world_init, world_config),
                         observations, n_samples)
 
 # Plot sampled trajectory for each trace
@@ -141,7 +139,7 @@ callback = (t, s, trs, ws) ->
 # Run a particle filter to perform online goal inference
 n_samples = 20
 traces, weights =
-    agent_pf(agent_model, agent_args, traj, obs_terms, domain, n_samples;
-             rejuvenate=rejuvenate, callback=callback)
+    goal_pf(world_init, world_config, traj, obs_terms, n_samples;
+            rejuvenate=nothing, callback=callback)
 # Show animation of goal inference
 gif(anim; fps=3)

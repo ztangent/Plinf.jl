@@ -1,5 +1,7 @@
 export AbstractPlanner
-export set_max_resource, get_call, sample_plan, get_proposal, propose_plan
+export set_max_resource, get_call, get_proposal, get_step
+export sample_plan, propose_plan
+export extract_plan, extract_traj
 export BFSPlanner, AStarPlanner, ProbAStarPlanner
 
 "Abstract planner type, which defines the interface for planners."
@@ -21,11 +23,22 @@ set_max_resource(planner::AbstractPlanner, val) = planner
 "Returns the generative function that defines the planning algorithm."
 get_call(::AbstractPlanner)::GenerativeFunction = planner_call
 
-"Abstract planner call interface."
+"Returns the data-driven proposal associated with the planning algorithm."
+get_proposal(::AbstractPlanner)::GenerativeFunction = planner_propose
+
+"Abstract planner call template, to be implemented by concrete planners."
 @gen function planner_call(planner::AbstractPlanner,
                            domain::Domain, state::State, goal_spec::GoalSpec)
     error("Not implemented.")
     return plan, traj
+end
+
+"Default data-driven proposal to the planner's internal random choices."
+@gen function planner_propose(planner::AbstractPlanner,
+                              domain::Domain, state::State, goal_spec::GoalSpec,
+                              obs_states::Vector{<:Union{State,Nothing}})
+    call = get_call(planner) # Default to proposing from the prior
+    return @trace(call(planner, domain, state, goal_spec))
 end
 
 "Sample a plan given a planner, domain, initial state and goal specification."
@@ -36,17 +49,6 @@ end
     return @trace(call(planner, domain, state, goal_spec))
 end
 
-"Returns the data-driven proposal associated with the planning algorithm."
-get_proposal(::AbstractPlanner)::GenerativeFunction = planner_propose
-
-"Default data-driven proposal to the planner's internal random choices."
-@gen function planner_propose(planner::AbstractPlanner,
-                              domain::Domain, state::State, goal_spec::GoalSpec,
-                              obs_states::Vector{<:Union{State,Nothing}})
-    call = get_call(planner) # Default to proposing from the prior
-    return @trace(call(planner, domain, state, goal_spec))
-end
-
 "Propose a plan given a planner and a sequence of observed states."
 @gen function propose_plan(planner::AbstractPlanner,
                            domain::Domain, state::State, goal_spec,
@@ -54,6 +56,50 @@ end
     goal_spec = isa(goal_spec, GoalSpec) ? goal_spec : GoalSpec(goal_spec)
     proposal = get_proposal(planner)
     return @trace(proposal(planner, domain, state, goal_spec, obs_states))
+end
+
+"Abstract plan state for step-wise plan computation."
+abstract type AbstractPlanState end
+
+"Returns current action, given the step-wise planning state."
+get_action(ps::AbstractPlanState)::Term = error("Not implemented.")
+
+"Default state implementation for a planning step."
+struct PlanState <: AbstractPlanState
+    step::Int
+    plan::Vector{Term}
+    traj::Vector{State}
+end
+
+get_action(ps::PlanState)::Term =
+    0 < ps.step <= length(ps.plan) ? ps.plan[ps.step] : Const(PDDL.no_op.name)
+
+"Extract plan from a sequence of planning states."
+extract_plan(plan_states::AbstractArray{PlanState}) = plan_states[end].plan
+
+"Extract planned trajectory from a sequence of planning states."
+extract_traj(plan_states::AbstractArray{PlanState}) = plan_states[end].traj
+
+"Returns a step-wise version of the planning call."
+get_step(::AbstractPlanner)::GenerativeFunction = planner_step
+
+"Intialize step-wise planning state."
+initialize_state(::AbstractPlanner, env_state::State)::AbstractPlanState =
+    PlanState(0, Term[], State[env_state])
+
+"Default step-wise planning call, which does all planning up-front."
+@gen function planner_step(t::Int, ps::PlanState, planner::AbstractPlanner,
+                           domain::Domain, state::State, goal_spec::GoalSpec)
+   if ps.step == 0 # Calls planner at the start
+       call = get_call(planner)
+       plan, traj = @trace(call(planner, domain, state, goal_spec))
+       if plan == nothing || traj == nothing # Return no-op on plan failure
+           plan, traj = Term[Const(PDDL.no_op.name)], State[state]
+       end
+       return PlanState(1, plan, traj)
+   else
+       return PlanState(ps.step + 1, ps.plan, ps.traj)
+   end
 end
 
 "Uninformed breadth-first search planner."

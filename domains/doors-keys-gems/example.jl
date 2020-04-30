@@ -59,6 +59,11 @@ anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
 goals = [@julog([has(gem1)]), @julog([has(gem2)]), @julog([has(gem3)])]
 goal_names = [repr(t[1]) for t in goals]
 
+# Define uniform prior over possible goals
+@gen function goal_prior()
+    GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
+end
+
 # Sample a trajectory as the ground truth (no observation noise)
 goal = goals[uniform_discrete(1, length(goals))]
 _, traj = planner(domain, state, goal)
@@ -77,22 +82,19 @@ obs_params = observe_params(
 obs_terms = collect(keys(obs_params))
 
 # Assume either a planning agent or replanning agent as a model
-agent_model = replan_agent # plan_agent
-if agent_model == plan_agent
-    agent_args = (planner, domain, state, goals, obs_params)
-else
-    @gen observe_fn(state::State) =
-        @trace(observe_state(state, domain, obs_params))
-    agent_args = (replanner, domain, state, goals, observe_fn)
-end
+agent_planner = replanner # replanner
+
+# Initialize world model with planner, goal prior, initial state, and obs params
+world_init = WorldInit(agent_planner, goal_prior, state)
+world_config = WorldConfig(domain, agent_planner, obs_params)
 
 #--- Offline Goal Inference ---#
 
 # Run importance sampling to infer the likely goal
 n_samples = 20
-observations = traj_choices(traj, domain, obs_terms, :traj)
+observations = traj_choicemaps(traj, domain, obs_terms; as_choicemap=true)
 traces, weights, _ =
-    importance_sampling(agent_model, (length(traj), agent_args...),
+    importance_sampling(world_model, (length(traj), world_init, world_config),
                         observations, n_samples)
 
 # Plot sampled trajectory for each trace
@@ -103,7 +105,7 @@ plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 # Compute posterior probability of each goal
 goal_probs = get_goal_probs(traces, weights, 1:length(goals))
 println("Posterior probabilities:")
-for (goal, prob) in zip(goals, values(sort(goal_probs)))
+for (goal, prob) in zip(goal_names, values(sort(goal_probs)))
     @printf "Goal: %s\t Prob: %0.3f\n" goal prob
 end
 
@@ -134,7 +136,7 @@ callback = (t, s, trs, ws) ->
 # Run a particle filter to perform online goal inference
 n_samples = 20
 traces, weights =
-    agent_pf(agent_model, agent_args, traj, obs_terms, domain, n_samples;
-             callback=callback)
+    goal_pf(world_init, world_config, traj, obs_terms, n_samples;
+            rejuvenate=nothing, callback=callback)
 # Show animation of goal inference
 gif(anim; fps=2)

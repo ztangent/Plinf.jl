@@ -1,4 +1,5 @@
-export observe_params, observe_state, observe_traj, state_choices, traj_choices
+export observe_params, observe_state, observe_traj
+export state_choicemap, traj_choicemaps
 
 "Parameters of observation noise model."
 ObserveParams = Dict{Term,Tuple{Distribution, Tuple}}
@@ -47,8 +48,8 @@ end
 observe_traj = Map(observe_state)
 
 "Construct Gen choicemap from observed terms in a state."
-function state_choices(state::State, domain::Union{Domain,Nothing},
-                       terms::Vector{<:Term}, addr=nothing)
+function state_choicemap(state::State, domain::Union{Domain,Nothing},
+                         terms::Vector{<:Term}, addr=:obs)
     ground_terms = Term[]
     # Ground terms if necessary
     for t in terms
@@ -73,19 +74,28 @@ function state_choices(state::State, domain::Union{Domain,Nothing},
     return choices
 end
 
-state_choices(state::State, terms::Vector{<:Term}, addr=nothing) =
-    state_choices(state, nothing, terms, addr)
-
-"Construct Gen choicemap from observed trajectory."
-function traj_choices(traj::Vector{State}, domain::Union{Domain,Nothing},
-                      terms::Vector{<:Term}, addr=nothing)
-    choices = choicemap()
-    for (i, state) in enumerate(traj)
-        i_choices = state_choices(state, domain, terms)
-        set_submap!(choices, (addr => i), i_choices)
-    end
-    return choices
+function state_choicemap(state::State, terms::Vector{<:Term}, addr=:obs)
+    state_choicemap(state, nothing, terms, addr)
 end
 
-traj_choices(traj::Vector{State}, terms::Vector{<:Term}, addr=nothing) =
-    traj_choices(traj, nothing, terms, addr)
+"Construct array of Gen choicemaps from observed trajectory."
+function traj_choicemaps(traj::Vector{State}, domain::Union{Domain,Nothing},
+                         terms::Vector{<:Term}, traj_addr=:timestep,
+                         obs_addr=:obs; as_choicemap::Bool=false)
+    traj_choices = as_choicemap ? choicemap() : ChoiceMap[]
+    for (t, state) in enumerate(traj)
+        addr = as_choicemap ? obs_addr : (traj_addr => t => obs_addr)
+        state_choices = state_choicemap(state, domain, terms, addr)
+        if as_choicemap
+            set_submap!(traj_choices, (traj_addr => t), state_choices)
+        else
+            push!(traj_choices, state_choices)
+        end
+    end
+    return traj_choices
+end
+
+function traj_choicemaps(traj::Vector{State}, terms::Vector{<:Term},
+                         traj_addr=:timestep, obs_addr=:obs; kwargs...)
+    traj_choicemaps(traj, nothing, terms, traj_addr, obs_addr; kwargs...)
+end
