@@ -85,9 +85,9 @@ obs_terms = @julog([xpos, ypos])
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Assume either a planning agent or replanning agent as a model
-agent_planner = replanner # replanner
+agent_planner = planner # replanner
 
-# Intialize world model with planner, goal prior, initial state, and obs params
+# Initialize world model with planner, goal prior, initial state, and obs params
 world_init = WorldInit(agent_planner, goal_prior, state)
 world_config = WorldConfig(domain, agent_planner, obs_params)
 
