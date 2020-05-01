@@ -6,7 +6,7 @@ export GoalSpec
     metric::Union{Term,Nothing} = nothing # Metric to be minimized
     constraints::Vector{Term} = Term[] # Trajectory constraints
     GoalSpec(goals, metric, constraints) =
-        new(flatten_conjs(goals), metric, Vector{Term}(constraints))
+        new(flatten_conjs(goals), metric, flatten_conjs(constraints))
 end
 
 GoalSpec(goals::Vector{<:Term}) = GoalSpec(goals=goals)
