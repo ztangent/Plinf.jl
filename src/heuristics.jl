@@ -1,4 +1,4 @@
-export goal_count, manhattan
+export goal_count, manhattan, hsp, h_max, h_add
 
 "Heuristic that counts the number of goals unsatisfied in the domain."
 function goal_count(goals, state::State, domain::Domain)
@@ -33,14 +33,14 @@ function hsp(goals, state::State, domain::Domain; op::Function=maximum)
             return op([fact_costs[g][2] for g in goals])
         end
         # Compute costs of one-step derivations of domain axioms
-        for axiom in axioms
-            axiom = Clause(axiom.head,
-                [t for t in axiom.body if !isa(t, Compound) || t.name != :not])
-            _, subst = resolve(axiom.body, [Clause(f, []) for f in facts])
+        for ax in axioms
+            # Filter out negative literals
+            ax = Clause(ax.head, [t for t in ax.body if t.name != :not])
+            _, subst = resolve(ax.body, [Clause(f, []) for f in facts])
             for s in subst
-                body = [substitute(t, s) for t in axiom.body]
+                body = [substitute(t, s) for t in ax.body]
                 cost = op([0; [get(fact_costs, f, (0, 0))[2] for f in body]])
-                derived = substitute(axiom.head, s)
+                derived = substitute(ax.head, s)
                 if cost < get(fact_costs, derived, (0, Inf))[2]
                     fact_costs[derived] = (level+1, cost)
                 end
@@ -50,8 +50,9 @@ function hsp(goals, state::State, domain::Domain; op::Function=maximum)
         actions = available(state, domain)
         for act in actions
             # Compute cost of reaching each action
-            pre = get_preconds(act, domain)
-            cost = op([get(fact_costs, f, (0, 0))[2] for f in pre])
+            preconds = get_preconds(act, domain)
+            filter!(t -> t.name != :not, preconds) # Ignore negative preconds
+            cost = op([get(fact_costs, f, (0, 0))[2] for f in preconds])
             act_costs[act] = (level, cost)
             additions = execute(act, state, domain; as_diff=true).add
             # Compute cost of reaching each added fact

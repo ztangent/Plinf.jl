@@ -251,7 +251,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
                 path_costs[next_state] = path_cost
                 # Update estimated cost from next state to goal
                 if !(next_state in keys(queue))
-                    est_cost = path_cost + heuristic(goals, state, domain)
+                    est_cost = path_cost + heuristic(goals, next_state, domain)
                     queue[next_state] = est_cost
                 else
                     queue[next_state] -= cost_diff
@@ -340,7 +340,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
                 path_costs[next_state] = path_cost
                 # Update estimated cost from next state to goal
                 if !(next_state in keys(queue))
-                    est_cost = path_cost + heuristic(goals, state, domain)
+                    est_cost = path_cost + heuristic(goals, next_state, domain)
                     queue[next_state] = est_cost
                 else
                     queue[next_state] -= cost_diff
