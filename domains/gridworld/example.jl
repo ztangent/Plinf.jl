@@ -86,6 +86,7 @@ obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Assume either a planning agent or replanning agent as a model
 agent_planner = planner # replanner
+rejuvenate = agent_planner == planner ? nothing : replan_rejuvenate
 
 # Initialize world model with planner, goal prior, initial state, and obs params
 world_init = WorldInit(agent_planner, goal_prior, state)
@@ -140,6 +141,6 @@ callback = (t, s, trs, ws) ->
 n_samples = 20
 traces, weights =
     goal_pf(world_init, world_config, traj, obs_terms, n_samples;
-            rejuvenate=nothing, callback=callback)
+            rejuvenate=rejuvenate, callback=callback)
 # Show animation of goal inference
 gif(anim; fps=3)

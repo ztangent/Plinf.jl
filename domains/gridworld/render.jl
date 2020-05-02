@@ -265,7 +265,7 @@ function plot_plan_lengths!(traces, weights; plt=nothing)
         world_states = get_retval(tr)
         plan_states = [ws.plan_state for ws in world_states]
         if isa(plan_states[end], Plinf.ReplanState)
-            _, rp = Plinf.get_last_plan_step(plan_states)
+            _, rp = Plinf.get_last_planning_step(plan_states)
             return length(rp.part_plan)
         elseif isa(plan_states[end], Plinf.PlanState)
             return length(plan_states[end].plan)

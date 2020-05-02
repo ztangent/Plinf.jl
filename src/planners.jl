@@ -291,7 +291,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
         if count >= max_nodes && isempty(obs_queue) &&
            !isempty(intersect(obs_descs, keys(probs)))
             # Select final node to be a descendant of the last observation
-            probs = [s in obs_descs ? p : 0 for (s, p) in probs]
+            probs = [s in obs_descs ? (2*obs_bias+1)*p : p for (s, p) in probs]
             probs = probs ./ sum(probs)
             state = @trace(labeled_cat(collect(keys(queue)), probs),
                            (:node, count))
@@ -304,12 +304,9 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
         elseif obs_queue[1] != nothing && obs_queue[1] in keys(probs)
             obs = obs_queue[1]
             nodes_left = max_nodes - count + 1
-            if nodes_left <= length(obs_queue)
-                # Use remaining node budget on remaining observations
-                probs = OrderedDict(s => s == obs ? 1. : 0. for (s, v) in queue)
-            else # Bias search towards observed states
-                probs[obs] += obs_bias * probs[obs]
-            end
+            node_mult = min(2 * length(obs_queue) / nodes_left + 1, 10)
+            # Bias search towards observed states
+            probs[obs] += node_mult * obs_bias * probs[obs]
         end
         probs = collect(values(probs)) ./ sum(values(probs))
         state = @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))

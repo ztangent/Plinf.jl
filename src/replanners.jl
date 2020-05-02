@@ -58,7 +58,37 @@ get_action(rp::ReplanState)::Term =
     return ReplanState(1, part_plan, part_traj, plan_done)
 end
 
-replan_unfold = Unfold(replan_step)
+"Propose a likely replanning step, given the observed trajectory from `t`."
+@gen function replan_step_propose(t::Int, rp::ReplanState,
+                                  replanner::Replanner, domain::Domain,
+                                  state::State, goal_spec::GoalSpec,
+                                  obs_states::Vector{<:Union{State,Nothing}})
+    @unpack planner, persistence = replanner
+    plan_done = rp.plan_done
+    rel_step = rp.rel_step + 1 # Compute relative step for current timestep
+    state = rp.part_traj[rel_step] # Get expected current state
+    if plan_done || satisfy(goal_spec.goals, state, domain)[1]
+        # Return no-op if plan is done
+        part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
+        return ReplanState(1, part_plan, part_traj, true)
+    elseif rel_step < length(rp.part_traj)
+        # Step forward if the end of the planned trajectory is not reached
+        return ReplanState(rel_step, rp.part_plan, rp.part_traj, plan_done)
+    end
+    # Otherwise, make a new partial plan from the current state
+    n_attempts, p_continue = persistence  # Sample a planner resource bound
+    max_resource = @trace(neg_binom(n_attempts, 1-p_continue), :max_resource)
+    planner = set_max_resource(planner, max_resource)
+    # Plan to achieve the goals until the maximum node budget
+    part_plan, part_traj = @trace(propose_plan(planner, domain, state,
+                                               goal_spec, obs_states), :subplan)
+    if part_plan == nothing || length(part_plan) == 0
+        # Return no-op if goal cannot be reached, or plan is of zero-length
+        plan_done |= (part_plan == nothing) # Terminate if goal is unreachable
+        part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
+    end
+    return ReplanState(1, part_plan, part_traj, plan_done)
+end
 
 "Plan to achieve a goal by repeated planning calls"
 @gen function replan_call(replanner::Replanner,
@@ -107,8 +137,13 @@ function extract_traj(rp_states::AbstractArray{ReplanState})
     return traj
 end
 
+"Find all timesteps where replanning occurred."
+function get_planning_steps(rp_states::AbstractArray{ReplanState})
+    [(t, rp) for (t, rp) in enumerate(rp_states) if rp.rel_step == 1]
+end
+
 "Find the most recent timestep at which replanning occured."
-function get_last_plan_step(rp_states::AbstractArray{ReplanState})
+function get_last_planning_step(rp_states::AbstractArray{ReplanState})
     for (t, rp) in enumerate(reverse(rp_states))
         if (rp.rel_step == 1) return (length(rp_states) - t + 1, rp) end
     end
