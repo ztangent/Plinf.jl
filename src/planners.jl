@@ -161,13 +161,14 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
     parents = Dict{State,Tuple{State,Term}}()
     path_costs = Dict{State,Int64}(state => 0)
     queue = PriorityQueue{State,Int64}(state => heuristic(goals, state, domain))
-    count = 0
+    count = 1
     while length(queue) > 0
         # Get state with lowest estimated cost to goal
         state = dequeue!(queue)
         # Return plan if search budget is reached or goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
             return reconstruct_plan(state, parents) end
+        count += 1
         # Get list of available actions
         actions = available(state, domain)
         # Iterate over actions
