@@ -18,7 +18,7 @@ goal = problem.goal
 
 # Check that A* heuristic search correctly solves the problem
 planner = AStarPlanner(heuristic=h_add)
-plan, traj = planner(domain, state, goal)
+count, (plan, traj) = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 anim = anim_traj(traj)
@@ -31,7 +31,7 @@ tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
 
 # Visualize distribution over trajectories induced by planner
 trajs = [planner(domain, state, goal)[2] for i in 1:20]
-anim = anim_traj(trajs, plt; alpha=0.1)
+anim = anim_traj(trajs; alpha=0.1)
 
 # Visualize sample-based replanning search
 astar = ProbAStarPlanner(heuristic=h_add, search_noise=0.1)
