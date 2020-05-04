@@ -4,11 +4,18 @@
     table - block
     block1 - block
     block2 - block
-    block3 - block)
+    block3 - block
+    red - color
+    green - color
+    blue - color)
   (:init
     (on table block1)
     (on table block2)
     (on table block3)
+    (colored table red)
+    (colored block1 blue)
+    (colored block2 green)
+    (colored block3 red)
     (= (size table) 16)
     (= (size block1) 1)
     (= (size block2) 1)

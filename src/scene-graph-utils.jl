@@ -56,3 +56,43 @@ function visualize(scene_graph, outdir, frame_name_prefix)
     png_file_path = joinpath(outdir, frame_name_prefix * ".png")
     PyPlot.imsave(png_file_path, rgba)
 end
+
+"""
+Currently assumes no rotations.
+"""
+# TODO: Add in rotation transition
+function smooth_transition(initial_sg, final_sg, velocity)
+    intermediate_sgs = []
+
+    objects =
+    moving_objects = []
+    for object in objects
+        initial_abs_pos =
+        final_abs_pos =
+        pos_diff = final_abs_pos - initial_abs_pos
+
+        if pos_diff != zeros(3)
+            push!(moving_objects, object)
+        end
+    end
+
+    prev_sg = initial_sg
+    new_sg = copy(prev_sg)
+    while prev_sg != final_sg
+        # TODO: Make more efficient by not checking objects that already
+        # stopped moving
+        for object in moving_objects
+            prev_pos =
+            final_pos =
+            if prev_pos != final_pos
+                tentative_new_pos = prev_pos + (fill(velocity, 3) .* direction)
+                # Handle possible overshooting
+
+            end
+        end
+        push!(intermediate_sgs, new_sg)
+        prev_sg = new_sg
+        new_sg = copy(prev_sg)
+    end
+    return intermediate_sgs
+end

@@ -50,7 +50,7 @@ function test2()
 
     problem = load_problem(joinpath(path, "problem-4.pddl"))
     @test problem.name == Symbol("blocks-4")
-    @test problem.objects == @julog [table, block1, block2, block3]
+    @test problem.objects == @julog [table, block1, block2, block3, red, green, blue]
 
     state = initialize(problem)
     @test satisfy(@julog(on(table, block1)), state, domain)[1] == true

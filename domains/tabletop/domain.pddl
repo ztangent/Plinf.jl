@@ -3,7 +3,8 @@
   (:predicates
     (on ?x - block ?y - block)
     (holding ?x - block)
-    (fits ?x - block ?y - block))
+    (fits ?x - block ?y - block)
+    (colored ?x - block ?c - color))
   (:functions (size ?x - block)
               (amounton ?x - block)
               (posx ?x - block)
