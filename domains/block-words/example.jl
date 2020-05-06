@@ -117,9 +117,9 @@ callback = (t, s, trs, ws) ->
      print_goal_probs(get_goal_probs(trs, ws, goal_words)))
 
 # Run a particle filter to perform online goal inference
-n_samples = 100
+n_samples = 20
 traces, weights =
     goal_pf(world_init, world_config, traj, obs_terms, n_samples;
-            rejuvenate=nothing, callback=callback)
+            rejuvenate=nothing, callback=callback, goal_strata=goal_words)
 # Show animation of goal inference
 gif(anim; fps=2)
