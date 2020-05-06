@@ -21,6 +21,34 @@ observe_params_entry(entry::Tuple{Term, Gen.Normal}) =
 observe_params_entry(entry::Tuple{Term, Real}) =
     entry[1] => (flip, (entry[2],))
 
+"Construct default observation noise parameters for a PDDL domain."
+function observe_params(domain::Domain; pred_noise=0.05, func_noise=0.25)
+    params = Dict{Term,Tuple{Distribution, Tuple}}()
+    # Add Boolean corruption noise to all Boolean predicates
+    for (name, pred) in domain.predicates
+        if isempty(PDDL.get_args(pred))
+            term = pred
+        else # Quantify over all variables in compound terms
+            types = domain.predtypes[name]
+            typeconds = Term[@julog($t(:v)) for (t, v) in zip(types, pred.args)]
+            term = Compound(:forall, [Compound(:and, typeconds), pred])
+        end
+        params[term] = (flip, (pred_noise,))
+    end
+    # Add Gaussian noise to all numeric fluents / functions
+    for (name, func) in domain.functions
+        if isempty(PDDL.get_args(pred))
+            term = func
+        else # Quantify over all variables in compound terms
+            types = domain.functypes[name]
+            typeconds = Term[@julog($t(:v)) for (t, v) in zip(types, func.args)]
+            term = Compound(:forall, [Compound(:and, typeconds), func])
+        end
+        params[term] = (normal, (func_noise,))
+    end
+    return params
+end
+
 "Observation noise model for PDDL states."
 @gen function observe_state(state::State, domain::Domain, params::ObserveParams)
     obs = copy(state)
@@ -30,7 +58,7 @@ observe_params_entry(entry::Tuple{Term, Real}) =
             terms = Term[term]
         elseif term.name == :forall # Handle foralls
             cond, body = term.args
-            _, subst = satisfy(@julog(and(:cond, :body)), state; mode=:all)
+            _, subst = satisfy(cond, state; mode=:all)
             terms = Term[substitute(body, s) for s in subst]
         else
             _, subst = satisfy(term, state; mode=:all)
@@ -57,8 +85,7 @@ function state_choicemap(state::State, domain::Union{Domain,Nothing},
             push!(ground_terms, t)
         elseif t.name == :forall # Handle foralls
             cond, body = t.args
-            t = @julog(and(:cond, :body))
-            _, subst = satisfy(t, state, domain; mode=:all)
+            _, subst = satisfy(cond, state, domain; mode=:all)
             append!(ground_terms, Term[substitute(body, s) for s in subst])
         else
             _, subst = satisfy(t, state, domain; mode=:all)

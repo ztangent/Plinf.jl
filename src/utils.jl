@@ -1,4 +1,4 @@
-export labeled_cat, flip
+export labeled_cat, labeled_unif, flip
 
 "Pad / truncate vector to specified length."
 pad_vector(v::Vector, n::Int) =
@@ -19,6 +19,9 @@ dist_type(d::Distribution{T}) where {T} = T
 
 "Labeled categorical distribution."
 @dist labeled_cat(labels, probs) = labels[categorical(probs)]
+
+"Labeled uniform distribution."
+@dist labeled_unif(labels) = labels[uniform_discrete(1, length(labels))]
 
 "Boolean corruption noise."
 @dist flip(val::Bool, prob::Float64) = bernoulli((1-val)*prob + val*(1-prob))
