@@ -91,7 +91,7 @@ world_config = WorldConfig(domain, agent_planner, obs_params)
 #--- Offline Goal Inference ---#
 
 # Run importance sampling to infer the likely goal
-n_samples = 20
+n_samples = 30
 observations = traj_choicemaps(traj, domain, obs_terms; as_choicemap=true)
 traces, weights, _ =
     importance_sampling(world_model, (length(traj), world_init, world_config),
@@ -134,9 +134,10 @@ callback = (t, s, trs, ws) ->
      print_goal_probs(get_goal_probs(trs, ws, 1:length(goals))))
 
 # Run a particle filter to perform online goal inference
-n_samples = 20
+n_samples = 30
 traces, weights =
     goal_pf(world_init, world_config, traj, obs_terms, n_samples;
-            rejuvenate=nothing, callback=callback)
+            rejuvenate=nothing, callback=callback,
+            goal_strata=collect(1:length(goals)))
 # Show animation of goal inference
 gif(anim; fps=2)

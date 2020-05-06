@@ -85,7 +85,7 @@ obs_terms = @julog([xpos, ypos])
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Assume either a planning agent or replanning agent as a model
-agent_planner = planner # replanner
+agent_planner = replanner # planner
 rejuvenate = agent_planner == planner ? nothing : replan_rejuvenate
 
 # Initialize world model with planner, goal prior, initial state, and obs params
@@ -95,7 +95,7 @@ world_config = WorldConfig(domain, agent_planner, obs_params)
 #--- Offline Goal Inference ---#
 
 # Run importance sampling to infer the likely goal
-n_samples = 20
+n_samples = 30
 observations = traj_choicemaps(traj, domain, obs_terms; as_choicemap=true)
 traces, weights, _ =
     importance_sampling(world_model, (length(traj), world_init, world_config),
@@ -138,9 +138,10 @@ callback = (t, s, trs, ws) ->
      print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))
 
 # Run a particle filter to perform online goal inference
-n_samples = 20
+n_samples = 30
 traces, weights =
     goal_pf(world_init, world_config, traj, obs_terms, n_samples;
-            rejuvenate=rejuvenate, callback=callback)
+            rejuvenate=rejuvenate, callback=callback,
+            goal_strata=collect(1:length(goals)))
 # Show animation of goal inference
 gif(anim; fps=3)
