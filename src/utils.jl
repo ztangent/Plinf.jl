@@ -1,5 +1,8 @@
 export labeled_cat, labeled_unif, flip
 
+"Unzips an array of tuples to a tuple of arrays."
+unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
+
 "Pad / truncate vector to specified length."
 pad_vector(v::Vector, n::Int) =
     length(v) < n ? [v; fill(v[end], n - length(v))] : v[1:n]
