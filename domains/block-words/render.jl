@@ -1,5 +1,4 @@
-using Julog, PDDL
-using Plots
+using Julog, PDDL, Plots
 using DataStructures: OrderedDict
 
 ## Shapes ##
@@ -214,7 +213,7 @@ function plot_goal_bars!(goal_probs, goal_names=nothing,
     if (plt == nothing) plt = plot_canvas() end
     # Extract goal names and probabilities
     if isa(goal_probs, AbstractDict)
-        goal_probs = sort(goal_probs)
+        goal_probs = sort!(OrderedDict(goal_probs))
         if goal_names == nothing goal_names = collect(keys(goal_probs)) end
         goal_probs = collect(values(goal_probs))
     elseif goal_names == nothing
@@ -305,7 +304,7 @@ function goal_bars_cb(t::Int, state, traces, weights; kwargs...)
     goal_names = sort(get(kwargs, :goal_names, []))
     goal_colors = get(kwargs, :goal_colors,
                       cgrad(:plasma, length(goal_names); categorical=true))
-    goal_probs = sort(get_goal_probs(traces, weights, goal_names))
+    goal_probs = sort!(get_goal_probs(traces, weights, goal_names))
     plt = plot_goal_bars!(goal_probs, goal_names, goal_colors)
     title!(plt, "t = $t")
     return plt
@@ -317,7 +316,7 @@ function goal_lines_cb(t::Int, state, traces, weights;
     goal_names = sort(get(kwargs, :goal_names, []))
     goal_colors = get(kwargs, :goal_colors,
                       cgrad(:plasma, length(goal_names); categorical=true))
-    goal_probs_t = sort(get_goal_probs(traces, weights, goal_names))
+    goal_probs_t = sort!(get_goal_probs(traces, weights, goal_names))
     push!(goal_probs, collect(values(goal_probs_t)))
     plt = plot_goal_lines!(reduce(hcat, goal_probs), goal_names, goal_colors)
     title!(plt, "t = $t")

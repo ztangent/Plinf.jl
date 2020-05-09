@@ -1,7 +1,13 @@
+using DataStructures: OrderedDict
+
 pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
 
-"Custom heuristic: manhattan distance to goal."
-function gem_heuristic(goals, state::State, domain::Domain)
+"Custom Manhattan distance heuristic to goal objects."
+struct GemHeuristic <: Heuristic end
+
+function Plinf.compute(heuristic::GemHeuristic,
+                       domain::Domain, state::State, goal_spec::GoalSpec)
+    goals = goal_spec.goals
     goal_objs = [g.args[1] for g in goals if g.name == :has]
     queries = [@julog(at(:obj, X, Y)) for obj in goal_objs]
     _, subst = satisfy(Compound(:or, queries), state, domain, mode=:all)
@@ -9,11 +15,11 @@ function gem_heuristic(goals, state::State, domain::Domain)
     pos = [state[:xpos], state[:ypos]]
     dists = [sum(abs.(pos - l)) for l in locs]
     min_dist = length(dists) > 0 ? minimum(dists) : 0
-    return min_dist + goal_count(goals, state, domain)
+    return min_dist + GoalCountHeuristic()(domain, state, goal_spec)
 end
 
 function get_goal_probs(traces, weights, goal_idxs=[])
-    goal_probs = Dict{Any,Float64}(g => 0.0 for g in goal_idxs)
+    goal_probs = OrderedDict{Any,Float64}(g => 0.0 for g in goal_idxs)
     for (tr, w) in zip(traces, weights)
         goal_idx = tr[:goal_init => :goal]
         prob = get(goal_probs, goal_idx, 0.0)

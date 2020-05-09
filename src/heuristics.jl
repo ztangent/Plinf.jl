@@ -1,27 +1,75 @@
-export goal_count, manhattan, hsp, h_max, h_add
+export Heuristic, GoalCountHeuristic, ManhattanHeuristic
+export HSP, HAdd, HMax
+export precompute, compute
+
+"Abstract heuristic type, which defines the interface for planners."
+abstract type Heuristic end
+
+"Precomputes heuristic information given a domain, state, and goal."
+precompute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
+    h # Return the heuristic unmodified by default
+
+"Computes the heuristic value of state relative to a goal in a given domain."
+compute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
+    error("Not implemented.")
+
+(heuristic::Heuristic)(domain::Domain, state::State, goal_spec::GoalSpec) =
+    compute(heuristic, domain, state, goal_spec)
 
 "Heuristic that counts the number of goals unsatisfied in the domain."
-function goal_count(goals, state::State, domain::Domain)
-    count = sum([!state[domain, g] for g in goals])
-    return count
+struct GoalCountHeuristic <: Heuristic end
+
+function compute(heuristic::GoalCountHeuristic,
+                 domain::Domain, state::State, goal_spec::GoalSpec)
+    return sum([!state[domain, g] for g in goal_spec.goals])
 end
 
-"Manhattan distance heuristic."
-function manhattan(goals, state::State, domain::Domain;
-                   fluents=@julog([xpos, ypos]))
-    goal = State(goals)
-    goal_vals = [goal[domain, f] for f in fluents]
+"Computes Manhattan distance to the goal for the specified numeric fluents."
+struct ManhattanHeuristic <: Heuristic
+    fluents::Vector{Term}
+    goal_state::State
+    ManhattanHeuristic(fluents) = new(fluents)
+    ManhattanHeuristic(fluents, goal_state) = new(fluents, goal_state)
+end
+
+function precompute(heuristic::ManhattanHeuristic,
+                    domain::Domain, state::State, goal_spec::GoalSpec)
+    goal_state = State(goal_spec.goals)
+    return @set heuristic.goal_state = goal_state
+end
+
+function compute(heuristic::ManhattanHeuristic,
+                 domain::Domain, state::State, goal_spec::GoalSpec)
+    @unpack fluents, goal_state = heuristic
+    goal_vals = [goal_state[domain, f] for f in fluents]
     curr_vals = [state[domain, f] for f in fluents]
     dist = sum(abs.(goal_vals - curr_vals))
     return dist
 end
 
-"HSP family of delete relaxation heuristics (h_add, h_max, etc.)."
-function hsp(goals, state::State, domain::Domain; op::Function=maximum)
-    # Remove axioms from domain definition
-    domain = copy(domain)
-    axioms = domain.axioms
-    domain.axioms = Clause[]
+"HSP family of delete-relaxation heuristics (HAdd, HMax, etc.)."
+struct HSP <: Heuristic
+    op::Function
+    domain::Domain # Preprocessed domain
+    axioms::Vector{Clause} # Preprocessed axioms
+    HSP(op) = new(op)
+    HSP(op, domain, axioms) = new(op, domain, axioms)
+end
+
+function precompute(heuristic::HSP,
+                    domain::Domain, state::State, goal_spec::GoalSpec)
+    domain = copy(domain) # Make a local copy of the domain
+    axioms = regularize_clauses(domain.axioms) # Regularize domain axioms
+    axioms = [Clause(ax.head, [t for t in ax.body if t.name != :not])
+              for ax in axioms] # Remove negative literals
+    domain.axioms = Clause[] # Remove axioms so they do not affect execution
+    return HSP(heuristic.op, domain, axioms)
+end
+
+function compute(heuristic::HSP,
+                 domain::Domain, state::State, goal_spec::GoalSpec)
+    @unpack op, domain, axioms = heuristic
+    @unpack goals = goal_spec
     # Initialize fact/action levels/costs in a GraphPlan-style graph
     fact_costs = Dict{Term,Tuple{Int,Float64}}(f => (1, 0) for f in state.facts)
     act_costs = Dict{Term,Tuple{Int,Float64}}()
@@ -34,8 +82,6 @@ function hsp(goals, state::State, domain::Domain; op::Function=maximum)
         end
         # Compute costs of one-step derivations of domain axioms
         for ax in axioms
-            # Filter out negative literals
-            ax = Clause(ax.head, [t for t in ax.body if t.name != :not])
             _, subst = resolve(ax.body, [Clause(f, []) for f in facts])
             for s in subst
                 body = [substitute(t, s) for t in ax.body]
@@ -71,10 +117,8 @@ function hsp(goals, state::State, domain::Domain; op::Function=maximum)
     end
 end
 
-"h_max delete relaxation heuristic."
-h_max(goals, state::State, domain::Domain) =
-    hsp(goals, state, domain; op=maximum)
+"HSP heuristic where a goal's cost is the maximum cost of its dependencies."
+HMax(args...) = HSP(maximum, args...)
 
-"h_add delete relaxation heuristic."
-h_add(goals, state::State, domain::Domain) =
-    hsp(goals, state, domain; op=sum)
+"HSP heuristic where a goal's cost is the summed cost of its dependencies."
+HAdd(args...) = HSP(sum, args...)

@@ -1,5 +1,4 @@
 export Replanner
-using Parameters: @with_kw
 
 "Wraps any planner in a replanning algorithm."
 @kwdef struct Replanner <: Planner

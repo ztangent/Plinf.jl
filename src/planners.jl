@@ -143,7 +143,7 @@ end
 
 "Deterministic A* (heuristic search) planner."
 @kwdef struct AStarPlanner <: Planner
-    heuristic::Function = goal_count
+    heuristic::Heuristic = GoalCountHeuristic()
     max_nodes::Real = Inf
 end
 
@@ -156,10 +156,13 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
                          domain::Domain, state::State, goal_spec::GoalSpec)
     @unpack goals, metric, constraints = goal_spec
     @unpack max_nodes, heuristic = planner
+    # Perform any precomputation required by the heuristic
+    heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
     path_costs = Dict{State,Int64}(state => 0)
-    queue = PriorityQueue{State,Int64}(state => heuristic(goals, state, domain))
+    est_cost = heuristic(domain, state, goal_spec)
+    queue = PriorityQueue{State,Int64}(state => est_cost)
     count = 1
     while length(queue) > 0
         # Get state with lowest estimated cost to goal
@@ -188,8 +191,8 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
                 path_costs[next_state] = path_cost
                 # Update estimated cost from next state to goal
                 if !(next_state in keys(queue))
-                    est_cost = path_cost + heuristic(goals, next_state, domain)
-                    enqueue!(queue, next_state, est_cost)
+                    est_remain_cost = heuristic(domain, next_state, goal_spec)
+                    enqueue!(queue, next_state, path_cost + est_remain_cost)
                 else
                     queue[next_state] -= cost_diff
                 end
@@ -201,7 +204,7 @@ end
 
 "Probabilistic A* planner with search noise."
 @kwdef struct ProbAStarPlanner <: Planner
-    heuristic::Function = goal_count
+    heuristic::Heuristic = GoalCountHeuristic()
     max_nodes::Real = Inf
     search_noise::Real = 1.0
 end
@@ -215,10 +218,13 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
                          domain::Domain, state::State, goal_spec::GoalSpec)
     @unpack goals, metric, constraints = goal_spec
     @unpack heuristic, max_nodes, search_noise = planner
+    # Perform any precomputation required by the heuristic
+    heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
     path_costs = Dict{State,Int64}(state => 0)
-    queue = OrderedDict{State,Int64}(state => heuristic(goals, state, domain))
+    est_cost = heuristic(domain, state, goal_spec)
+    queue = OrderedDict{State,Int64}(state => est_cost)
     # Initialize node count
     count = 1
     while length(queue) > 0
@@ -251,8 +257,8 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
                 path_costs[next_state] = path_cost
                 # Update estimated cost from next state to goal
                 if !(next_state in keys(queue))
-                    est_cost = path_cost + heuristic(goals, next_state, domain)
-                    queue[next_state] = est_cost
+                    est_remain_cost = heuristic(domain, next_state, goal_spec)
+                    queue[next_state] = path_cost + est_remain_cost
                 else
                     queue[next_state] -= cost_diff
                 end
@@ -272,10 +278,13 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
     @param obs_bias::Float64 # How much more likely an observed state is sampled
     @unpack goals, metric, constraints = goal_spec
     @unpack heuristic, max_nodes, search_noise = planner
+    # Perform any precomputation required by the heuristic
+    heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
     path_costs = Dict{State,Int64}(state => 0)
-    queue = OrderedDict{State,Int64}(state => heuristic(goals, state, domain))
+    est_cost = heuristic(domain, state, goal_spec)
+    queue = OrderedDict{State,Int64}(state => est_cost)
     # Initialize observation queue and descendants
     obs_queue = copy(obs_states)
     last_idx = findlast(s -> s != nothing, obs_states)
@@ -340,8 +349,8 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
                 path_costs[next_state] = path_cost
                 # Update estimated cost from next state to goal
                 if !(next_state in keys(queue))
-                    est_cost = path_cost + heuristic(goals, next_state, domain)
-                    queue[next_state] = est_cost
+                    est_remain_cost = heuristic(domain, next_state, goal_spec)
+                    queue[next_state] = path_cost + est_remain_cost
                 else
                     queue[next_state] -= cost_diff
                 end

@@ -13,19 +13,19 @@ problem = load_problem(joinpath(path, "problem-1.pddl"))
 
 # Initialize state
 state = initialize(problem)
-goal = word_to_terms("wade") # problem.goal
+goal = word_to_terms("power") # problem.goal
 
 #--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(heuristic=h_add)
+planner = AStarPlanner(heuristic=HAdd())
 plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 anim = anim_traj(traj)
 
 # Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=h_add, search_noise=1)
+planner = ProbAStarPlanner(heuristic=HAdd(), search_noise=1)
 plt = render(state)
 tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
 # anim = anim_plan(tr, plt)
@@ -35,7 +35,7 @@ trajs = [planner(domain, state, goal)[2] for i in 1:5]
 anim = anim_traj(trajs; alpha=0.1)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=h_add, search_noise=0.1)
+astar = ProbAStarPlanner(heuristic=HAdd(), search_noise=0.1)
 replanner = Replanner(planner=astar, persistence=(2, 0.95))
 plt = render(state)
 tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))

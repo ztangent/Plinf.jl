@@ -1,5 +1,5 @@
-using Julog, PDDL
-using Plots
+using Julog, PDDL, Plots
+using DataStructures: OrderedDict
 
 ## Utility functions ##
 
@@ -234,7 +234,7 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
                    plan_color=:blue, plan_alpha=0.5, kwargs...)
     plt = deepcopy(canvas)
     animation = animation == nothing ? Animation() : animation
-    node_choices = sort(Dict(get_values_shallow(get_choices(trace))))
+    node_choices = sort!(OrderedDict(get_values_shallow(get_choices(trace))))
     # Render each node expanded in sequence
     for state in values(node_choices)
         dot = make_circle(state[:xpos], state[:ypos], node_radius)
@@ -258,7 +258,7 @@ function anim_replan(trace, canvas, animation=nothing;
                      show=true, fps=10, kwargs...)
     animation = animation == nothing ? Animation() : animation
     # Iterate over time steps
-    step_submaps = sort(Dict(get_submaps_shallow(get_choices(trace))))
+    step_submaps = sort!(OrderedDict(get_submaps_shallow(get_choices(trace))))
     for (addr, submap) in step_submaps
         # Get subtrace for this step
         step_trace = Gen.get_call(trace, addr).subtrace
@@ -292,7 +292,7 @@ function plot_goal_bars!(goal_probs, goal_names=nothing,
     if (plt == nothing) plt = plot_canvas() end
     # Extract goal names and probabilities
     if isa(goal_probs, AbstractDict)
-        goal_probs = sort(goal_probs)
+        goal_probs = sort!(OrderedDict(goal_probs))
         if goal_names == nothing goal_names = collect(keys(goal_probs)) end
         goal_probs = collect(values(goal_probs))
     elseif goal_names == nothing
@@ -382,7 +382,7 @@ function goal_bars_cb(t::Int, state, traces, weights; kwargs...)
     goal_names = get(kwargs, :goal_names, [])
     goal_colors = get(kwargs, :goal_colors, cgrad(:plasma)[1:3:30])
     goal_idxs = collect(1:length(goal_names))
-    goal_probs = sort(get_goal_probs(traces, weights, goal_idxs))
+    goal_probs = sort!(get_goal_probs(traces, weights, goal_idxs))
     plt = plot_goal_bars!(goal_probs, goal_names, goal_colors)
     title!(plt, "t = $t")
     return plt
@@ -394,7 +394,7 @@ function goal_lines_cb(t::Int, state, traces, weights;
     goal_names = get(kwargs, :goal_names, [])
     goal_colors = get(kwargs, :goal_colors, cgrad(:plasma)[1:3:30])
     goal_idxs = collect(1:length(goal_names))
-    goal_probs_t = sort(get_goal_probs(traces, weights, goal_idxs))
+    goal_probs_t = sort!(get_goal_probs(traces, weights, goal_idxs))
     push!(goal_probs, collect(values(goal_probs_t)))
     plt = plot_goal_lines!(reduce(hcat, goal_probs), goal_names, goal_colors)
     title!(plt, "t = $t")

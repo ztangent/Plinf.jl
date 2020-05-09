@@ -1,3 +1,5 @@
+using DataStructures: OrderedDict
+
 function word_to_terms(word::String)
     top = Symbol(word[1])
     bottom = Symbol(word[end])
@@ -10,7 +12,7 @@ function word_to_terms(word::String)
 end
 
 function get_goal_probs(traces, weights, goal_idxs=[])
-    goal_probs = Dict{Any,Float64}(g => 0.0 for g in goal_idxs)
+    goal_probs = OrderedDict{Any,Float64}(g => 0.0 for g in goal_idxs)
     for (tr, w) in zip(traces, weights)
         goal_idx = tr[:goal_init => :goal]
         prob = get(goal_probs, goal_idx, 0.0)

@@ -20,6 +20,9 @@ start_pos = (state[:xpos], state[:ypos])
 
 #--- Visualize Plans ---#
 
+# Set up Manhattan heuristic on x and y positions
+manhattan = ManhattanHeuristic(@julog[xpos, ypos])
+
 # Check that A* heuristic search correctly solves the problem
 planner = AStarPlanner(heuristic=manhattan)
 plan, traj = planner(domain, state, goal)
