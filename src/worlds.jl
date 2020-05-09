@@ -16,17 +16,17 @@ struct WorldInit
     obs_init
 end
 
-WorldInit(planner::AbstractPlanner, goal_init, env_state::State) =
+WorldInit(planner::Planner, goal_init, env_state::State) =
     WorldInit(goal_init, initialize_state(planner, env_state),
               env_state, env_state)
 
-WorldInit(planner::AbstractPlanner, goal_init, env_state::State, obs_init) =
+WorldInit(planner::Planner, goal_init, env_state::State, obs_init) =
     WorldInit(goal_init, initialize_state(planner, env_state),
               env_state, obs_init)
 
 @kwdef struct WorldConfig
   domain::Domain
-  planner::AbstractPlanner
+  planner::Planner
   plan_args::Tuple = ()
   goal_step::GenerativeFunction = static_goal_step
   goal_args::Tuple = ()
@@ -36,7 +36,7 @@ WorldInit(planner::AbstractPlanner, goal_init, env_state::State, obs_init) =
   obs_args::Tuple = ()
 end
 
-function WorldConfig(domain::Domain, planner::AbstractPlanner,
+function WorldConfig(domain::Domain, planner::Planner,
                      obs_params::ObserveParams; kwargs...)
     WorldConfig(domain=domain, planner=planner, env_step=determ_env_step,
                 obs_args=(obs_params,), kwargs...)

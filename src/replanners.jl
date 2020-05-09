@@ -2,8 +2,8 @@ export Replanner
 using Parameters: @with_kw
 
 "Wraps any planner in a replanning algorithm."
-@kwdef struct Replanner <: AbstractPlanner
-    planner::AbstractPlanner
+@kwdef struct Replanner <: Planner
+    planner::Planner
     persistence::Tuple{Real,Real} = (2, 0.95)
     max_plans::Real = 100
 end

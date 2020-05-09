@@ -1,40 +1,39 @@
-export AbstractPlanner
+export Planner, BFSPlanner, AStarPlanner, ProbAStarPlanner
 export set_max_resource, get_call, get_proposal, get_step
 export sample_plan, propose_plan
 export extract_plan, extract_traj
-export BFSPlanner, AStarPlanner, ProbAStarPlanner
 
 "Abstract planner type, which defines the interface for planners."
-abstract type AbstractPlanner end
+abstract type Planner end
 
 "Call planner without tracing internal random choices."
-(planner::AbstractPlanner)(domain::Domain, state::State, goal_spec::GoalSpec) =
+(planner::Planner)(domain::Domain, state::State, goal_spec::GoalSpec) =
     get_call(planner)(planner, domain, state, goal_spec)
 
-(planner::AbstractPlanner)(domain::Domain, state::State, goals::Vector{<:Term}) =
+(planner::Planner)(domain::Domain, state::State, goals::Vector{<:Term}) =
     get_call(planner)(planner, domain, state, GoalSpec(goals))
 
-(planner::AbstractPlanner)(domain::Domain, state::State, goal::Term) =
+(planner::Planner)(domain::Domain, state::State, goal::Term) =
     get_call(planner)(planner, domain, state, GoalSpec(goal))
 
 "Return copy of the planner with adjusted resource bound."
-set_max_resource(planner::AbstractPlanner, val) = planner
+set_max_resource(planner::Planner, val) = planner
 
 "Returns the generative function that defines the planning algorithm."
-get_call(::AbstractPlanner)::GenerativeFunction = planner_call
+get_call(::Planner)::GenerativeFunction = planner_call
 
 "Returns the data-driven proposal associated with the planning algorithm."
-get_proposal(::AbstractPlanner)::GenerativeFunction = planner_propose
+get_proposal(::Planner)::GenerativeFunction = planner_propose
 
 "Abstract planner call template, to be implemented by concrete planners."
-@gen function planner_call(planner::AbstractPlanner,
+@gen function planner_call(planner::Planner,
                            domain::Domain, state::State, goal_spec::GoalSpec)
     error("Not implemented.")
     return plan, traj
 end
 
 "Default data-driven proposal to the planner's internal random choices."
-@gen function planner_propose(planner::AbstractPlanner,
+@gen function planner_propose(planner::Planner,
                               domain::Domain, state::State, goal_spec::GoalSpec,
                               obs_states::Vector{<:Union{State,Nothing}})
     call = get_call(planner) # Default to proposing from the prior
@@ -42,7 +41,7 @@ end
 end
 
 "Sample a plan given a planner, domain, initial state and goal specification."
-@gen function sample_plan(planner::AbstractPlanner,
+@gen function sample_plan(planner::Planner,
                           domain::Domain, state::State, goal_spec)
     goal_spec = isa(goal_spec, GoalSpec) ? goal_spec : GoalSpec(goal_spec)
     call = get_call(planner)
@@ -50,7 +49,7 @@ end
 end
 
 "Propose a plan given a planner and a sequence of observed states."
-@gen function propose_plan(planner::AbstractPlanner,
+@gen function propose_plan(planner::Planner,
                            domain::Domain, state::State, goal_spec,
                            obs_states::Vector{<:Union{State,Nothing}})
     goal_spec = isa(goal_spec, GoalSpec) ? goal_spec : GoalSpec(goal_spec)
@@ -81,14 +80,14 @@ extract_plan(plan_states::AbstractArray{PlanState}) = plan_states[end].plan
 extract_traj(plan_states::AbstractArray{PlanState}) = plan_states[end].traj
 
 "Returns a step-wise version of the planning call."
-get_step(::AbstractPlanner)::GenerativeFunction = planner_step
+get_step(::Planner)::GenerativeFunction = planner_step
 
 "Intialize step-wise planning state."
-initialize_state(::AbstractPlanner, env_state::State)::AbstractPlanState =
+initialize_state(::Planner, env_state::State)::AbstractPlanState =
     PlanState(0, Term[], State[env_state])
 
 "Default step-wise planning call, which does all planning up-front."
-@gen function planner_step(t::Int, ps::PlanState, planner::AbstractPlanner,
+@gen function planner_step(t::Int, ps::PlanState, planner::Planner,
                            domain::Domain, state::State, goal_spec::GoalSpec)
    if ps.step == 0 # Calls planner at the start
        call = get_call(planner)
@@ -103,7 +102,7 @@ initialize_state(::AbstractPlanner, env_state::State)::AbstractPlanState =
 end
 
 "Uninformed breadth-first search planner."
-@kwdef struct BFSPlanner <: AbstractPlanner
+@kwdef struct BFSPlanner <: Planner
     max_depth::Number = Inf
 end
 
@@ -143,7 +142,7 @@ get_call(::BFSPlanner)::GenerativeFunction = bfs_call
 end
 
 "Deterministic A* (heuristic search) planner."
-@kwdef struct AStarPlanner <: AbstractPlanner
+@kwdef struct AStarPlanner <: Planner
     heuristic::Function = goal_count
     max_nodes::Real = Inf
 end
@@ -201,7 +200,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
 end
 
 "Probabilistic A* planner with search noise."
-@kwdef struct ProbAStarPlanner <: AbstractPlanner
+@kwdef struct ProbAStarPlanner <: Planner
     heuristic::Function = goal_count
     max_nodes::Real = Inf
     search_noise::Real = 1.0
