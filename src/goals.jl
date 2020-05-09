@@ -9,9 +9,9 @@ export GoalSpec
         new(flatten_conjs(goals), metric, flatten_conjs(constraints))
 end
 
+# Constructors
 GoalSpec(goals::Vector{<:Term}) = GoalSpec(goals=goals)
-GoalSpec(goal::Term) = GoalSpec(goals=flatten_conjs(goal))
-
+GoalSpec(goal::Term) = GoalSpec(goals=flatten_conjs([goal]))
 function GoalSpec(problem::Problem)
     goals = flatten_conjs(problem.goal)
     sign, metric = problem.metric
@@ -19,4 +19,7 @@ function GoalSpec(problem::Problem)
     return GoalSpec(goals=goals, metric=metric)
 end
 
-get_goal(goal_spec::GoalSpec) = goal_spec
+# Conversions
+convert(::Type{GoalSpec}, goals::Vector{<:Term}) = GoalSpec(goals)
+convert(::Type{GoalSpec}, goal::Term) = GoalSpec(goal)
+convert(::Type{GoalSpec}, problem::Problem) = GoalSpec(problem)

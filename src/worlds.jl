@@ -54,6 +54,10 @@ end
 @gen markov_obs_step(t, obs_state, env_state::State, domain::Domain, params) =
     @trace(observe_state(env_state, domain, params))
 
+"Accessor for goal states."
+get_goal(goal_state)::GoalSpec = error("Not implemented.")
+get_goal(goal_state::GoalSpec)::GoalSpec = goal_state
+
 "Models transition dynamics at time `t` in a world model."
 @gen function world_step(t::Int, world_state::WorldState, config::WorldConfig)
     # Unpack arguments
