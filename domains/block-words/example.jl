@@ -13,7 +13,7 @@ problem = load_problem(joinpath(path, "problem-1.pddl"))
 
 # Initialize state
 state = initialize(problem)
-goal = word_to_terms("power") # problem.goal
+goal = problem.goal
 
 #--- Visualize Plans ---#
 

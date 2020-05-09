@@ -95,12 +95,17 @@ function compute(heuristic::HSP,
         # Compute costs of all effects of available actions
         actions = available(state, domain)
         for act in actions
+            # Get preconditions as a disjunct of conjuctions
+            preconds = get_preconditions(act, domain)
+            for conj in preconds
+                filter!(t -> t.name != :not, conj) # Ignore negated terms
+            end
             # Compute cost of reaching each action
-            preconds = get_preconds(act, domain)
-            filter!(t -> t.name != :not, preconds) # Ignore negative preconds
-            cost = op([get(fact_costs, f, (0, 0))[2] for f in preconds])
+            cost = minimum(op([get(fact_costs, f, (0, 0))[2] for f in conj])
+                           for conj in preconds)
             act_costs[act] = (level, cost)
-            additions = execute(act, state, domain; as_diff=true).add
+            effect = get_effect(act, domain)
+            additions = PDDL.get_diff(effect, state, domain).add
             # Compute cost of reaching each added fact
             cost = cost + 1
             for fact in additions
