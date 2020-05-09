@@ -1,4 +1,4 @@
-(define (problem blocks_words)
+(define (problem block_words)
 	(:domain blocks)
 	(:objects
 		d r a w o e p c - block
