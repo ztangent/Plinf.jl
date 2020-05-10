@@ -1,5 +1,5 @@
 export Heuristic, GoalCountHeuristic, ManhattanHeuristic
-export HSP, HAdd, HMax
+export HSP, HAdd, HMax, HSPR, HAddR, HMaxR
 export precompute, compute
 
 "Abstract heuristic type, which defines the interface for planners."
@@ -10,7 +10,7 @@ precompute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
     h # Return the heuristic unmodified by default
 
 precompute(h::Heuristic, domain::Domain, state::State, goal_spec) =
-    precompute(heuristic, domain, state, GoalSpec(goal_spec))
+    precompute(h, domain, state, GoalSpec(goal_spec))
 
 "Computes the heuristic value of state relative to a goal in a given domain."
 compute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
@@ -89,7 +89,7 @@ function compute(heuristic::HSP,
         facts = Set(keys(fact_costs))
         state = State(types, facts, Dict{Symbol,Any}())
         if satisfy(goals, state, domain)[1]
-            return op(fact_costs[g] for g in goals) end
+            return op([0; [fact_costs[g] for g in goals]]) end
         # Compute costs of one-step derivations of domain axioms
         for ax in axioms
             _, subst = resolve(ax.body, [Clause(f, []) for f in facts])
@@ -110,12 +110,12 @@ function compute(heuristic::HSP,
                 filter!(t -> t.name != :not, conj) # Ignore negated terms
             end
             # Compute cost of reaching each action
-            cost = minimum(op(get(fact_costs, f, 0) for f in conj)
-                           for conj in preconds)
+            cost = minimum([[op([0; [get(fact_costs, f, 0) for f in conj]])
+                             for conj in preconds]; Inf])
             effect = get_effect(act, domain)
             additions = PDDL.get_diff(effect, state, domain).add
             # Compute cost of reaching each added fact
-            cost = cost + 1
+            cost = cost + 1 # TODO: Handle arbitrary action costs
             for fact in additions
                 if cost < get(fact_costs, fact, Inf)
                     fact_costs[fact] = cost end
@@ -127,8 +127,91 @@ function compute(heuristic::HSP,
     end
 end
 
-"HSP heuristic where a goal's cost is the maximum cost of its dependencies."
+"HSP heuristic where a fact's cost is the maximum cost of its dependencies."
 HMax(args...) = HSP(maximum, args...)
 
-"HSP heuristic where a goal's cost is the summed cost of its dependencies."
+"HSP heuristic where a fact's cost is the summed cost of its dependencies."
 HAdd(args...) = HSP(sum, args...)
+
+"HSPr family of relaxed regression search heuristics."
+struct HSPR <: Heuristic
+    op::Function
+    fact_costs::Dict{Term,Float64} # Est. cost of reaching each fact from goal
+    HSPR(op) = new(op)
+    HSPR(op, fact_costs) = new(op, fact_costs)
+end
+
+function precompute(heuristic::HSPR,
+                    domain::Domain, state::State, goal_spec::GoalSpec)
+    @unpack op = heuristic
+    @unpack goals = goal_spec
+    @unpack types, facts = state
+    # Preprocess domain and axioms
+    domain = copy(domain)
+    axioms = regularize_clauses(domain.axioms)
+    axioms = [Clause(ax.head, [t for t in ax.body if t.name != :not])
+              for ax in axioms]
+    domain.axioms = Clause[]
+    # Compute the set of static facts
+    static_facts = reduce(vcat, [find_matches(p, state, domain) for p in
+                                 get_static_predicates(domain)]; init=Term[])
+    # Construct goal state from types, static facts, and goal terms
+    state = State([flatten_disjs(goals); static_facts], collect(types))
+    # Initialize fact costs in a GraphPlan-style graph
+    fact_costs = Dict{Term,Float64}(f => 0 for f in PDDL.get_facts(state))
+    while true
+        facts = Set(keys(fact_costs))
+        state = State(types, facts, Dict{Symbol,Any}())
+        # Compute costs of axiom bodies
+        for ax in axioms
+            # TODO : Handle free variables in axiom body
+            _, subst = resolve(ax.head, [Clause(f, []) for f in facts])
+            for s in subst
+                head = substitute(ax.head, s)
+                body = [substitute(t, s) for t in ax.body]
+                cost = get(fact_costs, head, 0)
+                for term in body
+                    if is_ground(term) && cost < get(fact_costs, term, Inf)
+                        fact_costs[term] = cost end
+                end
+            end
+        end
+        # Compute costs of all preconditions of relevant actions
+        actions = relevant(state, domain)
+        for act in actions
+            # Compute cost of achieving relevant additions of each action
+            effect = get_effect(act, domain)
+            additions = PDDL.get_diff(effect).add
+            cost = op([0; [get(fact_costs, f, 0) for f in additions]])
+            # Get preconditions of action
+            preconds = reduce(vcat, get_preconditions(act, domain))
+            filter!(t -> t.name != :not, preconds) # Ignore negated terms
+            # Update cost of reaching each positive precondition
+            cost = cost + 1 # TODO : Handle arbitrary action costs
+            for fact in preconds
+                if cost < get(fact_costs, fact, Inf)
+                    fact_costs[fact] = cost end
+            end
+        end
+        # Terminate when there's no change to the number of facts
+        if length(fact_costs) == length(facts) && keys(fact_costs) == facts
+            break end
+    end
+    return HSPR(op, fact_costs)
+end
+
+function compute(heuristic::HSPR,
+                 domain::Domain, state::State, goal_spec::GoalSpec)
+    # Precompute if necessary
+    if !isdefined(heuristic, :fact_costs)
+        heuristic = precompute(heuristic, domain, state, goal_spec) end
+    @unpack op, fact_costs = heuristic
+    # Compute cost of achieving all facts in current state
+    return op([0; [get(fact_costs, f, 0) for f in PDDL.get_facts(state)]])
+end
+
+"HSPr heuristic where a fact's cost is the maximum cost of its dependencies."
+HMaxR(args...) = HSPR(maximum, args...)
+
+"HSPr heuristic where a fact's cost is the summed cost of its dependencies."
+HAddR(args...) = HSPR(sum, args...)
