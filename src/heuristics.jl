@@ -9,12 +9,21 @@ abstract type Heuristic end
 precompute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
     h # Return the heuristic unmodified by default
 
+precompute(h::Heuristic, domain::Domain, state::State, goal_spec) =
+    precompute(heuristic, domain, state, GoalSpec(goal_spec))
+
 "Computes the heuristic value of state relative to a goal in a given domain."
 compute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
     error("Not implemented.")
 
+compute(h::Heuristic, domain::Domain, state::State, goal_spec) =
+    compute(heuristic, domain, state, GoalSpec(goal_spec))
+
 (heuristic::Heuristic)(domain::Domain, state::State, goal_spec::GoalSpec) =
     compute(heuristic, domain, state, goal_spec)
+
+(heuristic::Heuristic)(domain::Domain, state::State, goal_spec) =
+    compute(heuristic, domain, state, GoalSpec(goal_spec))
 
 "Heuristic that counts the number of goals unsatisfied in the domain."
 struct GoalCountHeuristic <: Heuristic end
@@ -47,7 +56,7 @@ function compute(heuristic::ManhattanHeuristic,
     return dist
 end
 
-"HSP family of delete-relaxation heuristics (HAdd, HMax, etc.)."
+"HSP family of relaxed progression search heuristics (HAdd, HMax, etc.)."
 struct HSP <: Heuristic
     op::Function
     domain::Domain # Preprocessed domain
@@ -68,28 +77,28 @@ end
 
 function compute(heuristic::HSP,
                  domain::Domain, state::State, goal_spec::GoalSpec)
+    # Precompute if necessary
+    if !isdefined(heuristic, :domain)
+        heuristic = precompute(heuristic, domain, state, goal_spec) end
     @unpack op, domain, axioms = heuristic
     @unpack goals = goal_spec
-    # Initialize fact/action levels/costs in a GraphPlan-style graph
-    fact_costs = Dict{Term,Tuple{Int,Float64}}(f => (1, 0) for f in state.facts)
-    act_costs = Dict{Term,Tuple{Int,Float64}}()
-    level = 1
+    @unpack types, facts = state
+    # Initialize fact costs in a GraphPlan-style graph
+    fact_costs = Dict{Term,Float64}(f => 0 for f in facts)
     while true
         facts = Set(keys(fact_costs))
-        state = State(facts, Dict{Symbol,Any}())
+        state = State(types, facts, Dict{Symbol,Any}())
         if satisfy(goals, state, domain)[1]
-            return op([fact_costs[g][2] for g in goals])
-        end
+            return op(fact_costs[g] for g in goals) end
         # Compute costs of one-step derivations of domain axioms
         for ax in axioms
             _, subst = resolve(ax.body, [Clause(f, []) for f in facts])
             for s in subst
                 body = [substitute(t, s) for t in ax.body]
-                cost = op([0; [get(fact_costs, f, (0, 0))[2] for f in body]])
+                cost = op([0; [get(fact_costs, f, 0) for f in body]])
                 derived = substitute(ax.head, s)
-                if cost < get(fact_costs, derived, (0, Inf))[2]
-                    fact_costs[derived] = (level+1, cost)
-                end
+                if cost < get(fact_costs, derived, Inf)
+                    fact_costs[derived] = cost end
             end
         end
         # Compute costs of all effects of available actions
@@ -101,24 +110,20 @@ function compute(heuristic::HSP,
                 filter!(t -> t.name != :not, conj) # Ignore negated terms
             end
             # Compute cost of reaching each action
-            cost = minimum(op([get(fact_costs, f, (0, 0))[2] for f in conj])
+            cost = minimum(op(get(fact_costs, f, 0) for f in conj)
                            for conj in preconds)
-            act_costs[act] = (level, cost)
             effect = get_effect(act, domain)
             additions = PDDL.get_diff(effect, state, domain).add
             # Compute cost of reaching each added fact
             cost = cost + 1
             for fact in additions
-                if cost < get(fact_costs, fact, (0, Inf))[2]
-                    fact_costs[fact] = (level+1, cost)
-                end
+                if cost < get(fact_costs, fact, Inf)
+                    fact_costs[fact] = cost end
             end
         end
-        level += 1
+        # Terminate if there's no change to the number of facts
         if length(fact_costs) == length(facts) && keys(fact_costs) == facts
-            # Terminate if there's no change to the number of facts
-            return Inf
-        end
+            return Inf end
     end
 end
 
