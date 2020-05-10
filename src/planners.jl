@@ -144,6 +144,7 @@ end
 "Deterministic A* (heuristic search) planner."
 @kwdef struct AStarPlanner <: Planner
     heuristic::Heuristic = GoalCountHeuristic()
+    h_mult::Real = 1
     max_nodes::Real = Inf
 end
 
@@ -155,7 +156,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
 @gen function astar_call(planner::AStarPlanner,
                          domain::Domain, state::State, goal_spec::GoalSpec)
     @unpack goals, metric, constraints = goal_spec
-    @unpack max_nodes, heuristic = planner
+    @unpack max_nodes, h_mult, heuristic = planner
     # Perform any precomputation required by the heuristic
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
@@ -192,6 +193,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
                 # Update estimated cost from next state to goal
                 if !(next_state in keys(queue))
                     est_remain_cost = heuristic(domain, next_state, goal_spec)
+                    est_remain_cost *= h_mult
                     enqueue!(queue, next_state, path_cost + est_remain_cost)
                 else
                     queue[next_state] -= cost_diff
