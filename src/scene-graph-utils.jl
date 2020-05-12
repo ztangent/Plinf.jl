@@ -1,6 +1,7 @@
 using InverseTAMP
 using ShapesWorld
 using PyPlot
+using LightGraphs
 
 function pddl_to_scene_graph(state::State)
     g = ShapesWorld.SceneGraph()
@@ -64,30 +65,26 @@ Currently assumes no rotations.
 function smooth_transition(initial_sg, final_sg, velocity)
     intermediate_sgs = []
 
-    objects =
-    moving_objects = []
-    for object in objects
-        initial_abs_pos =
-        final_abs_pos =
-        pos_diff = final_abs_pos - initial_abs_pos
-
-        if pos_diff != zeros(3)
-            push!(moving_objects, object)
-        end
-    end
-
     prev_sg = initial_sg
     new_sg = copy(prev_sg)
     while prev_sg != final_sg
-        # TODO: Make more efficient by not checking objects that already
-        # stopped moving
-        for object in moving_objects
-            prev_pos =
-            final_pos =
+        for object in vertices(prev_sg)
+            prev_pos = get_prop(prev_sg, object, :absolutePose)
+            final_pos = get_prop(final_sg, object, :absolutePose)
+            direction = sign.([final_pos - prev_pos])
             if prev_pos != final_pos
-                tentative_new_pos = prev_pos + (fill(velocity, 3) .* direction)
+                new_pos = prev_pos + (fill(velocity, 3) .* direction)
                 # Handle possible overshooting
-
+                for i=1:length(new_pos)
+                    # TODO: Clean this up
+                    if (final_pos[i] > prev_pos[i] && new_pos[i] > final_pos[i])
+                        || (final_pos[i] > prev_pos[i] && new_pos[i] > final_pos[i])
+                        new_pos[i] = final_pos[i]
+                    end
+                end
+                name = get_prop(prev_sg, object, :name)
+                ShapesWorld.setPose!(g, name, new_pos,
+                            (yaw=yaws[object], pitch=pitches[object], roll=rolls[object]))
             end
         end
         push!(intermediate_sgs, new_sg)
