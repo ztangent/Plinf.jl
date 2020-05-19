@@ -80,34 +80,34 @@ end
 Currently assumes no rotations.
 """
 # TODO: Add in rotation transition
-# function smooth_transition(initial_sg, final_sg, velocity)
-#     intermediate_sgs = []
-#
-#     prev_sg = initial_sg
-#     new_sg = copy(prev_sg)
-#     while prev_sg != final_sg
-#         for object in vertices(prev_sg)
-#             prev_pos = get_prop(prev_sg, object, :absolutePose)
-#             final_pos = get_prop(final_sg, object, :absolutePose)
-#             direction = sign.([final_pos - prev_pos])
-#             if prev_pos != final_pos
-#                 new_pos = prev_pos + (fill(velocity, 3) .* direction)
-#                 # Handle possible overshooting
-#                 for i=1:length(new_pos)
-#                     # TODO: Clean this up
-#                     if (final_pos[i] > prev_pos[i] && new_pos[i] > final_pos[i])
-#                         || (final_pos[i] > prev_pos[i] && new_pos[i] > final_pos[i])
-#                         new_pos[i] = final_pos[i]
-#                     end
-#                 end
-#                 name = get_prop(prev_sg, object, :name)
-#                 ShapesWorld.setPose!(g, name, new_pos,
-#                             (yaw=yaws[object], pitch=pitches[object], roll=rolls[object]))
-#             end
-#         end
-#         push!(intermediate_sgs, new_sg)
-#         prev_sg = new_sg
-#         new_sg = copy(prev_sg)
-#     end
-#     return intermediate_sgs
-# end
+function smooth_transition(initial_sg, final_sg, velocity)
+    intermediate_sgs = []
+
+    prev_sg = initial_sg
+    new_sg = copy(prev_sg)
+    while prev_sg != final_sg
+        for object in vertices(prev_sg)
+            prev_pos = get_prop(prev_sg, object, :absolutePose)
+            final_pos = get_prop(final_sg, object, :absolutePose)
+            direction = sign.([final_pos - prev_pos])
+            if prev_pos != final_pos
+                new_pos = prev_pos + (fill(velocity, 3) .* direction)
+                # Handle possible overshooting
+                for i=1:length(new_pos)
+                    # TODO: Clean this up
+                    if (final_pos[i] > prev_pos[i] && new_pos[i] > final_pos[i]) ||
+                        (final_pos[i] > prev_pos[i] && new_pos[i] > final_pos[i])
+                        new_pos[i] = final_pos[i]
+                    end
+                end
+                name = get_prop(prev_sg, object, :name)
+                ShapesWorld.setPose!(g, name, new_pos,
+                            (yaw=yaws[object], pitch=pitches[object], roll=rolls[object]))
+            end
+        end
+        push!(intermediate_sgs, new_sg)
+        prev_sg = new_sg
+        new_sg = copy(prev_sg)
+    end
+    return intermediate_sgs
+end
