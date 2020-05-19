@@ -204,6 +204,25 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
     return nothing, nothing
 end
 
+"FastDownward planner."
+@kwdef struct FastDownwardPlanner <: Planner
+    if 'FF_PATH' not in os.environ:
+        raise Exception((
+            "Environment variable `FF_PATH` not found. Make sure ff is installed "
+            "and FF_PATH is set to the ff executable."
+        ))
+end
+
+set_max_resource(planner::BFSPlanner, val) = @set planner. =
+
+get_call(::FastDownwardPlanner)::GenerativeFunction = fastdownward_call
+
+"FastDownward search for a plan."
+@gen function fastdownward_call(planner::BFSPlanner,
+                       domain::Domain, state::State, goal_spec::GoalSpec)
+    return nothing, nothing
+end
+
 "Probabilistic A* planner with search noise."
 @kwdef struct ProbAStarPlanner <: Planner
     heuristic::Heuristic = GoalCountHeuristic()
