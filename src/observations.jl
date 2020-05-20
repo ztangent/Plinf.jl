@@ -37,7 +37,8 @@ function observe_params(domain::Domain; pred_noise=0.05, func_noise=0.25)
     end
     # Add Gaussian noise to all numeric fluents / functions
     for (name, func) in domain.functions
-        if isempty(PDDL.get_args(pred))
+        if name == Symbol("total-cost") continue end
+        if isempty(PDDL.get_args(func))
             term = func
         else # Quantify over all variables in compound terms
             types = domain.functypes[name]
