@@ -18,7 +18,15 @@ goal = problem.goal
 #--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(heuristic=HAdd())
+planner = FastDownwardPlanner(domain_path=joinpath(path, "domain.pddl"),
+                              problem_path=joinpath(path, "problem-1.pddl"))
+plan, traj = planner(domain, state, goal)
+println("== Plan ==")
+display(plan)
+anim = anim_traj(traj)
+
+# Check that FastDownward is properly integrated
+planner =
 plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)

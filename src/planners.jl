@@ -206,22 +206,48 @@ end
 
 "FastDownward planner."
 @kwdef struct FastDownwardPlanner <: Planner
+    timeout::Int = 10
+    domain_path::String
+    problem_path::String
+end
+
+get_call(::FastDownwardPlanner)::GenerativeFunction = fastdownward_call
+
+"FastDownward search for a plan."
+@gen function fastdownward_call(planner::FastDownwardPlanner,
+                                domain::Domain, state::State, goal_spec::GoalSpec)
+    @unpack timeout, domain_path, problem_path = planner
+    fastdownward_wrapper(timeout, domain_path, problem_path)
+    return nothing, nothing
+end
+
+py"""
+import sys
+import os
+import re
+import subprocess
+
+def fastdownward_wrapper(timeout, domain_path, problem_path)
     if 'FF_PATH' not in os.environ:
         raise Exception((
             "Environment variable `FF_PATH` not found. Make sure ff is installed "
             "and FF_PATH is set to the ff executable."
         ))
-end
+    FF_PATH = os.environ['FF_PATH']
+    timeout_cmd = "gtimeout" if sys.platform == "darwin" else "timeout"
+    cmd_str = "{} {} {} -o {} -f {}".format(timeout_cmd, timeout, FF_PATH,
+                                            domain_path, problem_path)
+    output = subprocess.getoutput(cmd_str)
 
-set_max_resource(planner::BFSPlanner, val) = @set planner. =
-
-get_call(::FastDownwardPlanner)::GenerativeFunction = fastdownward_call
-
-"FastDownward search for a plan."
-@gen function fastdownward_call(planner::BFSPlanner,
-                       domain::Domain, state::State, goal_spec::GoalSpec)
-    return nothing, nothing
-end
+    if "goal can be simplified to FALSE" in output:
+        return []
+    if "unsolvable" in output:
+        raise PlanningException("Plan not found with FF! Error: {}".format(output))
+    plan = re.findall(r"\d+?: (.+)", output.lower())
+    if not plan:
+        raise PlanningException("Plan not found with FF! Error: {}".format(output))
+    return plan
+"""
 
 "Probabilistic A* planner with search noise."
 @kwdef struct ProbAStarPlanner <: Planner
