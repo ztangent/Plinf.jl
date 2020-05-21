@@ -161,9 +161,9 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
-    path_costs = Dict{State,Int64}(state => 0)
+    path_costs = Dict{State,Float64}(state => 0)
     est_cost = heuristic(domain, state, goal_spec)
-    queue = PriorityQueue{State,Int64}(state => est_cost)
+    queue = PriorityQueue{State,Float64}(state => est_cost)
     count = 1
     while length(queue) > 0
         # Get state with lowest estimated cost to goal
@@ -224,9 +224,9 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
-    path_costs = Dict{State,Int64}(state => 0)
+    path_costs = Dict{State,Float64}(state => 0)
     est_cost = heuristic(domain, state, goal_spec)
-    queue = OrderedDict{State,Int64}(state => est_cost)
+    queue = OrderedDict{State,Float64}(state => est_cost)
     # Initialize node count
     count = 1
     while length(queue) > 0
@@ -284,9 +284,9 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
     parents = Dict{State,Tuple{State,Term}}()
-    path_costs = Dict{State,Int64}(state => 0)
+    path_costs = Dict{State,Float64}(state => 0)
     est_cost = heuristic(domain, state, goal_spec)
-    queue = OrderedDict{State,Int64}(state => est_cost)
+    queue = OrderedDict{State,Float64}(state => est_cost)
     # Initialize observation queue and descendants
     obs_queue = copy(obs_states)
     last_idx = findlast(s -> s != nothing, obs_states)
