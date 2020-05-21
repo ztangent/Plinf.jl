@@ -207,17 +207,25 @@ end
 "FastDownward planner."
 @kwdef struct FastDownwardPlanner <: Planner
     timeout::Int = 10
+    horizon::Int = Inf
     domain_path::String
     problem_path::String
+    heuristic::String
+    heuristic_params::Dict{String, String} = Dict()
 end
 
 get_call(::FastDownwardPlanner)::GenerativeFunction = fastdownward_call
 
-"FastDownward search for a plan."
+"FastDownward search for a plan. Currently assumes A* search"
 @gen function fastdownward_call(planner::FastDownwardPlanner,
                                 domain::Domain, state::State, goal_spec::GoalSpec)
-    @unpack timeout, domain_path, problem_path = planner
-    fastdownward_wrapper(timeout, domain_path, problem_path)
+    @unpack timeout, horizon, domain_path, problem_path, heuristic, heuristic_params = planner
+    params = join(["$key=$val" for (key, val) in heuristic_params], ", ")
+    heuristic_with_params = "$heuristic($params)"
+    steps = py"fastdownward_wrapper"(heuristic_with_params, timeout, domain_path, problem_path)
+    if length(plan) > 0
+
+    end
     return nothing, nothing
 end
 
@@ -227,26 +235,25 @@ import os
 import re
 import subprocess
 
-def fastdownward_wrapper(timeout, domain_path, problem_path)
-    if 'FF_PATH' not in os.environ:
+def fastdownward_wrapper(heuristic_with_params, timeout, domain_path, problem_path)
+    if 'FD_PATH' not in os.environ:
         raise Exception((
-            "Environment variable `FF_PATH` not found. Make sure ff is installed "
-            "and FF_PATH is set to the ff executable."
+            "Environment variable `FD_PATH` not found. Make sure fd is installed "
+            "and FF_PATH is set to fast-downward.py"
         ))
-    FF_PATH = os.environ['FF_PATH']
+    FD_PATH = os.environ['FD_PATH']
     timeout_cmd = "gtimeout" if sys.platform == "darwin" else "timeout"
-    cmd_str = "{} {} {} -o {} -f {}".format(timeout_cmd, timeout, FF_PATH,
-                                            domain_path, problem_path)
+    cmd_str = "{} {} {} {} {} -search \"astar({})\"".format(timeout_cmd, timeout, FD_PATH,
+                                            domain_path, problem_path, heuristic_with_params)
     output = subprocess.getoutput(cmd_str)
 
-    if "goal can be simplified to FALSE" in output:
-        return []
-    if "unsolvable" in output:
-        raise PlanningException("Plan not found with FF! Error: {}".format(output))
-    plan = re.findall(r"\d+?: (.+)", output.lower())
-    if not plan:
-        raise PlanningException("Plan not found with FF! Error: {}".format(output))
-    return plan
+    if "Solution found!" not in output:
+        raise PlanningException("Plan not found with FD! Error: {}".format(output))
+    steps = []
+    with open("sas_plan") as f:
+        steps.append(f.readline())
+    os.remove("sas_plan")
+    return steps
 """
 
 "Probabilistic A* planner with search noise."
