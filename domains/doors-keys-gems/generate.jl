@@ -14,7 +14,7 @@ dir_diffs = @julog [
 ]
 
 "Converts ASCII gridworlds to PDDL problem."
-function ascii_to_pddl(str::String, name="gridworld-problem")
+function ascii_to_pddl(str::String, name="doors-keys-gems-problem")
     rows = split(str, "\n", keepempty=false)
     init = Term[]
     gems, keys = Const[], Const[]
@@ -50,7 +50,7 @@ function ascii_to_pddl(str::String, name="gridworld-problem")
     objtypes = merge(Dict(d => :direction for d in dir_objs),
                      Dict(k => :key for k in keys),
                      Dict(g => :gem for g in gems))
-    problem = Problem(Symbol(name), :gridworld, objs, objtypes,
+    problem = Problem(Symbol(name), Symbol("doors-keys-gems"), objs, objtypes,
                       init, goal, (-1, pddl"(total-cost)"))
     return problem
 end
