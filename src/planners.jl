@@ -127,7 +127,7 @@ get_call(::BFSPlanner)::GenerativeFunction = bfs_call
         # Iterate over actions
         for act in actions
             # Execute actions on state
-            next_state = transition(domain, state, act)
+            next_state = transition(domain, state, act; check=false)
             # Add action term to plan sequence
             next_plan = Term[plan; act]
             next_traj = State[traj; next_state]
@@ -160,43 +160,49 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
     # Perform any precomputation required by the heuristic
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
-    parents = Dict{State,Tuple{State,Term}}()
-    path_costs = Dict{State,Float64}(state => 0)
+    state_hash = hash(state)
+    state_dict = Dict{UInt,State}(state_hash => state)
+    parents = Dict{UInt,Tuple{UInt,Term}}()
+    path_costs = Dict{UInt,Float64}(state_hash => 0)
     est_cost = heuristic(domain, state, goal_spec)
-    queue = PriorityQueue{State,Float64}(state => est_cost)
+    queue = PriorityQueue{UInt,Float64}(state_hash => est_cost)
     count = 1
     while length(queue) > 0
         # Get state with lowest estimated cost to goal
-        state = dequeue!(queue)
+        state_hash = dequeue!(queue)
+        state = state_dict[state_hash]
         # Return plan if search budget is reached or goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
-            return reconstruct_plan(state, parents) end
+            return reconstruct_plan(state_hash, state_dict, parents) end
         count += 1
         # Get list of available actions
         actions = available(state, domain)
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
-            next_state = transition(domain, state, act)
+            next_state = transition(domain, state, act; check=false)
+            next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
             if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
                 continue end
             # Compute path cost
             act_cost = metric == nothing ? 1 :
                 next_state[domain, metric] - state[domain, metric]
-            path_cost = path_costs[state] + act_cost
+            path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
-            cost_diff = get(path_costs, next_state, Inf) - path_cost
+            cost_diff = get(path_costs, next_hash, Inf) - path_cost
             if cost_diff > 0
-                parents[next_state] = (state, act)
-                path_costs[next_state] = path_cost
+                if !(next_hash in keys(state_dict))
+                    state_dict[next_hash] = next_state end
+                parents[next_hash] = (state_hash, act)
+                path_costs[next_hash] = path_cost
                 # Update estimated cost from next state to goal
-                if !(next_state in keys(queue))
+                if !(next_hash in keys(queue))
                     est_remain_cost = heuristic(domain, next_state, goal_spec)
                     est_remain_cost *= h_mult
-                    enqueue!(queue, next_state, path_cost + est_remain_cost)
+                    enqueue!(queue, next_hash, path_cost + est_remain_cost)
                 else
-                    queue[next_state] -= cost_diff
+                    queue[next_hash] -= cost_diff
                 end
             end
         end
@@ -223,20 +229,24 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
     # Perform any precomputation required by the heuristic
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
-    parents = Dict{State,Tuple{State,Term}}()
-    path_costs = Dict{State,Float64}(state => 0)
+    state_hash = hash(state)
+    state_dict = Dict{UInt,State}(state_hash => state)
+    parents = Dict{UInt,Tuple{UInt,Term}}()
+    path_costs = Dict{UInt,Float64}(state_hash => 0)
     est_cost = heuristic(domain, state, goal_spec)
-    queue = OrderedDict{State,Float64}(state => est_cost)
+    queue = OrderedDict{UInt,Float64}(state_hash => est_cost)
     # Initialize node count
     count = 1
     while length(queue) > 0
         # Sample state from queue with probability exp(-beta*est_cost)
         probs = softmax([-v / search_noise for v in values(queue)])
-        state = @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
-        delete!(queue, state)
+        state_hash =
+            @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
+        state = state_dict[state_hash]
+        delete!(queue, state_hash)
         # Return plan if search budget is reached or goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
-            return reconstruct_plan(state, parents)
+            return reconstruct_plan(state_hash, state_dict, parents)
         end
         count += 1
         # Get list of available actions
@@ -244,25 +254,28 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
-            next_state = transition(domain, state, act)
+            next_state = transition(domain, state, act; check=false)
+            next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
             if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
                 continue end
             # Compute path cost
             act_cost = metric == nothing ? 1 :
                 next_state[domain, metric] - state[domain, metric]
-            path_cost = path_costs[state] + act_cost
+            path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
-            cost_diff = get(path_costs, next_state, Inf) - path_cost
+            cost_diff = get(path_costs, next_hash, Inf) - path_cost
             if cost_diff > 0
-                parents[next_state] = (state, act)
-                path_costs[next_state] = path_cost
+                if !(next_hash in keys(state_dict))
+                    state_dict[next_hash] = next_state end
+                parents[next_hash] = (state_hash, act)
+                path_costs[next_hash] = path_cost
                 # Update estimated cost from next state to goal
-                if !(next_state in keys(queue))
+                if !(next_hash in keys(queue))
                     est_remain_cost = heuristic(domain, next_state, goal_spec)
-                    queue[next_state] = path_cost + est_remain_cost
+                    queue[next_hash] = path_cost + est_remain_cost
                 else
-                    queue[next_state] -= cost_diff
+                    queue[next_hash] -= cost_diff
                 end
             end
         end
@@ -283,15 +296,17 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
     # Perform any precomputation required by the heuristic
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
-    parents = Dict{State,Tuple{State,Term}}()
-    path_costs = Dict{State,Float64}(state => 0)
+    state_hash = hash(state)
+    state_dict = Dict{UInt,State}(state_hash => state)
+    parents = Dict{UInt,Tuple{UInt,Term}}()
+    path_costs = Dict{UInt,Float64}(state_hash => 0)
     est_cost = heuristic(domain, state, goal_spec)
-    queue = OrderedDict{State,Float64}(state => est_cost)
+    queue = OrderedDict{UInt,Float64}(state_hash => est_cost)
     # Initialize observation queue and descendants
-    obs_queue = copy(obs_states)
+    obs_queue = [s == nothing ? nothing : hash(s) for s in obs_states]
     last_idx = findlast(s -> s != nothing, obs_states)
     obs_descs = last_idx == nothing ?
-        Set{State}() : Set{State}([obs_states[last_idx]])
+        Set{UInt}() : Set{UInt}([hash(obs_states[last_idx])])
     # Initialize node count
     count = 1
     while length(queue) > 0
@@ -302,33 +317,35 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
         if count >= max_nodes && isempty(obs_queue) &&
            !isempty(intersect(obs_descs, keys(probs)))
             # Select final node to be a descendant of the last observation
-            probs = [s in obs_descs ? (2*obs_bias+1)*p : p for (s, p) in probs]
-            probs = probs ./ sum(probs)
-            state = @trace(labeled_cat(collect(keys(queue)), probs),
-                           (:node, count))
-            return reconstruct_plan(state, parents)
+            for s in obs_descs
+                probs[s] += obs_bias * exp(0) end
+            probs = collect(values(probs)) ./ sum(values(probs))
+            state_hash = @trace(labeled_cat(collect(keys(queue)), probs),
+                                (:node, count))
+            return reconstruct_plan(state_hash, state_dict, parents)
         elseif isempty(obs_queue)
-            for state in obs_descs # Bias search towards descendants
-                if (state in keys(probs))
-                    probs[state] += obs_bias * probs[state] end
-            end
+            # Bias search towards descendants
+            for state_hash in intersect(obs_descs, keys(probs))
+                probs[state_hash] += obs_bias * exp(0) end
         elseif obs_queue[1] != nothing && obs_queue[1] in keys(probs)
-            obs = obs_queue[1]
+            # Bias search towards observed states
+            obs_hash = obs_queue[1]
             nodes_left = max_nodes - count + 1
             node_mult = min(2 * length(obs_queue) / nodes_left + 1, 10)
-            # Bias search towards observed states
-            probs[obs] += node_mult * obs_bias * probs[obs]
+            probs[obs_hash] += node_mult * obs_bias * probs[obs_hash]
         end
         probs = collect(values(probs)) ./ sum(values(probs))
-        state = @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
+        state_hash =
+            @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
+        state = state_dict[state_hash]
         # Remove states / observations from respective queues
-        delete!(queue, state)
+        delete!(queue, state_hash)
         if !isempty(obs_queue) &&
-            (obs_queue[1] == nothing || obs_queue[1] == state)
+            (obs_queue[1] == nothing || obs_queue[1] == state_hash)
             popfirst!(obs_queue) end
         # Return plan if goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
-            return reconstruct_plan(state, parents)
+            return reconstruct_plan(state_hash, state_dict, parents)
         end
         count += 1
         # Get list of available actions
@@ -336,32 +353,35 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
-            next_state = transition(domain, state, act)
+            next_state = transition(domain, state, act; check=false)
+            next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
             if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
                 continue end
             # Compute path cost
             act_cost = metric == nothing ? 1 :
                 next_state[domain, metric] - state[domain, metric]
-            path_cost = path_costs[state] + act_cost
+            path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
-            cost_diff = get(path_costs, next_state, Inf) - path_cost
+            cost_diff = get(path_costs, next_hash, Inf) - path_cost
             if cost_diff > 0
-                parents[next_state] = (state, act)
-                path_costs[next_state] = path_cost
+                if !(next_hash in keys(state_dict))
+                    state_dict[next_hash] = next_state end
+                parents[next_hash] = (state_hash, act)
+                path_costs[next_hash] = path_cost
                 # Update estimated cost from next state to goal
-                if !(next_state in keys(queue))
+                if !(next_hash in keys(queue))
                     est_remain_cost = heuristic(domain, next_state, goal_spec)
-                    queue[next_state] = path_cost + est_remain_cost
+                    queue[next_hash] = path_cost + est_remain_cost
                 else
-                    queue[next_state] -= cost_diff
+                    queue[next_hash] -= cost_diff
                 end
                 # Add next state to descendants of observations
-                if state in obs_descs push!(obs_descs, next_state) end
+                if state_hash in obs_descs push!(obs_descs, next_hash) end
             end
         end
         # Remove state from observation descendants once expanded
-        if state in obs_descs delete!(obs_descs, state) end
+        if state_hash in obs_descs delete!(obs_descs, state_hash) end
     end
     return nothing, nothing
 end
@@ -370,12 +390,13 @@ end
 init_param!(aprob_propose, :obs_bias, 2)
 
 "Reconstruct plan from current state and back-pointers."
-function reconstruct_plan(state::State, parents::Dict{State,Tuple{State,Term}})
-    plan, traj = Term[], State[state]
-    while state in keys(parents)
-        state, act = parents[state]
+function reconstruct_plan(state_hash::UInt, state_dict::Dict{UInt,State},
+                          parents::Dict{UInt,Tuple{UInt,Term}})
+    plan, traj = Term[], State[state_dict[state_hash]]
+    while state_hash in keys(parents)
+        state_hash, act = parents[state_hash]
         pushfirst!(plan, act)
-        pushfirst!(traj, state)
+        pushfirst!(traj, state_dict[state_hash])
     end
     return plan, traj
 end
