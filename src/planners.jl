@@ -207,26 +207,33 @@ end
 "FastDownward planner."
 @kwdef struct FastDownwardPlanner <: Planner
     timeout::Int = 10
-    horizon::Int = Inf
+    max_nodes::Int = Inf
     domain_path::String
     problem_path::String
     heuristic::String
     heuristic_params::Dict{String, String} = Dict()
 end
 
+set_max_resource(planner::FastDownwardPlanner, val) = @set planner.max_nodes = val
+
 get_call(::FastDownwardPlanner)::GenerativeFunction = fastdownward_call
 
 "FastDownward search for a plan. Currently assumes A* search"
 @gen function fastdownward_call(planner::FastDownwardPlanner,
                                 domain::Domain, state::State, goal_spec::GoalSpec)
-    @unpack timeout, horizon, domain_path, problem_path, heuristic, heuristic_params = planner
+    @unpack timeout, max_nodes, domain_path, problem_path, heuristic, heuristic_params = planner
     params = join(["$key=$val" for (key, val) in heuristic_params], ", ")
     heuristic_with_params = "$heuristic($params)"
-    steps = py"fastdownward_wrapper"(heuristic_with_params, timeout, domain_path, problem_path)
-    if length(plan) > 0
-
+    plan = py"fastdownward_wrapper"(heuristic_with_params, timeout, domain_path, problem_path)
+    if plan == nothing
+        return nothing, nothing
     end
-    return nothing, nothing
+    plan = parse_prolog.([step[1:(length(step) - length("\\n"))] for step in plan])
+    traj = [state]
+    for step in plan
+        plan_len =
+        push!(traj, transition(domain, state, step))
+    return plan, traj
 end
 
 py"""
@@ -248,7 +255,7 @@ def fastdownward_wrapper(heuristic_with_params, timeout, domain_path, problem_pa
     output = subprocess.getoutput(cmd_str)
 
     if "Solution found!" not in output:
-        raise PlanningException("Plan not found with FD! Error: {}".format(output))
+        return None
     steps = []
     with open("sas_plan") as f:
         steps.append(f.readline())
