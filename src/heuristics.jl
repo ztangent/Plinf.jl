@@ -61,18 +61,35 @@ struct HSP <: Heuristic
     op::Function
     domain::Domain # Preprocessed domain
     axioms::Vector{Clause} # Preprocessed axioms
+    preconds::Dict{Symbol,Vector{Vector{Term}}} # Preconditions in DNF
+    additions::Dict{Symbol,Vector{Term}} # Action add lists
     HSP(op) = new(op)
-    HSP(op, domain, axioms) = new(op, domain, axioms)
+    HSP(op, domain, axioms, preconds, additions) =
+        new(op, domain, axioms, preconds, additions)
 end
 
 function precompute(heuristic::HSP,
                     domain::Domain, state::State, goal_spec::GoalSpec)
     domain = copy(domain) # Make a local copy of the domain
+    # Preprocess axioms
     axioms = regularize_clauses(domain.axioms) # Regularize domain axioms
     axioms = [Clause(ax.head, [t for t in ax.body if t.name != :not])
               for ax in axioms] # Remove negative literals
     domain.axioms = Clause[] # Remove axioms so they do not affect execution
-    return HSP(heuristic.op, domain, axioms)
+    # Preprocess actions
+    preconds = Dict{Symbol,Vector{Vector{Term}}}()
+    additions = Dict{Symbol,Vector{Term}}()
+    for (act_name, act_def) in domain.actions
+        # Convert preconditions to DNF without negated literals
+        conds = get_preconditions(act_def; converter=to_dnf)
+        conds = [Julog.get_args(c) for c in Julog.get_args(conds)]
+        for c in conds filter!(t -> t.name != :not, c) end
+        preconds[act_name] = conds
+        # Extract additions from each effect
+        diff = PDDL.get_diff(act_def.effect)
+        additions[act_name] = diff.add
+    end
+    return HSP(heuristic.op, domain, axioms, preconds, additions)
 end
 
 function compute(heuristic::HSP,
@@ -80,7 +97,7 @@ function compute(heuristic::HSP,
     # Precompute if necessary
     if !isdefined(heuristic, :domain)
         heuristic = precompute(heuristic, domain, state, goal_spec) end
-    @unpack op, domain, axioms = heuristic
+    @unpack op, domain, axioms, preconds, additions = heuristic
     @unpack goals = goal_spec
     @unpack types, facts = state
     # Initialize fact costs in a GraphPlan-style graph
@@ -104,19 +121,19 @@ function compute(heuristic::HSP,
         # Compute costs of all effects of available actions
         actions = available(state, domain)
         for act in actions
-            # Get preconditions as a disjunct of conjuctions
-            preconds = get_preconditions(act, domain)
-            for conj in preconds
-                filter!(t -> t.name != :not, conj) # Ignore negated terms
-            end
+            act_args = domain.actions[act.name].args
+            subst = Subst(var => val for (var, val) in
+                          zip(act_args, Julog.get_args(act)))
+            # Look-up preconds and substitute vars
+            conds = preconds[act.name]
+            conds = [[substitute(t, subst) for t in c] for c in conds]
             # Compute cost of reaching each action
             cost = minimum([[op([0; [get(fact_costs, f, 0) for f in conj]])
-                             for conj in preconds]; Inf])
-            effect = get_effect(act, domain)
-            additions = PDDL.get_diff(effect, state, domain).add
+                             for conj in conds]; Inf])
             # Compute cost of reaching each added fact
+            added = [substitute(a, subst) for a in additions[act.name]]
             cost = cost + 1 # TODO: Handle arbitrary action costs
-            for fact in additions
+            for fact in added
                 if cost < get(fact_costs, fact, Inf)
                     fact_costs[fact] = cost end
             end
