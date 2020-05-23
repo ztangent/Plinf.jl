@@ -12,6 +12,12 @@ precompute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
 precompute(h::Heuristic, domain::Domain, state::State, goal_spec) =
     precompute(h, domain, state, GoalSpec(goal_spec))
 
+precompute(h::Heuristic, domain::Domain, state::State) =
+    precompute(h, domain, state, GoalSpec(goals=Term[]))
+
+precompute(h::Heuristic, domain::Domain) =
+    precompute(h, domain, State(Term[]), GoalSpec(goals=Term[]))
+
 "Computes the heuristic value of state relative to a goal in a given domain."
 compute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
     error("Not implemented.")
@@ -56,20 +62,26 @@ function compute(heuristic::ManhattanHeuristic,
     return dist
 end
 
-"HSP family of relaxed progression search heuristics (HAdd, HMax, etc.)."
-struct HSP <: Heuristic
-    op::Function
+"Precomputed domain information for HSP heuristic."
+struct HSPCache
     domain::Domain # Preprocessed domain
     axioms::Vector{Clause} # Preprocessed axioms
     preconds::Dict{Symbol,Vector{Vector{Term}}} # Preconditions in DNF
     additions::Dict{Symbol,Vector{Term}} # Action add lists
+end
+
+"HSP family of relaxed progression search heuristics (HAdd, HMax, etc.)."
+struct HSP <: Heuristic
+    op::Function # Aggregator (e.g. maximum, sum) for fact costs
+    cache::HSPCache # Precomputed domain information
     HSP(op) = new(op)
-    HSP(op, domain, axioms, preconds, additions) =
-        new(op, domain, axioms, preconds, additions)
+    HSP(op, cache) = new(op, cache)
 end
 
 function precompute(heuristic::HSP,
                     domain::Domain, state::State, goal_spec::GoalSpec)
+    # Check if cache has already been computed
+    if isdefined(heuristic, :cache) return heuristic end
     domain = copy(domain) # Make a local copy of the domain
     # Preprocess axioms
     axioms = regularize_clauses(domain.axioms) # Regularize domain axioms
@@ -89,15 +101,17 @@ function precompute(heuristic::HSP,
         diff = PDDL.get_diff(act_def.effect)
         additions[act_name] = diff.add
     end
-    return HSP(heuristic.op, domain, axioms, preconds, additions)
+    cache = HSPCache(domain, axioms, preconds, additions)
+    return HSP(heuristic.op, cache)
 end
 
 function compute(heuristic::HSP,
                  domain::Domain, state::State, goal_spec::GoalSpec)
     # Precompute if necessary
-    if !isdefined(heuristic, :domain)
+    if !isdefined(heuristic, :cache)
         heuristic = precompute(heuristic, domain, state, goal_spec) end
-    @unpack op, domain, axioms, preconds, additions = heuristic
+    @unpack op, cache = heuristic
+    @unpack domain = cache
     @unpack goals = goal_spec
     @unpack types, facts = state
     # Initialize fact costs in a GraphPlan-style graph
@@ -108,7 +122,7 @@ function compute(heuristic::HSP,
         if satisfy(goals, state, domain)[1]
             return op([0; [fact_costs[g] for g in goals]]) end
         # Compute costs of one-step derivations of domain axioms
-        for ax in axioms
+        for ax in cache.axioms
             _, subst = resolve(ax.body, [Clause(f, []) for f in facts])
             for s in subst
                 body = [substitute(t, s) for t in ax.body]
@@ -125,15 +139,15 @@ function compute(heuristic::HSP,
             subst = Subst(var => val for (var, val) in
                           zip(act_args, Julog.get_args(act)))
             # Look-up preconds and substitute vars
-            conds = preconds[act.name]
-            conds = [[substitute(t, subst) for t in c] for c in conds]
+            preconds = cache.preconds[act.name]
+            preconds = [[substitute(t, subst) for t in c] for c in preconds]
             # Compute cost of reaching each action
             cost = minimum([[op([0; [get(fact_costs, f, 0) for f in conj]])
-                             for conj in conds]; Inf])
+                             for conj in preconds]; Inf])
             # Compute cost of reaching each added fact
-            added = [substitute(a, subst) for a in additions[act.name]]
+            additions = [substitute(a, subst) for a in cache.additions[act.name]]
             cost = cost + 1 # TODO: Handle arbitrary action costs
-            for fact in added
+            for fact in additions
                 if cost < get(fact_costs, fact, Inf)
                     fact_costs[fact] = cost end
             end
