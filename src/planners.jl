@@ -25,6 +25,12 @@ get_call(::Planner)::GenerativeFunction = planner_call
 "Returns the data-driven proposal associated with the planning algorithm."
 get_proposal(::Planner)::GenerativeFunction = planner_propose
 
+"Returns a step-wise version of the planning call."
+get_step(::Planner)::GenerativeFunction = planner_step
+
+"Returns the data-driven proposal for a planninng step."
+get_step_proposal(::Planner)::GenerativeFunction = planner_propose_step
+
 "Abstract planner call template, to be implemented by concrete planners."
 @gen function planner_call(planner::Planner,
                            domain::Domain, state::State, goal_spec::GoalSpec)
@@ -79,9 +85,6 @@ extract_plan(plan_states::AbstractArray{PlanState}) = plan_states[end].plan
 "Extract planned trajectory from a sequence of planning states."
 extract_traj(plan_states::AbstractArray{PlanState}) = plan_states[end].traj
 
-"Returns a step-wise version of the planning call."
-get_step(::Planner)::GenerativeFunction = planner_step
-
 "Intialize step-wise planning state."
 initialize_state(::Planner, env_state::State)::AbstractPlanState =
     PlanState(0, Term[], State[env_state])
@@ -99,6 +102,32 @@ initialize_state(::Planner, env_state::State)::AbstractPlanState =
    else
        return PlanState(ps.step + 1, ps.plan, ps.traj)
    end
+end
+
+"Default proposal for planner step."
+@gen function planner_propose_step(t::Int, ps::AbstractPlanState,
+                                   planner::Planner, domain::Domain,
+                                   state::State, goal_spec::GoalSpec,
+                                   obs_states::Vector{<:Union{State,Nothing}})
+    # Default to using prior as proposal
+    step_call = get_step(planner)
+    return @trace(step_call(t, ps, planner, domain, state, goal_spec))
+end
+
+"Propose planning steps for timesteps in `t1:t2`."
+@gen function propose_step_range(t1::Int, t2::Int, ps::AbstractPlanState,
+                                 planner::Planner, domain::Domain,
+                                 state::State, goal_spec::GoalSpec,
+                                 obs_states::Vector{<:Union{State,Nothing}})
+   step_propose = get_step_proposal(planner)
+   plan_states = [ps]
+   for t in t1:t2
+       ps = @trace(step_propose(t, ps, planner, domain, obs_state[t-t1+1],
+                                goal_spec, obs_states[(t-t1+1):end]),
+                   :timestep => t => :plan)
+       push!(plan_states, ps)
+   end
+   return plan_states
 end
 
 "Uninformed breadth-first search planner."
@@ -156,7 +185,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
 @gen function astar_call(planner::AStarPlanner,
                          domain::Domain, state::State, goal_spec::GoalSpec)
     @unpack goals, metric, constraints = goal_spec
-    @unpack max_nodes, h_mult, heuristic = planner
+    @unpack max_nodes, h_mult, heuristic, trace_states = planner
     # Perform any precomputation required by the heuristic
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue

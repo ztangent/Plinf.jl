@@ -21,6 +21,8 @@ get_call(::Replanner)::GenerativeFunction = replan_call
 
 get_step(::Replanner)::GenerativeFunction = replan_step
 
+get_step_proposal(::Replanner)::GenerativeFunction = replan_step_propose
+
 initialize_state(::Replanner, env_state::State)::AbstractPlanState =
     ReplanState(0, Term[], [env_state], false)
 
@@ -58,7 +60,7 @@ get_action(rp::ReplanState)::Term =
 end
 
 "Propose a likely replanning step, given the observed trajectory from `t`."
-@gen function replan_step_propose(t::Int, rp::ReplanState,
+@gen function replan_propose_step(t::Int, rp::ReplanState,
                                   replanner::Replanner, domain::Domain,
                                   state::State, goal_spec::GoalSpec,
                                   obs_states::Vector{<:Union{State,Nothing}})
@@ -99,7 +101,8 @@ end
         # Take a replanning step
         t = length(rp_states)
         rp = @trace(replan_step(t, rp_states[end], replanner,
-                                domain, state, goal_spec), t)
+                                domain, state, goal_spec),
+                    :timestep => t => :plan)
         push!(rp_states, rp)
         # Compute next state (assuming environment determinism)
         state = rp.part_traj[min(rp.rel_step + 1, length(rp.part_traj))]
