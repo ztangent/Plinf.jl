@@ -63,8 +63,10 @@ end
 @gen function replan_propose_step(t::Int, rp::ReplanState,
                                   replanner::Replanner, domain::Domain,
                                   state::State, goal_spec::GoalSpec,
-                                  obs_states::Vector{<:Union{State,Nothing}})
+                                  obs_states::Vector{<:Union{State,Nothing}},
+                                  proposal_args::Tuple{Union{Int,Nothing}})
     @unpack planner, persistence = replanner
+    max_resource = proposal_args[1]
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
     state = rp.part_traj[rel_step] # Get expected current state
@@ -77,8 +79,12 @@ end
         return ReplanState(rel_step, rp.part_plan, rp.part_traj, plan_done)
     end
     # Otherwise, make a new partial plan from the current state
-    n_attempts, p_continue = persistence  # Sample a planner resource bound
-    max_resource = @trace(neg_binom(n_attempts, 1-p_continue), :max_resource)
+    if max_resource == nothing
+        n_attempts, p_cont = persistence  # Sample a planner resource bound
+        max_resource = @trace(neg_binom(n_attempts, 1-p_cont), :max_resource)
+    else
+        @trace(uniform_discrete(max_resource, max_resource), :max_resource)
+    end
     planner = set_max_resource(planner, max_resource)
     # Plan to achieve the goals until the maximum node budget
     part_plan, part_traj = @trace(propose_plan(planner, domain, state,

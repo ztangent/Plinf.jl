@@ -1,6 +1,6 @@
 export Planner, BFSPlanner, AStarPlanner, ProbAStarPlanner
 export set_max_resource, get_call, get_proposal, get_step
-export sample_plan, propose_plan
+export sample_plan, propose_plan, propose_step_range
 export extract_plan, extract_traj
 
 "Abstract planner type, which defines the interface for planners."
@@ -116,17 +116,17 @@ end
 end
 
 "Propose planning steps for timesteps in `t1:t2`."
-@gen function planner_propose_range(t1::Int, t2::Int, ps::AbstractPlanState,
-                                    planner::Planner, domain::Domain,
-                                    state::State, goal_spec::GoalSpec,
-                                    obs_states::Vector{<:Union{State,Nothing}},
-                                    proposal_args::Tuple)
+@gen function propose_step_range(t1::Int, t2::Int, ps::AbstractPlanState,
+                                 planner::Planner, domain::Domain,
+                                 state::State, goal_spec::GoalSpec,
+                                 obs_states::Vector{<:Union{State,Nothing}},
+                                 proposal_args::Vector{Tuple})
    step_propose = get_step_proposal(planner)
    plan_states = [ps]
-   for t in t1:t2
-       ps = @trace(step_propose(t, ps, planner, domain, obs_states[t-t1+1],
-                                goal_spec, obs_states[(t-t1+1):end],
-                                proposal_args), :timestep => t => :plan)
+   for t in 1:(t2-t1+1)
+       ps = @trace(step_propose(t+t1-1, ps, planner, domain, obs_states[t],
+                                goal_spec, obs_states[t:end], proposal_args[t]),
+                   :timestep => t+t1-1 => :plan)
        push!(plan_states, ps)
    end
    return plan_states
