@@ -150,7 +150,8 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
                    plan_color=:blue, plan_alpha=0.5, kwargs...)
     plt = deepcopy(canvas)
     animation = animation == nothing ? Animation() : animation
-    node_choices = sort!(OrderedDict(get_values_shallow(get_choices(trace))))
+    node_choices = OrderedDict(get_values_shallow(get_choices(trace)))
+    sort!(filter!(p -> p[1][1] == :state, node_choices))
     # Render each node expanded in sequence
     for state in values(node_choices)
         dot = make_circle(state[:xpos], state[:ypos], node_radius)
@@ -174,9 +175,11 @@ function anim_replan(trace, canvas, animation=nothing;
                      show=true, fps=10, kwargs...)
     animation = animation == nothing ? Animation() : animation
     # Iterate over time steps
-    step_submaps = sort!(OrderedDict(get_submaps_shallow(get_choices(trace))))
+    choices = get_submap(get_choices(trace), :timestep)
+    step_submaps = sort!(OrderedDict(get_submaps_shallow(choices)))
     for (addr, submap) in step_submaps
         # Get subtrace for this step
+        addr = :timestep => addr => :plan
         step_trace = Gen.get_call(trace, addr).subtrace
         # Skip steps where no new plans were made
         if !Gen.has_call(step_trace, :subplan) continue end

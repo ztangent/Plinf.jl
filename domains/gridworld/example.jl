@@ -33,17 +33,16 @@ anim = anim_traj(traj, plt)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=manhattan, search_noise=10)
+planner = ProbAStarPlanner(heuristic=manhattan, trace_states=true)
 plt = render(state; start=start_pos, goals=goal_pos)
 tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
-anim = anim_plan(tr, plt)
 
 # Visualize distribution over trajectories induced by planner
 trajs = [planner(domain, state, goal)[2] for i in 1:20]
 anim = anim_traj(trajs, plt; alpha=0.1)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
+astar = ProbAStarPlanner(heuristic=manhattan, trace_states=true)
 replanner = Replanner(planner=astar, persistence=(2, 0.95))
 plt = render(state; start=start_pos, goals=goal_pos)
 tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))
@@ -88,6 +87,8 @@ obs_terms = @julog([xpos, ypos])
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Assume either a planning agent or replanning agent as a model
+planner = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
+replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 rejuvenate = agent_planner == planner ? nothing : replan_rejuvenate
 

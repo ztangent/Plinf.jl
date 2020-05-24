@@ -32,7 +32,7 @@ anim = anim_traj(traj; gem_colors=gem_colors)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=GemHeuristic(), search_noise=10)
+planner = ProbAStarPlanner(heuristic=GemHeuristic(), trace_states=true)
 plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=true)
 tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
 anim = anim_plan(tr, plt)
@@ -43,7 +43,7 @@ plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=false)
 anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=GemHeuristic(), search_noise=0.1)
+astar = ProbAStarPlanner(heuristic=GemHeuristic(), trace_states=true)
 replanner = Replanner(planner=astar, persistence=(2, 0.95))
 plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=true)
 tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))
@@ -82,6 +82,8 @@ obs_params = observe_params(
 obs_terms = collect(keys(obs_params))
 
 # Assume either a planning agent or replanning agent as a model
+planner = ProbAStarPlanner(heuristic=GemHeuristic(), search_noise=0.1)
+replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # replanner
 
 # Initialize world model with planner, goal prior, initial state, and obs params

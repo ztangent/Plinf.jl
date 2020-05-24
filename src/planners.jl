@@ -28,7 +28,7 @@ get_proposal(::Planner)::GenerativeFunction = planner_propose
 "Returns a step-wise version of the planning call."
 get_step(::Planner)::GenerativeFunction = planner_step
 
-"Returns the data-driven proposal for a planninng step."
+"Returns the data-driven proposal for a planning step."
 get_step_proposal(::Planner)::GenerativeFunction = planner_propose_step
 
 "Abstract planner call template, to be implemented by concrete planners."
@@ -108,23 +108,25 @@ end
 @gen function planner_propose_step(t::Int, ps::AbstractPlanState,
                                    planner::Planner, domain::Domain,
                                    state::State, goal_spec::GoalSpec,
-                                   obs_states::Vector{<:Union{State,Nothing}})
+                                   obs_states::Vector{<:Union{State,Nothing}},
+                                   proposal_args::Tuple)
     # Default to using prior as proposal
     step_call = get_step(planner)
     return @trace(step_call(t, ps, planner, domain, state, goal_spec))
 end
 
 "Propose planning steps for timesteps in `t1:t2`."
-@gen function propose_step_range(t1::Int, t2::Int, ps::AbstractPlanState,
-                                 planner::Planner, domain::Domain,
-                                 state::State, goal_spec::GoalSpec,
-                                 obs_states::Vector{<:Union{State,Nothing}})
+@gen function planner_propose_range(t1::Int, t2::Int, ps::AbstractPlanState,
+                                    planner::Planner, domain::Domain,
+                                    state::State, goal_spec::GoalSpec,
+                                    obs_states::Vector{<:Union{State,Nothing}},
+                                    proposal_args::Tuple)
    step_propose = get_step_proposal(planner)
    plan_states = [ps]
    for t in t1:t2
-       ps = @trace(step_propose(t, ps, planner, domain, obs_state[t-t1+1],
-                                goal_spec, obs_states[(t-t1+1):end]),
-                   :timestep => t => :plan)
+       ps = @trace(step_propose(t, ps, planner, domain, obs_states[t-t1+1],
+                                goal_spec, obs_states[(t-t1+1):end],
+                                proposal_args), :timestep => t => :plan)
        push!(plan_states, ps)
    end
    return plan_states
@@ -175,6 +177,7 @@ end
     heuristic::Heuristic = GoalCountHeuristic()
     h_mult::Real = 1
     max_nodes::Real = Inf
+    trace_states::Bool = false
 end
 
 set_max_resource(planner::AStarPlanner, val) = @set planner.max_nodes = val
@@ -200,6 +203,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
         # Get state with lowest estimated cost to goal
         state_hash = dequeue!(queue)
         state = state_dict[state_hash]
+        if trace_states @trace(labeled_unif([state]), (:state, count)) end
         # Return plan if search budget is reached or goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
             return reconstruct_plan(state_hash, state_dict, parents) end
@@ -244,6 +248,7 @@ end
     heuristic::Heuristic = GoalCountHeuristic()
     max_nodes::Real = Inf
     search_noise::Real = 1.0
+    trace_states::Bool = false
 end
 
 set_max_resource(planner::ProbAStarPlanner, val) = @set planner.max_nodes = val
@@ -254,7 +259,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
 @gen function aprob_call(planner::ProbAStarPlanner,
                          domain::Domain, state::State, goal_spec::GoalSpec)
     @unpack goals, metric, constraints = goal_spec
-    @unpack heuristic, max_nodes, search_noise = planner
+    @unpack heuristic, max_nodes, search_noise, trace_states = planner
     # Perform any precomputation required by the heuristic
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
@@ -272,6 +277,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
         state_hash =
             @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
         state = state_dict[state_hash]
+        if trace_states @trace(labeled_unif([state]), (:state, count)) end
         delete!(queue, state_hash)
         # Return plan if search budget is reached or goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
@@ -321,7 +327,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
                             obs_states::Vector{<:Union{State,Nothing}})
     @param obs_bias::Float64 # How much more likely an observed state is sampled
     @unpack goals, metric, constraints = goal_spec
-    @unpack heuristic, max_nodes, search_noise = planner
+    @unpack heuristic, max_nodes, search_noise, trace_states = planner
     # Perform any precomputation required by the heuristic
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Initialize path costs and priority queue
@@ -367,6 +373,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
         state_hash =
             @trace(labeled_cat(collect(keys(queue)), probs), (:node, count))
         state = state_dict[state_hash]
+        if trace_states @trace(labeled_unif([state]), (:state, count)) end
         # Remove states / observations from respective queues
         delete!(queue, state_hash)
         if !isempty(obs_queue) &&

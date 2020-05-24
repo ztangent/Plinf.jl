@@ -21,7 +21,7 @@ get_call(::Replanner)::GenerativeFunction = replan_call
 
 get_step(::Replanner)::GenerativeFunction = replan_step
 
-get_step_proposal(::Replanner)::GenerativeFunction = replan_step_propose
+get_step_proposal(::Replanner)::GenerativeFunction = replan_propose_step
 
 initialize_state(::Replanner, env_state::State)::AbstractPlanState =
     ReplanState(0, Term[], [env_state], false)
