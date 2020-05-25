@@ -1,4 +1,4 @@
-export Planner, BFSPlanner, AStarPlanner, ProbAStarPlanner
+export Planner, BFSPlanner, AStarPlanner, FastDownwardPlanner, ProbAStarPlanner
 export set_max_resource, get_call, get_proposal, get_step
 export sample_plan, propose_plan
 export extract_plan, extract_traj
@@ -207,7 +207,7 @@ end
 "FastDownward planner."
 @kwdef struct FastDownwardPlanner <: Planner
     timeout::Int = 10
-    max_nodes::Int = Inf
+    max_nodes::Real = Inf
     domain_path::String
     problem_path::String
     heuristic::String
@@ -224,44 +224,48 @@ get_call(::FastDownwardPlanner)::GenerativeFunction = fastdownward_call
     @unpack timeout, max_nodes, domain_path, problem_path, heuristic, heuristic_params = planner
     params = join(["$key=$val" for (key, val) in heuristic_params], ", ")
     heuristic_with_params = "$heuristic($params)"
+
+    py"""
+    import sys
+    import os
+    import re
+    import subprocess
+
+    def fastdownward_wrapper(heuristic_with_params, timeout, domain_path, problem_path):
+        if 'FD_PATH' not in os.environ:
+            raise Exception((
+                "Environment variable `FD_PATH` not found. Make sure fd is installed "
+                "and FF_PATH is set to the path of fast-downward.py"
+            ))
+        FD_PATH = os.environ['FD_PATH']
+        timeout_cmd = "gtimeout" if sys.platform == "darwin" else "timeout"
+        cmd_str = "{} {} {} {} {} --search 'astar({})'".format(timeout_cmd, timeout,
+                                                                FD_PATH, domain_path,
+                                                                problem_path, heuristic_with_params)
+        output = subprocess.getoutput(cmd_str)
+        if "Solution found" not in output:
+            return None
+        steps = []
+        with open("sas_plan") as f:
+            steps = f.readlines()[:-1]
+        os.remove("sas_plan")
+        return steps
+    """
+
     plan = py"fastdownward_wrapper"(heuristic_with_params, timeout, domain_path, problem_path)
     if plan == nothing
         return nothing, nothing
     end
-    plan = parse_prolog.([step[1:(length(step) - length("\\n"))] for step in plan])
+    plan = [@pddl(step[1:(length(step) - 1)]) for step in plan]
+    println(plan)
     traj = [state]
     for step in plan
-        plan_len =
-        push!(traj, transition(domain, state, step))
+        push!(traj, transition(domain, traj[length(traj)-1], step))
+    end
     return plan, traj
 end
 
-py"""
-import sys
-import os
-import re
-import subprocess
 
-def fastdownward_wrapper(heuristic_with_params, timeout, domain_path, problem_path)
-    if 'FD_PATH' not in os.environ:
-        raise Exception((
-            "Environment variable `FD_PATH` not found. Make sure fd is installed "
-            "and FF_PATH is set to fast-downward.py"
-        ))
-    FD_PATH = os.environ['FD_PATH']
-    timeout_cmd = "gtimeout" if sys.platform == "darwin" else "timeout"
-    cmd_str = "{} {} {} {} {} -search \"astar({})\"".format(timeout_cmd, timeout, FD_PATH,
-                                            domain_path, problem_path, heuristic_with_params)
-    output = subprocess.getoutput(cmd_str)
-
-    if "Solution found!" not in output:
-        return None
-    steps = []
-    with open("sas_plan") as f:
-        steps.append(f.readline())
-    os.remove("sas_plan")
-    return steps
-"""
 
 "Probabilistic A* planner with search noise."
 @kwdef struct ProbAStarPlanner <: Planner
