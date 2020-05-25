@@ -256,11 +256,11 @@ get_call(::FastDownwardPlanner)::GenerativeFunction = fastdownward_call
     if plan == nothing
         return nothing, nothing
     end
-    plan = [@pddl(step[1:(length(step) - 1)]) for step in plan]
+    plan = [(parse_pddl(step[1:(length(step) - 1)])) for step in plan]
     println(plan)
     traj = [state]
     for step in plan
-        push!(traj, transition(domain, traj[length(traj)-1], step))
+        push!(traj, transition(domain, traj[length(traj)], step))
     end
     return plan, traj
 end
