@@ -122,7 +122,7 @@ end
                                  obs_states::Vector{<:Union{State,Nothing}},
                                  proposal_args::Vector{Tuple})
    step_propose = get_step_proposal(planner)
-   plan_states = [ps]
+   plan_states = Vector{typeof(ps)}()
    for t in 1:(t2-t1+1)
        ps = @trace(step_propose(t+t1-1, ps, planner, domain, obs_states[t],
                                 goal_spec, obs_states[t:end], proposal_args[t]),
@@ -357,6 +357,10 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
             probs = collect(values(probs)) ./ sum(values(probs))
             state_hash = @trace(labeled_cat(collect(keys(queue)), probs),
                                 (:node, count))
+            if trace_states
+                state = state_dict[state_hash]
+                @trace(labeled_unif([state]), (:state, count))
+            end
             return reconstruct_plan(state_hash, state_dict, parents)
         elseif isempty(obs_queue)
             # Bias search towards descendants
@@ -366,8 +370,8 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
             # Bias search towards observed states
             obs_hash = obs_queue[1]
             nodes_left = max_nodes - count + 1
-            node_mult = min(2 * length(obs_queue) / nodes_left + 1, 10)
-            probs[obs_hash] += node_mult * obs_bias * probs[obs_hash]
+            node_mult = min(0.5 * length(obs_queue) / nodes_left, 10)
+            probs[obs_hash] += node_mult * obs_bias * exp(0)
         end
         probs = collect(values(probs)) ./ sum(values(probs))
         state_hash =
@@ -423,7 +427,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
 end
 
 # Initialize bias towards sampling observed states
-init_param!(aprob_propose, :obs_bias, 2)
+init_param!(aprob_propose, :obs_bias, 5)
 
 "Reconstruct plan from current state and back-pointers."
 function reconstruct_plan(state_hash::UInt, state_dict::Dict{UInt,State},

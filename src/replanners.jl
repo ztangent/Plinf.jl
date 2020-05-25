@@ -147,12 +147,14 @@ end
 
 "Find all timesteps where replanning occurred."
 function get_planning_steps(rp_states::AbstractArray{ReplanState})
-    [(t, rp) for (t, rp) in enumerate(rp_states) if rp.rel_step == 1]
+    unzip([(t, rp) for (t, rp) in enumerate(rp_states)
+           if rp.rel_step == 1 && !rp.plan_done])
 end
 
 "Find the most recent timestep at which replanning occured."
 function get_last_planning_step(rp_states::AbstractArray{ReplanState})
     for (t, rp) in enumerate(reverse(rp_states))
-        if (rp.rel_step == 1) return (length(rp_states) - t + 1, rp) end
+        if (rp.rel_step == 1 && !rp.plan_done)
+            return (length(rp_states) - t + 1, rp) end
     end
 end
