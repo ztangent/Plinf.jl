@@ -193,6 +193,8 @@ struct HSPR <: Heuristic
     HSPR(op, fact_costs) = new(op, fact_costs)
 end
 
+Base.hash(heuristic::HSPR, h::UInt) = hash(heuristic.op, hash(HSPR, h))
+
 function precompute(heuristic::HSPR,
                     domain::Domain, state::State, goal_spec::GoalSpec)
     @unpack op = heuristic
