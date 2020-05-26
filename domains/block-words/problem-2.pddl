@@ -1,5 +1,5 @@
 (define (problem block_words)
-	(:domain blocks)
+	(:domain block-words)
 	(:objects
 		s t a r h c u k - block
 	)

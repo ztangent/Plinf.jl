@@ -1,3 +1,4 @@
+;; Impossible problem
 (define (problem block_words)
 	(:domain block-words)
 	(:objects
@@ -20,7 +21,6 @@
 		(ontable w)
 	)
 	(:goal (and
-		;; power
-		(clear p) (ontable r) (on p o) (on o w) (on w e) (on e r)
+		(clear p) (ontable r) (on p o) (on o w) (on w e) (on e w)
 	))
 )
