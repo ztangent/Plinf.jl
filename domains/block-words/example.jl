@@ -70,7 +70,7 @@ traj = traj[1:min(length(traj), 7)]
 anim = anim_traj(traj)
 
 # Define observation noise model
-obs_params = observe_params(domain, pred_noise=0.05)
+obs_params = observe_params(domain, pred_noise=0.05; state=state)
 obs_terms = collect(keys(obs_params))
 
 # Initialize world model with planner, goal prior, initial state, and obs params
@@ -124,7 +124,7 @@ callback = (t, s, trs, ws) ->
 n_samples = 10
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=pf_replan_move_mh!,
+                          resample=false, rejuvenate=nothing,
                           strata=goal_strata, callback=callback)
 # Show animation of goal inference
 gif(anim; fps=1)

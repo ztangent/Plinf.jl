@@ -5,9 +5,12 @@ export state_choicemap, traj_choicemaps
 ObserveParams = Dict{Term,Tuple{Distribution, Tuple}}
 
 "Construct a dictionary of observation noise parameters."
-function observe_params(args...)
+function observe_params(args...; state=nothing, domain=nothing)
     entries = observe_params_entry.(args)
-    return Dict{Term,Tuple{Distribution, Tuple}}(entries...)
+    params = Dict{Term,Tuple{Distribution, Tuple}}(entries...)
+    # Ground parameters if state is provided
+    if state != nothing params = ground_obs_params(params, state, domain) end
+    return params
 end
 
 observe_params_entry(entry::Tuple{Term, Distribution, Tuple}) =
@@ -22,7 +25,8 @@ observe_params_entry(entry::Tuple{Term, Real}) =
     entry[1] => (flip, (entry[2],))
 
 "Construct default observation noise parameters for a PDDL domain."
-function observe_params(domain::Domain; pred_noise=0.05, func_noise=0.25)
+function observe_params(domain::Domain; state=nothing,
+                        pred_noise=0.05, func_noise=0.25)
     params = Dict{Term,Tuple{Distribution, Tuple}}()
     # Add Boolean corruption noise to all Boolean predicates
     for (name, pred) in domain.predicates
@@ -47,7 +51,31 @@ function observe_params(domain::Domain; pred_noise=0.05, func_noise=0.25)
         end
         params[term] = (normal, (func_noise,))
     end
+    # Ground parameters if state is provided
+    if state != nothing params = ground_obs_params(params, state, domain) end
     return params
+end
+
+"Ground observation parameters with respect to a domain and state."
+function ground_obs_params(params::ObserveParams, state::State,
+                           domain::Union{Domain,Nothing}=nothing)
+    ground_params = Dict{Term,Tuple{Distribution, Tuple}}()
+    for (term, (dist, args)) in params
+        if is_ground(term)
+            terms = Term[term]
+        elseif term.name == :forall # Handle foralls
+            cond, body = term.args
+            _, subst = satisfy(cond, state, domain; mode=:all)
+            terms = Term[substitute(body, s) for s in subst]
+        else
+            _, subst = satisfy(term, state, domain; mode=:all)
+            terms = Term[substitute(term, s) for s in subst]
+        end
+        for t in terms
+            ground_params[t] = (dist, args)
+        end
+    end
+    return ground_params
 end
 
 "Observation noise model for PDDL states."
@@ -59,10 +87,10 @@ end
             terms = Term[term]
         elseif term.name == :forall # Handle foralls
             cond, body = term.args
-            _, subst = satisfy(cond, state; mode=:all)
+            _, subst = satisfy(cond, state, domain; mode=:all)
             terms = Term[substitute(body, s) for s in subst]
         else
-            _, subst = satisfy(term, state; mode=:all)
+            _, subst = satisfy(term, state, domain; mode=:all)
             terms = Term[substitute(term, s) for s in subst]
         end
         for t in terms
