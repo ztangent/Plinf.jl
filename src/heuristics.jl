@@ -1,6 +1,12 @@
 export Heuristic, GoalCountHeuristic, ManhattanHeuristic
 export HSP, HAdd, HMax, HSPR, HAddR, HMaxR
-export precompute, compute
+export precompute, compute, clear_heuristic_cache!
+
+"Cached heuristic values."
+const heuristic_cache = Dict{Tuple{UInt,Symbol,UInt,UInt}, Real}()
+
+"Clear cache of heuristic values."
+clear_heuristic_cache!() = empty!(heuristic_cache)
 
 "Abstract heuristic type, which defines the interface for planners."
 abstract type Heuristic end
@@ -23,16 +29,26 @@ compute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
     error("Not implemented.")
 
 compute(h::Heuristic, domain::Domain, state::State, goal_spec) =
-    compute(heuristic, domain, state, GoalSpec(goal_spec))
+    compute(h, domain, state, GoalSpec(goal_spec))
 
-(heuristic::Heuristic)(domain::Domain, state::State, goal_spec::GoalSpec) =
-    compute(heuristic, domain, state, goal_spec)
+function (h::Heuristic)(domain::Domain, state::State, goal_spec::GoalSpec;
+                        cache::Bool=true)
+    if (cache)
+        key = (hash(h), domain.name, hash(state), hash(goal_spec))
+        if haskey(heuristic_cache, key) return heuristic_cache[key] end
+    end
+    val = compute(h, domain, state, goal_spec)
+    if (cache) heuristic_cache[key] = val end
+    return val
+end
 
-(heuristic::Heuristic)(domain::Domain, state::State, goal_spec) =
-    compute(heuristic, domain, state, GoalSpec(goal_spec))
+(h::Heuristic)(domain::Domain, state::State, goal_spec; cache::Bool=true) =
+    h(domain, state, GoalSpec(goal_spec); cache=cache)
 
 "Heuristic that counts the number of goals unsatisfied in the domain."
 struct GoalCountHeuristic <: Heuristic end
+
+Base.hash(::GoalCountHeuristic, h::UInt) = hash(GoalCountHeuristic, h)
 
 function compute(heuristic::GoalCountHeuristic,
                  domain::Domain, state::State, goal_spec::GoalSpec)
@@ -46,6 +62,9 @@ struct ManhattanHeuristic <: Heuristic
     ManhattanHeuristic(fluents) = new(fluents)
     ManhattanHeuristic(fluents, goal_state) = new(fluents, goal_state)
 end
+
+Base.hash(heuristic::ManhattanHeuristic, h::UInt) =
+    hash(heuristic.fluents, hash(ManhattanHeuristic, h))
 
 function precompute(heuristic::ManhattanHeuristic,
                     domain::Domain, state::State, goal_spec::GoalSpec)
@@ -77,6 +96,8 @@ struct HSP <: Heuristic
     HSP(op) = new(op)
     HSP(op, cache) = new(op, cache)
 end
+
+Base.hash(heuristic::HSP, h::UInt) = hash(heuristic.op, hash(HSP, h))
 
 function precompute(heuristic::HSP,
                     domain::Domain, state::State, goal_spec::GoalSpec)

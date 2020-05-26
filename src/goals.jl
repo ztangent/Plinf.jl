@@ -20,6 +20,12 @@ function GoalSpec(problem::Problem)
 end
 
 # Conversions
-convert(::Type{GoalSpec}, goals::Vector{<:Term}) = GoalSpec(goals)
-convert(::Type{GoalSpec}, goal::Term) = GoalSpec(goal)
-convert(::Type{GoalSpec}, problem::Problem) = GoalSpec(problem)
+Base.convert(::Type{GoalSpec}, goals::Vector{<:Term}) = GoalSpec(goals)
+Base.convert(::Type{GoalSpec}, goal::Term) = GoalSpec(goal)
+Base.convert(::Type{GoalSpec}, problem::Problem) = GoalSpec(problem)
+
+# Hashing and equality
+Base.hash(gs::GoalSpec, h::UInt) =
+    hash(gs.constraints, hash(gs.metric, hash(Set(gs.goals), h)))
+Base.:(==)(gs1::GoalSpec, gs2::GoalSpec) = Set(gs1.goals) == Set(gs2.goals) &&
+    gs1.metric == gs2.metric && Set(gs1.constraints) == Set(gs2.constraints)

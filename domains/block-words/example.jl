@@ -59,7 +59,8 @@ end
 goal_strata = Dict((:goal_init => :goal) => goal_words)
 
 # Assume either a planning agent or replanning agent as a model
-planner = ProbAStarPlanner(heuristic=HAdd(), search_noise=0.1)
+heuristic = precompute(HAdd(), domain)
+planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 
@@ -121,10 +122,10 @@ callback = (t, s, trs, ws) ->
      print_goal_probs(get_goal_probs(trs, ws, goal_words)))
 
 # Run a particle filter to perform online goal inference
-n_samples = 10
+n_samples = 20
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=false, rejuvenate=nothing,
+                          resample=true, rejuvenate=nothing,
                           strata=goal_strata, callback=callback)
 # Show animation of goal inference
 gif(anim; fps=1)
