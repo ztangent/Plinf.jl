@@ -85,6 +85,15 @@ end
 
 world_unfold = Unfold(world_step)
 
+"Intialize world state by sampling from the initializers"
+@gen function init_world_model(init::WorldInit)
+    goal_state = @trace(sample_fn(init.goal_init), :goal_init)
+    plan_state = @trace(sample_fn(init.plan_init), :plan_init)
+    env_state = @trace(sample_fn(init.env_init), :env_init)
+    obs_state = @trace(sample_fn(init.obs_init), :obs_init)
+    return WorldState(goal_state, plan_state, env_state, obs_state)
+end
+
 "Models the evolution of a world with a planning agent for `n_steps`."
 @gen (static) function world_model(n_steps::Int, init::WorldInit,
                                    config::WorldConfig)

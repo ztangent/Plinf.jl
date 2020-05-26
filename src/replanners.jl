@@ -64,9 +64,9 @@ end
                                   replanner::Replanner, domain::Domain,
                                   state::State, goal_spec::GoalSpec,
                                   obs_states::Vector{<:Union{State,Nothing}},
-                                  proposal_args::Tuple{Union{Int,Nothing}})
+                                  proposal_args::Union{Tuple,Nothing})
     @unpack planner, persistence = replanner
-    max_resource = proposal_args[1]
+    max_resource = proposal_args == nothing ? nothing : proposal_args[1]
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
     state = rp.part_traj[rel_step] # Get expected current state

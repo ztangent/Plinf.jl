@@ -48,26 +48,30 @@ anim = anim_traj(trajs; alpha=1/length(trajs))
 #--- Goal Inference Setup ---#
 
 # Read possible goal words from file
-goal_words = readlines(joinpath(path, "goals.txt"))
+goal_words = sort(["draw", "crow", "rope", "power", "wade"])
+    # readlines(joinpath(path, "goals.txt"))
 goals = word_to_terms.(goal_words)
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
     GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
 end
+goal_strata = Dict((:goal_init => :goal) => goal_words)
+
+# Assume either a planning agent or replanning agent as a model
+planner = ProbAStarPlanner(heuristic=HAdd(), search_noise=0.1)
+replanner = Replanner(planner=planner, persistence=(2, 0.95))
+agent_planner = replanner # planner
 
 # Sample a trajectory as the ground truth (no observation noise)
 goal = goal_prior()
-_, traj = planner(domain, state, goal)
+plan, traj = replanner(domain, state, goal)
 traj = traj[1:min(length(traj), 7)]
 anim = anim_traj(traj)
 
 # Define observation noise model
 obs_params = observe_params(domain, pred_noise=0.05)
 obs_terms = collect(keys(obs_params))
-
-# Assume either a planning agent or replanning agent as a model
-agent_planner = replanner # planner
 
 # Initialize world model with planner, goal prior, initial state, and obs params
 world_init = WorldInit(agent_planner, goal_prior, state)
@@ -77,10 +81,10 @@ world_config = WorldConfig(domain, agent_planner, obs_params)
 
 # Run importance sampling to infer the likely goal
 n_samples = 20
-observations = traj_choicemaps(traj, domain, obs_terms; as_choicemap=true)
-traces, weights, _ =
-    importance_sampling(world_model, (length(traj), world_init, world_config),
-                        observations, n_samples)
+traces, weights, lml_est =
+    world_importance_sampler(world_init, world_config,
+                             traj, obs_terms, n_samples;
+                             use_proposal=true, strata=goal_strata)
 
 # Render distribution over goal states
 plt = render(traj[end])
@@ -89,7 +93,7 @@ render_traces!(traces, weights, plt)
 # Compute posterior probability of each goal
 goal_probs = get_goal_probs(traces, weights, goal_words)
 println("Posterior probabilities:")
-for (goal, prob) in zip(goal_words, values(sort(goal_probs)))
+for (goal, prob) in zip(sort(goal_words), values(sort(goal_probs)))
     @printf "Goal: %s\t Prob: %0.3f\n" goal prob
 end
 
@@ -117,9 +121,10 @@ callback = (t, s, trs, ws) ->
      print_goal_probs(get_goal_probs(trs, ws, goal_words)))
 
 # Run a particle filter to perform online goal inference
-n_samples = 20
+n_samples = 10
 traces, weights =
-    goal_pf(world_init, world_config, traj, obs_terms, n_samples;
-            rejuvenate=nothing, callback=callback, goal_strata=goal_words)
+    world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
+                          resample=true, rejuvenate=pf_replan_move_mh!,
+                          strata=goal_strata, callback=callback)
 # Show animation of goal inference
-gif(anim; fps=2)
+gif(anim; fps=1)

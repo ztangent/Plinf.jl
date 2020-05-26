@@ -136,7 +136,8 @@ function render_blocks!(state::State, plt=nothing; kwargs...)
 end
 
 "Render blocksworld state."
-function render!(state::State, plt=nothing; show_blocks=true, kwargs...)
+function render!(state::State, plt=nothing;
+                 show_blocks=true, kwargs...)
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
     # Get list of blocks

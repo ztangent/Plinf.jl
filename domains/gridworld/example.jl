@@ -64,19 +64,28 @@ goal_names = [string(g) for g in goal_set]
 @gen function goal_prior()
     GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
 end
+goal_strata = Dict((:goal_init => :goal) => collect(1:length(goals)))
+
+# Assume either a planning agent or replanning agent as a model
+manhattan = ManhattanHeuristic(@julog[xpos, ypos])
+planner = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
+replanner = Replanner(planner=planner, persistence=(2, 0.95))
+agent_planner = replanner # planner
+rejuvenate = agent_planner == planner ? nothing : pf_replan_move_mh!
 
 # Sample a trajectory as the ground truth (no observation noise)
-likely_traj = true
+likely_traj = false
 if likely_traj
     # Construct a trajectory sampled from the prior
     goal = goals[uniform_discrete(1, length(goals))]
-    _, traj = planner(domain, state, goal)
+    _, traj = replanner(domain, state, goal)
     traj = traj[1:min(20, length(traj))]
 else
     # Construct plan that is highly unlikely under the prior
-    _, seg1 = AStarPlanner()(domain, state, pos_to_terms((1, 8)))
-    _, seg2 = AStarPlanner()(domain, seg1[end], pos_to_terms((8, 1)))
-    traj = [seg1; seg2[2:end]][1:end-3]
+    _, seg1 = AStarPlanner()(domain, state, pos_to_terms((4, 4)))
+    _, seg2 = AStarPlanner()(domain, seg1[end], pos_to_terms((3, 4)))
+    _, seg3 = AStarPlanner()(domain, seg2[end], pos_to_terms((5, 8)))
+    traj = [seg1; seg2[2:end]; seg3[2:end]][1:end]
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
@@ -86,12 +95,6 @@ anim = anim_traj(traj, plt)
 obs_terms = @julog([xpos, ypos])
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
-# Assume either a planning agent or replanning agent as a model
-planner = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
-replanner = Replanner(planner=planner, persistence=(2, 0.95))
-agent_planner = replanner # planner
-rejuvenate = agent_planner == planner ? nothing : replan_rejuvenate
-
 # Initialize world model with planner, goal prior, initial state, and obs params
 world_init = WorldInit(agent_planner, goal_prior, state)
 world_config = WorldConfig(domain, agent_planner, obs_params)
@@ -100,15 +103,15 @@ world_config = WorldConfig(domain, agent_planner, obs_params)
 
 # Run importance sampling to infer the likely goal
 n_samples = 30
-observations = traj_choicemaps(traj, domain, obs_terms; as_choicemap=true)
-traces, weights, _ =
-    importance_sampling(world_model, (length(traj), world_init, world_config),
-                        observations, n_samples)
+traces, weights, lml_est =
+    world_importance_sampler(world_init, world_config,
+                             traj, obs_terms, n_samples;
+                             use_proposal=true, strata=goal_strata)
 
 # Plot sampled trajectory for each trace
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 render_traces!(traces, weights, plt; goal_colors=goal_colors)
-plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
+plt = render!(traj[1:9], plt; alpha=0.5) # Plot original trajectory on top
 
 # Compute posterior probability of each goal
 goal_probs = get_goal_probs(traces, weights, 1:length(goal_set))
@@ -144,8 +147,8 @@ callback = (t, s, trs, ws) ->
 # Run a particle filter to perform online goal inference
 n_samples = 30
 traces, weights =
-    goal_pf(world_init, world_config, traj, obs_terms, n_samples;
-            rejuvenate=rejuvenate, callback=callback,
-            goal_strata=collect(1:length(goals)))
+    world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
+                          rejuvenate=rejuvenate, callback=callback,
+                          strata=goal_strata)
 # Show animation of goal inference
 gif(anim; fps=3)

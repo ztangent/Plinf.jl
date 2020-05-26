@@ -63,6 +63,12 @@ goal_names = [repr(t[1]) for t in goals]
 @gen function goal_prior()
     GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
 end
+goal_strata = Dict((:goal_init => :goal) => collect(1:length(goals)))
+
+# Assume either a planning agent or replanning agent as a model
+planner = ProbAStarPlanner(heuristic=GemHeuristic(), search_noise=0.1)
+replanner = Replanner(planner=planner, persistence=(2, 0.95))
+agent_planner = replanner # replanner
 
 # Sample a trajectory as the ground truth (no observation noise)
 goal = goals[uniform_discrete(1, length(goals))]
@@ -81,11 +87,6 @@ obs_params = observe_params(
 )
 obs_terms = collect(keys(obs_params))
 
-# Assume either a planning agent or replanning agent as a model
-planner = ProbAStarPlanner(heuristic=GemHeuristic(), search_noise=0.1)
-replanner = Replanner(planner=planner, persistence=(2, 0.95))
-agent_planner = replanner # replanner
-
 # Initialize world model with planner, goal prior, initial state, and obs params
 world_init = WorldInit(agent_planner, goal_prior, state)
 world_config = WorldConfig(domain, agent_planner, obs_params)
@@ -94,10 +95,10 @@ world_config = WorldConfig(domain, agent_planner, obs_params)
 
 # Run importance sampling to infer the likely goal
 n_samples = 30
-observations = traj_choicemaps(traj, domain, obs_terms; as_choicemap=true)
-traces, weights, _ =
-    importance_sampling(world_model, (length(traj), world_init, world_config),
-                        observations, n_samples)
+traces, weights, lml_est =
+    world_importance_sampler(world_init, world_config,
+                             traj, obs_terms, n_samples;
+                             use_proposal=true, strata=goal_strata)
 
 # Plot sampled trajectory for each trace
 plt = render(state; start=start_pos, gem_colors=gem_colors)
@@ -138,8 +139,8 @@ callback = (t, s, trs, ws) ->
 # Run a particle filter to perform online goal inference
 n_samples = 30
 traces, weights =
-    goal_pf(world_init, world_config, traj, obs_terms, n_samples;
-            rejuvenate=nothing, callback=callback,
-            goal_strata=collect(1:length(goals)))
+    world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
+                          resample=true, rejuvenate=nothing,
+                          callback=callback, strata=goal_strata)
 # Show animation of goal inference
 gif(anim; fps=2)
