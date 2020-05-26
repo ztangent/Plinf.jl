@@ -8,9 +8,8 @@ include("utils.jl")
 
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
-problem_path = joinpath(path, "problem-4.pddl")
 domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(problem_path)
+problem = load_problem(joinpath(path, "problem-1.pddl"))
 
 # Initialize state
 state = initialize(problem)
@@ -20,17 +19,6 @@ goal = problem.goal
 
 # Check that A* heuristic search correctly solves the problem
 planner = AStarPlanner(heuristic=HAdd())
-plan, traj = planner(domain, state, goal)
-println("== Plan ==")
-display(plan)
-anim = anim_traj(traj)
-
-# Check that FastDownward is properly integrated
-planner = FastDownwardPlanner(domain_path=joinpath(path, "domain.pddl"),
-                              problem_path=problem_path,
-                              heuristic="add",
-                              heuristic_params=Dict("transform" => "no_transform()",
-                                                    "cache_estimates" => "true"))
 plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)

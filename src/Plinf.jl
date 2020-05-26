@@ -8,12 +8,11 @@ using Random, Julog, PDDL, Gen, PyCall
 
 include("utils.jl")
 include("goals.jl")
-include("heuristics.jl")
-include("planners.jl")
-include("replanners.jl")
+include("heuristics/heuristics.jl")
+include("planners/planners.jl")
 include("observations.jl")
 include("worlds.jl")
-include("inference.jl")
+include("inference/inference.jl")
 
 Gen.@load_generated_functions()
 

@@ -1,11 +1,6 @@
 export Replanner
 
-"Wraps any planner in a replanning algorithm."
-@kwdef struct Replanner <: Planner
-    planner::Planner
-    persistence::Tuple{Real,Real} = (2, 0.95)
-    max_plans::Real = 100
-end
+## Plan states for replanning agents ##
 
 "State for a replanning step."
 struct ReplanState <: AbstractPlanState
@@ -13,6 +8,51 @@ struct ReplanState <: AbstractPlanState
     part_plan::Vector{Term}
     part_traj::Vector{State}
     plan_done::Bool
+end
+
+function extract_plan(rp_states::AbstractArray{ReplanState})
+    plan = Term[rp.part_plan[rp.rel_step] for rp in rp_states if
+                length(rp.part_plan) > 0 && !rp.plan_done]
+    rp_end = rp_states[end]
+    if length(rp_end.part_plan) > rp_end.rel_step
+        tail = rp_end.part_plan[rp_end.rel_step+1:end]
+        append!(plan, tail)
+    end
+    return plan
+end
+
+function extract_traj(rp_states::AbstractArray{ReplanState})
+    traj = State[rp.part_traj[rp.rel_step] for rp in rp_states if
+                 length(rp.part_plan) > 0]
+    rp_end = rp_states[end]
+    if length(rp_end.part_traj) > rp_end.rel_step && !rp_end.plan_done
+        tail = rp_end.part_traj[rp_end.rel_step+1:end]
+        append!(traj, tail)
+    end
+    return traj
+end
+
+"Find all timesteps where replanning occurred."
+function get_planning_steps(rp_states::AbstractArray{ReplanState})
+    unzip([(t, rp) for (t, rp) in enumerate(rp_states)
+           if rp.rel_step == 1 && !rp.plan_done])
+end
+
+"Find the most recent timestep at which replanning occured."
+function get_last_planning_step(rp_states::AbstractArray{ReplanState})
+    for (t, rp) in enumerate(reverse(rp_states))
+        if (rp.rel_step == 1 && !rp.plan_done)
+            return (length(rp_states) - t + 1, rp) end
+    end
+end
+
+## Implements resource-bounded replanning search, given a base planner ##
+
+"Wraps any planner in a replanning algorithm."
+@kwdef struct Replanner <: Planner
+    planner::Planner
+    persistence::Tuple{Real,Real} = (2, 0.95)
+    max_plans::Real = 100
 end
 
 set_max_resource(planner::Replanner, val) = @set planner.max_plans = val
@@ -121,40 +161,4 @@ end
     plan = extract_plan(rp_states)
     traj = extract_traj(rp_states)
     return plan, traj
-end
-
-function extract_plan(rp_states::AbstractArray{ReplanState})
-    plan = Term[rp.part_plan[rp.rel_step] for rp in rp_states if
-                length(rp.part_plan) > 0 && !rp.plan_done]
-    rp_end = rp_states[end]
-    if length(rp_end.part_plan) > rp_end.rel_step
-        tail = rp_end.part_plan[rp_end.rel_step+1:end]
-        append!(plan, tail)
-    end
-    return plan
-end
-
-function extract_traj(rp_states::AbstractArray{ReplanState})
-    traj = State[rp.part_traj[rp.rel_step] for rp in rp_states if
-                 length(rp.part_plan) > 0]
-    rp_end = rp_states[end]
-    if length(rp_end.part_traj) > rp_end.rel_step && !rp_end.plan_done
-        tail = rp_end.part_traj[rp_end.rel_step+1:end]
-        append!(traj, tail)
-    end
-    return traj
-end
-
-"Find all timesteps where replanning occurred."
-function get_planning_steps(rp_states::AbstractArray{ReplanState})
-    unzip([(t, rp) for (t, rp) in enumerate(rp_states)
-           if rp.rel_step == 1 && !rp.plan_done])
-end
-
-"Find the most recent timestep at which replanning occured."
-function get_last_planning_step(rp_states::AbstractArray{ReplanState})
-    for (t, rp) in enumerate(reverse(rp_states))
-        if (rp.rel_step == 1 && !rp.plan_done)
-            return (length(rp_states) - t + 1, rp) end
-    end
 end
