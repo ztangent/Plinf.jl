@@ -35,6 +35,15 @@ function make_circle(x::Real, y::Real, r::Real)
     return Shape(xs, ys)
 end
 
+"Make a circle as a Plots.jl shape."
+function make_triangle(x::Real, y::Real, r::Real, dir::Symbol)
+    trimap = Dict(:up => :utriangle, :down => :dtriangle,
+                  :right => :rtriangle, :left => :ltriangle)
+    triangle = Shape(trimap[dir])
+    triangle = Plots.translate!(Plots.scale!(triangle, r, r), x, y)
+    return triangle
+end
+
 "Make a door using Plots.jl shapes."
 function make_door(x::Real, y::Real, scale::Real)
     bg = Plots.scale!(Shape(:rect), 1.0, 1.0)
@@ -130,11 +139,45 @@ function render_objects!(state::State, plt=nothing;
         end
         for (loc, col) in zip(locs, colors) rndr!(loc, col) end
     end
+    return plt
+end
+
+"Render agent inventory as a bar below the gridworld."
+function render_inventory!(state::State, plt=nothing;
+                           gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
+    if (plt == nothing)
+        plt = plot(size=(600,100), framestyle=:box, aspect_ratio=1, grid=true,
+                   margin=0*Plots.mm, top_margin=2*Plots.mm)
+    end
+    obj_queries = @julog [and(key(O), has(O)), and(gem(O), has(O))]
+    obj_colors = [:goldenrod1, gem_colors]
+    obj_renderers = [
+        (l, c) -> render_key!(l[1], l[2], 0.4, plt=plt),
+        (l, c) -> render_gem!(l[1], l[2], 0.3, color=c, plt=plt)
+    ]
+    for (query, colors, rndr!) in zip(obj_queries, obj_colors, obj_renderers)
+        _, subst = satisfy(query, state; mode=:all)
+        sort!(subst, by=s->get(s, @julog(O), Const(0)).name)
+        if isa(colors, AbstractDict)
+            obj_terms = [s[@julog(O)] for s in subst]
+            colors = [colors[o] for o in obj_terms]
+        elseif !isa(colors, AbstractArray)
+            colors = fill(colors, length(subst))
+        end
+        for (i, col) in enumerate(colors) rndr!((i, 0.5), col) end
+    end
+    plot!(plt, xticks=(collect(0:state[:width]+1) .- 0.5, []),
+               yticks=([0, 1.0], []))
+    xgrid!(plt, :on, :black, 1, :dash, 0.75)
+    annotate!(0.5, 1.25, Plots.text("Inventory", 12, :black, :left))
+    xlims!(plt, 0.5, state[:width]+0.5)
+    ylims!(plt, 0, 1)
+    return plt
 end
 
 "Render state, optionally with start position and the trace of a plan."
-function render!(state::State, plt=nothing;
-                 show_pos=false, show_objs=true, start=nothing, plan=nothing,
+function render!(state::State, plt=nothing; start=nothing, plan=nothing,
+                 show_pos=false, show_objs=true, show_inventory=false,
                  gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
@@ -159,6 +202,11 @@ function render!(state::State, plt=nothing;
     # Resize limits
     xlims!(plt, 0.5, size(array)[1]+0.5)
     ylims!(plt, 0.5, size(array)[2]+0.5)
+    if show_inventory
+        i_plt = render_inventory!(state; gem_colors=gem_colors)
+        sz = [plt[:size][1], plt[:size][2] + i_plt[:size][2]]
+        plt = plot(plt, i_plt; size=sz, layout=grid(2,1, heights=[0.9, 0.1]))
+    end
     return plt
 end
 
@@ -168,15 +216,24 @@ function render(state::State; kwargs...)
 end
 
 function render!(plan::Vector{Term}, start::Tuple{Int,Int}, plt=nothing;
-                 alpha::Float64=0.50, color=:red, radius=0.1, kwargs...)
-     # Get last plot if not provided
-     plt = (plt == nothing) ? plot!() : plt
-     traj = plan_to_traj(plan, start)
-     for (x, y) in traj
-         dot = make_circle(x, y, radius)
-         plot!(plt, dot, color=color, linealpha=0, alpha=alpha, legend=false)
-     end
-     return plt
+                 alpha::Float64=1.0, color=:red, radius=0.1,
+                 fade=false, trunc=nothing, kwargs...)
+    # Get last plot if not provided
+    plt = (plt == nothing) ? plot!() : plt
+    traj = plan_to_traj(plan, start)
+    if trunc != nothing
+        plan, traj = plan[end-trunc+1:end], traj[end-trunc:end-1] end
+    i_alpha = fade ? 0.0 : alpha
+    for (act, (x, y)) in zip(plan, traj)
+        if fade i_alpha += alpha / length(plan) end
+        if (act.name in [:up, :down, :right, :left])
+            marker = make_triangle(x, y, radius*1.5, act.name)
+        else
+            marker = make_circle(x, y, radius)
+        end
+        plot!(plt, marker, color=color, la=0, alpha=i_alpha, legend=false)
+    end
+    return plt
 end
 
 function render!(traj::Vector{State}, plt=nothing;
@@ -209,7 +266,8 @@ end
 
 "Render animation of state trajectory/ies."
 function anim_traj(trajs, canvas=nothing, animation=nothing;
-                   show=true, fps=3, show_objs=true, kwargs...)
+                   show=true, fps=3, show_objs=true, show_inventory=true,
+                   kwargs...)
     if isa(trajs, Vector{State}) trajs = [trajs] end
     canvas = canvas == nothing ?
         render(trajs[1][1]; show_objs=false, kwargs...) : canvas
@@ -219,7 +277,14 @@ function anim_traj(trajs, canvas=nothing, animation=nothing;
         for traj in trajs
             state = t <= length(traj) ? traj[t] : traj[end]
             render_pos!(state, plt; kwargs...)
-            if show_objs render_objects!(state, plt; kwargs...) end
+            if show_objs
+                render_objects!(state, plt; kwargs...) end
+            if show_inventory && length(trajs) == 1
+                i_plt = render_inventory!(state; kwargs...)
+                sz = [plt[:size][1], plt[:size][2] + i_plt[:size][2]]
+                plt = plot(plt, i_plt; size=sz,
+                           layout=grid(2,1, heights=[0.9, 0.1]))
+            end
         end
         frame(animation)
     end

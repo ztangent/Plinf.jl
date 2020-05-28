@@ -10,7 +10,7 @@ include("render.jl")
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
 domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, "problem-3.pddl"))
+problem = load_problem(joinpath(path, "problem-6.pddl"))
 
 # Initialize state, set goal and goal colors
 state = initialize(problem)
@@ -27,7 +27,7 @@ planner = AStarPlanner(heuristic=GemHeuristic())
 plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
-plt = render(state; start=start_pos, plan=plan, gem_colors=gem_colors)
+plt = render(traj[11]; start=start_pos, plan=plan, gem_colors=gem_colors)
 anim = anim_traj(traj; gem_colors=gem_colors)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
@@ -72,10 +72,9 @@ agent_planner = replanner # replanner
 
 # Sample a trajectory as the ground truth (no observation noise)
 goal = goals[uniform_discrete(1, length(goals))]
-_, traj = planner(domain, state, goal)
-traj = traj[1:min(length(traj), 25)]
+plan, traj = planner(domain, state, goal)
 plt = render(state; start=start_pos, gem_colors=gem_colors)
-plt = render!(traj, plt; alpha=0.5)
+plt = render!(plan, start_pos, plt; alpha=0.75, fade=true)
 anim = anim_traj(traj; gem_colors=gem_colors)
 
 # Define observation noise model
