@@ -36,7 +36,7 @@ end
 ## Gridworld rendering functions ##
 
 "Render gridworld state, optionally with start, goal, and the trace of a plan."
-function render!(state::State, plt::=nothing;
+function render!(state::State, plt=nothing;
                  show_pos=false, start=nothing, goals=nothing, plan=nothing,
                  goal_colors=nothing, kwargs...)
     # Get last plot if not provided
@@ -76,7 +76,7 @@ function render(state::State; kwargs...)
 end
 
 function render!(plan::Vector{Term}, start::Tuple{Int,Int},
-                 plt::=nothing;
+                 plt=nothing;
                  alpha::Real=0.50, color=:red, radius=0.1)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
@@ -88,7 +88,7 @@ function render!(plan::Vector{Term}, start::Tuple{Int,Int},
      return plt
 end
 
-function render!(traj::Vector{State}, plt::=nothing;
+function render!(traj::Vector{State}, plt=nothing;
                  alpha::Real=0.50, color=:red, radius=0.1)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
@@ -101,7 +101,7 @@ function render!(traj::Vector{State}, plt::=nothing;
 end
 
 "Render position of agent."
-function render_pos!(state::State, plt::=nothing;
+function render_pos!(state::State, plt=nothing;
                      radius=0.25, color=:black, alpha=1, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
     x, y = state[:xpos], state[:ypos]

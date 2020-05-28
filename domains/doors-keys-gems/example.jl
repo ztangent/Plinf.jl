@@ -119,10 +119,11 @@ plot_goal_bars!(goal_probs, goal_names, goal_colors)
 
 # Set up visualization and logging callbacks for online goal inference
 anim = Animation() # Animation to store each plotted frame
+keyframes = [] # Buffer of keyframes to plot as a storyboard
 goal_probs = [] # Buffer of goal probabilities over time
 plotters = [ # List of subplot callbacks:
     render_cb,
-    goal_lines_cb,
+    # goal_lines_cb,
     # goal_bars_cb,
     # plan_lengths_cb,
     # particle_weights_cb,
@@ -131,6 +132,7 @@ canvas = render(state; start=start_pos, show_objs=false)
 callback = (t, s, trs, ws) ->
     (multiplot_cb(t, s, trs, ws, plotters;
                   canvas=canvas, animation=anim, show=true,
+                  keytimes=[5, 14, 25], keyframes=keyframes,
                   gem_colors=gem_colors, goal_colors=goal_colors,
                   goal_probs=goal_probs, goal_names=goal_names);
      print("t=$t\t");
@@ -144,3 +146,7 @@ traces, weights =
                           callback=callback, strata=goal_strata)
 # Show animation of goal inference
 gif(anim; fps=2)
+
+# Plot storyboard of keyframes
+n_frames = length(keyframes)
+plot(keyframes...; layout=(1, n_frames), size=(n_frames*600, 650))
