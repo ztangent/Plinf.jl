@@ -8,8 +8,8 @@
 ; ....W.W.
 ; WWW.W.W.
 ; s...W..G
-(define (problem gridworld-3)
-  (:domain gridworld)
+(define (problem doors-keys-gems-3)
+  (:domain doors-keys-gems)
   (:objects
     up down right left - direction
     key1 key2 - key gem1 gem2 gem3 - gem

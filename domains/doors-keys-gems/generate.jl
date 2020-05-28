@@ -51,7 +51,7 @@ function ascii_to_pddl(str::String, name="doors-keys-gems-problem")
                      Dict(k => :key for k in keys),
                      Dict(g => :gem for g in gems))
     problem = Problem(Symbol(name), Symbol("doors-keys-gems"), objs, objtypes,
-                      init, goal, (-1, pddl"(total-cost)"))
+                      init, goal, nothing)
     return problem
 end
 
