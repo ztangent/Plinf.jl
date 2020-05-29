@@ -221,7 +221,7 @@ function render!(plan::Vector{Term}, start::Tuple{Int,Int}, plt=nothing;
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
     traj = plan_to_traj(plan, start)
-    if trunc != nothing
+    if trunc != nothing && length(plan) >= trunc
         plan, traj = plan[end-trunc+1:end], traj[end-trunc:end-1] end
     i_alpha = fade ? 0.0 : alpha
     for (act, (x, y)) in zip(plan, traj)
@@ -251,13 +251,17 @@ end
 "Render planned trajectories for each (weighted) trace of the world model."
 function render_traces!(traces, weights=nothing, plt=nothing;
                         goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.60,
-                        kwargs...)
+                        trace_future=false, kwargs...)
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     for (tr, w) in zip(traces, weights)
         world_traj = get_retval(tr)
         plan_traj = [ws.plan_state for ws in world_traj]
         env_traj = extract_traj(plan_traj)
         color = goal_colors[tr[:goal_init => :goal]]
+        if trace_future
+            t_cur = length(world_traj)
+            env_traj = env_traj[min(length(env_traj), t_cur+1):end]
+        end
         render!(env_traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
     end
 end
@@ -435,12 +439,17 @@ end
 
 "Callback function that renders each state."
 function render_cb(t::Int, state, traces, weights;
+                   plan=nothing, start_pos=nothing,
                    canvas=nothing, show_inventory=true, kwargs...)
     # Render canvas if not provided
     plt = canvas == nothing ? render(state; kwargs...) : deepcopy(canvas)
     render_objects!(state, plt; kwargs...) # Render objects in gridworld
     render_pos!(state, plt; kwargs...)  # Render agent's current position
     render_traces!(traces, weights, plt; kwargs...) # Render trajectories
+    if !isnothing(plan) # Render past actions
+        render!(plan[1:min(t, length(plan))], start_pos, plt;
+                fade=true, trunc=7, color=:black)
+    end
     title!(plt, "t = $t")
     if show_inventory
         i_plt = render_inventory!(state; kwargs...)
@@ -466,9 +475,11 @@ function goal_lines_cb(t::Int, state, traces, weights;
                        goal_probs=[], kwargs...)
     goal_names = get(kwargs, :goal_names, [])
     goal_colors = get(kwargs, :goal_colors, cgrad(:plasma)[1:3:30])
-    goal_idxs = collect(1:length(goal_names))
-    goal_probs_t = sort!(get_goal_probs(traces, weights, goal_idxs))
-    push!(goal_probs, collect(values(goal_probs_t)))
+    if length(goal_probs) < t # Only accumulate if no one has done it yet
+        goal_idxs = collect(1:length(goal_names))
+        goal_probs_t = sort!(get_goal_probs(traces, weights, goal_idxs))
+        push!(goal_probs, collect(values(goal_probs_t)))
+    end
     plt = plot_goal_lines!(reduce(hcat, goal_probs), goal_names, goal_colors)
     title!(plt, "t = $t")
     return plt
@@ -496,5 +507,26 @@ function multiplot_cb(t::Int, state, traces, weights,
     if keyframes != nothing && t in keytimes push!(keyframes, deepcopy(plt)) end
     if show display(plt) end # Display the plot in the GUI
     if animation != nothing frame(animation) end # Save frame to animation
+    return plt
+end
+
+function plot_storyboard(frames::Vector, goal_probs=nothing, times=nothing;
+                         goal_names=nothing, goal_colors=cgrad(:plasma)[1:3:30])
+    n_frames = length(frames)
+    # Plot keyframes in sequence
+    plt = plot(frames...; layout=(1, n_frames), size=(n_frames*600, 700))
+    if goal_probs == nothing return plt end
+    # Plot line graph of goal probabilities below frames
+    if isa(goal_probs, Vector) goal_probs = reduce(hcat, goal_probs) end
+    l_plt = plot_goal_lines!(goal_probs, goal_names, goal_colors)
+    plot!(l_plt; legend=:right, bottom_margin=5 * Plots.mm,
+          left_margin=20*Plots.mm, right_margin=20*Plots.mm)
+    xlims!(l_plt, 1, size(goal_probs)[2])
+    xlabel!(l_plt, "")
+    if times != nothing
+        vline!(l_plt, times; ls=:dash, lw=2, color=:black, label="")
+    end
+    layout = grid(2, 1, heights=[0.75, 0.25])
+    plt = plot(plt, l_plt; layout=layout, size=(n_frames*600, 900))
     return plt
 end

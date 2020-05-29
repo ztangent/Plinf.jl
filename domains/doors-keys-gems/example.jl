@@ -16,7 +16,7 @@ problem = load_problem(joinpath(path, "problem-6.pddl"))
 state = initialize(problem)
 start_pos = (state[:xpos], state[:ypos])
 goal = [problem.goal]
-goal_colors = [:red, :gold, :blue]
+goal_colors = [colorant"#D41159", colorant"#FFC20A", colorant"#1A85FF"]
 gem_terms = @julog [gem1, gem2, gem3]
 gem_colors = Dict(zip(gem_terms, goal_colors))
 
@@ -27,7 +27,7 @@ planner = AStarPlanner(heuristic=GemHeuristic())
 plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
-plt = render(traj[11]; start=start_pos, plan=plan, gem_colors=gem_colors)
+plt = render(state; start=start_pos, plan=plan, gem_colors=gem_colors)
 anim = anim_traj(traj; gem_colors=gem_colors)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
@@ -57,17 +57,18 @@ anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
 
 # Specify possible goals
 goals = [@julog([has(gem1)]), @julog([has(gem2)]), @julog([has(gem3)])]
+goal_idxs = collect(1:length(goals))
 goal_names = [repr(t[1]) for t in goals]
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
     GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
 end
-goal_strata = Dict((:goal_init => :goal) => collect(1:length(goals)))
+goal_strata = Dict((:goal_init => :goal) => goal_idxs)
 
 # Assume either a planning agent or replanning agent as a model
 planner = ProbAStarPlanner(heuristic=GemHeuristic(), search_noise=0.1)
-replanner = Replanner(planner=planner, persistence=(2, 0.95))
+replanner = Replanner(planner=planner, persistence=(5, 0.95))
 agent_planner = replanner # replanner
 
 # Sample a trajectory as the ground truth (no observation noise)
@@ -117,7 +118,9 @@ plot_goal_bars!(goal_probs, goal_names, goal_colors)
 #--- Online Goal Inference ---#
 
 # Set up visualization and logging callbacks for online goal inference
+
 anim = Animation() # Animation to store each plotted frame
+keytimes = [3, 9, 17, 27] # Timesteps to save keyframes
 keyframes = [] # Buffer of keyframes to plot as a storyboard
 goal_probs = [] # Buffer of goal probabilities over time
 plotters = [ # List of subplot callbacks:
@@ -129,13 +132,15 @@ plotters = [ # List of subplot callbacks:
 ]
 canvas = render(state; start=start_pos, show_objs=false)
 callback = (t, s, trs, ws) ->
-    (multiplot_cb(t, s, trs, ws, plotters;
+    (goal_probs_t = collect(values(sort!(get_goal_probs(trs, ws, goal_idxs))));
+     push!(goal_probs, goal_probs_t);
+     multiplot_cb(t, s, trs, ws, plotters;
+                  trace_future=true, plan=plan, start_pos=start_pos,
                   canvas=canvas, animation=anim, show=true,
-                  keytimes=[1, 9, 17, 27], keyframes=keyframes,
+                  keytimes=keytimes, keyframes=keyframes,
                   gem_colors=gem_colors, goal_colors=goal_colors,
                   goal_probs=goal_probs, goal_names=goal_names);
-     print("t=$t\t");
-     print_goal_probs(get_goal_probs(trs, ws, 1:length(goals))))
+     print("t=$t\t"); print_goal_probs(get_goal_probs(trs, ws, goal_idxs)))
 
 # Run a particle filter to perform online goal inference
 n_samples = 30
@@ -146,6 +151,8 @@ traces, weights =
 # Show animation of goal inference
 gif(anim; fps=2)
 
-# Plot storyboard of keyframes
-n_frames = length(keyframes)
-plot(keyframes...; layout=(1, n_frames), size=(n_frames*600, 700))
+## Plot storyboard of keyframes ##
+
+storyboard = plot_storyboard(keyframes, goal_probs[1:33], keytimes;
+                             goal_names=["Red Gem", "Yellow Gem", "Blue Gem"],
+                             goal_colors=goal_colors)
