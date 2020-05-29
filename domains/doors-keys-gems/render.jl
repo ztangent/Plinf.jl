@@ -434,13 +434,19 @@ end
 ## Particle filter callback functions ##
 
 "Callback function that renders each state."
-function render_cb(t::Int, state, traces, weights; canvas=nothing, kwargs...)
+function render_cb(t::Int, state, traces, weights;
+                   canvas=nothing, show_inventory=true, kwargs...)
     # Render canvas if not provided
     plt = canvas == nothing ? render(state; kwargs...) : deepcopy(canvas)
-    render_pos!(state, plt; kwargs...)  # Render agent's current position
     render_objects!(state, plt; kwargs...) # Render objects in gridworld
+    render_pos!(state, plt; kwargs...)  # Render agent's current position
     render_traces!(traces, weights, plt; kwargs...) # Render trajectories
     title!(plt, "t = $t")
+    if show_inventory
+        i_plt = render_inventory!(state; kwargs...)
+        sz = [plt[:size][1], plt[:size][2] + i_plt[:size][2]]
+        plt = plot(plt, i_plt; size=sz, layout=grid(2,1, heights=[0.9, 0.1]))
+    end
     return plt
 end
 

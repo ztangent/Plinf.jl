@@ -18,6 +18,7 @@
     (= xpos 1) (= ypos 3)
     (wall 2 3) (wall 2 2) (door 2 1)
     (at key1 1 2) (at gem1 3 3)
+    (doorloc 2 1) (itemloc 1 2) (itemloc 3 3)
   )
   (:goal (has gem1))
 )

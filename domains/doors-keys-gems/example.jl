@@ -79,10 +79,10 @@ anim = anim_traj(traj; gem_colors=gem_colors)
 
 # Define observation noise model
 obs_params = observe_params(
-    (pddl"(xpos)", normal, 0.25), (pddl"(ypos)", normal, 0.25),
-    (pddl"(door ?x ?y)", 0.05),
-    (pddl"(forall (?obj - item) (has ?obj))", 0.05),
-    (pddl"(forall (?obj - item) (at ?obj ?x ?y))", 0.05)
+    (@julog(xpos), normal, 0.25), (@julog(ypos), normal, 0.25),
+    (@julog(forall(doorloc(X, Y), door(X, Y))), 0.05),
+    (@julog(forall(item(Obj),has(Obj))), 0.05),
+    (@julog(forall(and(item(Obj), itemloc(X, Y)), at(Obj, X, Y))), 0.05)
 )
 obs_terms = collect(keys(obs_params))
 
@@ -131,7 +131,7 @@ canvas = render(state; start=start_pos, show_objs=false)
 callback = (t, s, trs, ws) ->
     (multiplot_cb(t, s, trs, ws, plotters;
                   canvas=canvas, animation=anim, show=true,
-                  keytimes=[5, 14, 25], keyframes=keyframes,
+                  keytimes=[1, 9, 17, 27], keyframes=keyframes,
                   gem_colors=gem_colors, goal_colors=goal_colors,
                   goal_probs=goal_probs, goal_names=goal_names);
      print("t=$t\t");
@@ -141,11 +141,11 @@ callback = (t, s, trs, ws) ->
 n_samples = 30
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=nothing,
+                          resample=true, rejuvenate=pf_replan_move_mh!,
                           callback=callback, strata=goal_strata)
 # Show animation of goal inference
 gif(anim; fps=2)
 
 # Plot storyboard of keyframes
 n_frames = length(keyframes)
-plot(keyframes...; layout=(1, n_frames), size=(n_frames*600, 650))
+plot(keyframes...; layout=(1, n_frames), size=(n_frames*600, 700))
