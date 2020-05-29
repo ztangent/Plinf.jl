@@ -12,7 +12,7 @@ export pf_replan_move_mh!, pf_replan_move_reweight!
     plan_states = [ws.plan_state for ws in world_states]
     # Compute time of divergence between hypothesized and observed states
     t_current = length(world_states)
-    t_diverge = findfirst(env_states .!= obs_states)
+    t_diverge = findfirst(hash.(env_states) .!= hash.(obs_states))
     if (t_diverge == nothing) t_diverge = t_current + 1 end
     # Decide whether to resample partial plans
     resample_prob = t_diverge > t_current ? 0.1 : 0.9
@@ -20,10 +20,10 @@ export pf_replan_move_mh!, pf_replan_move_reweight!
     if !resample return end
     # Find earliest plan that diverges from observations
     t_plans, _ = get_planning_steps(plan_states)
-    plan_idx = searchsortedfirst(t_plans, t_diverge) - 1
+    plan_idx = max(searchsortedfirst(t_plans, t_diverge) - 1, 1)
     # Propose timestep to resample plans from
     n_plans = length(t_plans)
-    idx_probs = n_plans == 1 ? [1.0] :
+    idx_probs = (n_plans == 1) ? [1.0] :
         [i == plan_idx ? 0.9 : 0.1 / (n_plans-1) for i in 1:n_plans]
     resample_idx ~ categorical(idx_probs)
     t_resamp = t_plans[resample_idx]
