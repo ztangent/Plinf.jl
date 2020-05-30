@@ -40,33 +40,78 @@ dist_type(d::Distribution{T}) where {T} = T
     end
 end
 
-"Convert from block-words PDDL state representation to RNN input representation"
-function block_words_RNN_conversion(state::State)
-    blocks = [term.args[1] for term in types]
-    n = length(blocks)
-    # on requires size porportional to square of the number of blocks,
-    # ontable, clear, and holding require size proportional to number of blocks,
-    # and handempty requires constant size
-    dimension = n ^ 2 + 3 * n + 1
-    encoding = zeros(dimension)
-    facts = state.facts
-    for fact in facts
-        if fact.name == :on
-            top, base = fact.args
-            idx = (n - 1) * findfirst(isequal(top), blocks) + findfirst(isequal(base), blocks)
-        elseif fact.name == :ontable
-            block = fact.args[1]
-            idx = n ^ 2 + findfirst(isequal(block), blocks)
-        elseif fact.name == :clear
-            block = fact.args[1]
-            idx = n ^ 2 + n + findfirst(isequal(block), blocks)
-        elseif fact.name == :holding
-            block = fact.args[1]
-            idx = n ^ 2 + 2 * n + findfirst(isequal(block), blocks)
-        elseif fact.name == :handempty
-            idx = n ^ 2 + 3 * n + 1
+function get_arg_dims()
+end
+
+function calculate_vector_sublengths(predtypes, predicate_names, type_counts)
+    vec_sublens = [1]
+    for name in predicate_names
+        argtypes = predtypes[name]
+        # Skipping if the predicate takes no arguments
+        if length(argtypes) == 0
+            continue
         end
+
+        dims = []
+        for i, argtype in enumerate(argtypes)
+            # Assuming one object can't be passed as multiple inputs to a predicate
+            dim = type_counts[argtype] - count(isequal(argtype), argtypes[1:i-1])
+            push!(dims, dim)
+        end
+        push!(vec_sublens, pred_spaces[length(vec_sublens)] + prod(dims))
+    end
+    return vec_sublens
+end
+
+"Convert from block-words PDDL state representation to RNN input representation"
+function block_words_RNN_conversion(domain::Domain, state::State)
+    predicates, predtypes, fluents = domain.predicates, domain.predtypes, domain.functions
+    types, facts = state.types, state.facts
+
+    # Get the number of each type of object
+    type_counts = Dict(type.name => 0 for type in Set(keys(types)))
+    for type in types
+        type_counts[type.name] += 1
+    end
+
+    # Alphabetized names of predicates, objects, and fluents
+    ordered_predicates = sort(keys(predicates))
+    ordered_objects = sort([term.args[1].name for term in types])
+    ordered_fluents = sort(keys(fluents))
+
+    pred_start_idxs = calculate_vector_sublengths(domain, ordered_predicates,
+                                                  type_counts)
+    vec_len = pred_spaces[length(pred_start_idxs)] + length(ordered_fluents) - 1
+    encoding = zeros(vec_len)
+    for fact in facts
+        base_idx = pred_start_idxs[findfirst(isequal(fact.name), ordered_predicates)]
+        args = fact.args
+        num_args = length(args)
+        idx = base_idx - 1
+        []
+        for arg in args
+
+        end
+        # if fact.name == :on
+        #     top, base = fact.args
+        #     idx = (n - 1) * findfirst(isequal(top), blocks) + findfirst(isequal(base), blocks)
+        # elseif fact.name == :ontable
+        #     block = fact.args[1]
+        #     idx = n ^ 2 + findfirst(isequal(block), blocks)
+        # elseif fact.name == :clear
+        #     block = fact.args[1]
+        #     idx = n ^ 2 + n + findfirst(isequal(block), blocks)
+        # elseif fact.name == :holding
+        #     block = fact.args[1]
+        #     idx = n ^ 2 + 2 * n + findfirst(isequal(block), blocks)
+        # elseif fact.name == :handempty
+        #     idx = n ^ 2 + 3 * n + 1
+        # end
         encoding[idx] = 1
+    end
+    for fluent in fluents
+        idx =
+        encoding[idx] =
     end
     return encoding
 end
