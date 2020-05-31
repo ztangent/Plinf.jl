@@ -15,8 +15,8 @@ export pf_replan_move_mh!, pf_replan_move_reweight!
     t_diverge = findfirst(hash.(env_states) .!= hash.(obs_states))
     if (t_diverge == nothing) t_diverge = t_current + 1 end
     # Decide whether to resample partial plans
-    resample_prob = t_diverge > t_current ? 0.1 :
-        exp(0.2 * (t_current - t_diverge + 1))
+    t_diff = t_current - t_diverge
+    resample_prob = t_diff < 0 ? 0.1 : exp(1)/6 * t_diff * exp(-t_diff/5)
     resample ~ bernoulli(resample_prob)
     if !resample return end
     # Find earliest plan that diverges from observations
