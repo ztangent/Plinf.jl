@@ -40,7 +40,19 @@ dist_type(d::Distribution{T}) where {T} = T
     end
 end
 
-function get_arg_dims()
+function get_arg_dims(argtypes)
+    dims = []
+    for i, argtype in enumerate(argtypes)
+        # Assuming one object can't be passed as multiple inputs to a predicate
+        dim = type_counts[argtype] - count(isequal(argtype), argtypes[1:i-1])
+        push!(dims, dim)
+    end
+end
+
+#= Within the ordered objects, finds the index position of the given object among
+the other objects of the given type =#
+function get_object_type_index(ordered_objects, type, object)
+    
 end
 
 function calculate_vector_sublengths(predtypes, predicate_names, type_counts)
@@ -52,12 +64,7 @@ function calculate_vector_sublengths(predtypes, predicate_names, type_counts)
             continue
         end
 
-        dims = []
-        for i, argtype in enumerate(argtypes)
-            # Assuming one object can't be passed as multiple inputs to a predicate
-            dim = type_counts[argtype] - count(isequal(argtype), argtypes[1:i-1])
-            push!(dims, dim)
-        end
+        dims = get_arg_dims(argtypes)
         push!(vec_sublens, pred_spaces[length(vec_sublens)] + prod(dims))
     end
     return vec_sublens
@@ -87,10 +94,10 @@ function block_words_RNN_conversion(domain::Domain, state::State)
         base_idx = pred_start_idxs[findfirst(isequal(fact.name), ordered_predicates)]
         args = fact.args
         num_args = length(args)
-        idx = base_idx - 1
-        []
-        for arg in args
-
+        idx = base_idx
+        terms = get_object_type_index(ordered_objects, type, object)
+        for i, term in enumerate(terms)
+            idx += (term - 1) * prod(terms[i+1:length(terms)])
         end
         # if fact.name == :on
         #     top, base = fact.args
