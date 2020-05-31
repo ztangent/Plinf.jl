@@ -45,7 +45,7 @@ function observe_params(domain::Domain; state=nothing,
     static_funcs = get_static_functions(domain)
     for (name, func) in domain.functions
         if name == Symbol("total-cost") continue end # Ignore total cost
-        if pred in static_funcs continue end # Ignore static fluents
+        if func in static_funcs continue end # Ignore static fluents
         if isempty(PDDL.get_args(func))
             term = func
         else # Quantify over all variables in compound terms
