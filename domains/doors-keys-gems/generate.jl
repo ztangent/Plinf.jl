@@ -27,14 +27,17 @@ function ascii_to_pddl(str::String, name="doors-keys-gems-problem")
                 push!(init, @julog(wall($x, $y)))
             elseif char == 'D' # Door
                 push!(init, @julog(door($x, $y)))
+                push!(init, @julog(doorloc($x, $y)))
             elseif char == 'k' # Key
                 k = Const(Symbol("key$(length(keys)+1)"))
                 push!(keys, k)
                 push!(init, @julog(at(:k, $x, $y)))
+                push!(init, @julog(itemloc($x, $y)))
             elseif char == 'g' || char == 'G' # Gem
                 g = Const(Symbol("gem$(length(gems)+1)"))
                 push!(gems, g)
                 push!(init, @julog(at(:g, $x, $y)))
+                push!(init, @julog(itemloc($x, $y)))
                 if char == 'G' # Set goal
                     goal = @julog has(:g)
                 end

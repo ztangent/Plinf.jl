@@ -109,11 +109,17 @@ end
 
 "Plot agent's current location."
 function render_pos!(state::State, plt=nothing;
-                     radius=0.25, color=:black, alpha=1, kwargs...)
+                     radius=0.25, color=:red, alpha=1, dir=nothing, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
     x, y = state[:xpos], state[:ypos]
-    circ = make_circle(x, y, radius)
-    plot!(plt, circ, color=color, alpha=alpha, legend=false)
+    if dir in [:up, :down, :right, :left]
+        marker = make_triangle(x, y, radius*1.5, dir)
+        xscale, yscale = (dir in [:up, :down]) ? (0.8, 1.0) : (1.0, 0.8)
+        Plots.scale!(marker, xscale, yscale)
+    else
+        marker = make_circle(x, y, radius)
+    end
+    plot!(plt, marker, color=color, alpha=alpha, linealpha=0, legend=false)
 end
 
 "Render doors, keys and gems present in the given state."
@@ -248,21 +254,45 @@ function render!(traj::Vector{State}, plt=nothing;
      return plt
 end
 
+function render!(pts::Vector{Tuple{Int,Int}}, plt=nothing;
+                 alphas=[0.50], color=:red, radius=0.1, kwargs...)
+     # Get last plot if not provided
+     plt = (plt == nothing) ? plot!() : plt
+     for (i, (x, y)) in enumerate(pts)
+         alpha = alphas[min(i, length(alphas))]
+         dot = make_circle(x, y, radius)
+         plot!(plt, dot, color=color, linealpha=0, alpha=alpha, legend=false)
+     end
+     return plt
+end
+
 "Render planned trajectories for each (weighted) trace of the world model."
 function render_traces!(traces, weights=nothing, plt=nothing;
                         goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.60,
                         trace_future=false, kwargs...)
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
+    pt_weights = Dict{Int,Dict{Tuple{Int,Int},Float64}}()
     for (tr, w) in zip(traces, weights)
+        goal_idx = tr[:goal_init => :goal]
+        goal_pt_weights = get!(pt_weights, goal_idx,
+                               Dict{Tuple{Int,Int},Float64}())
         world_traj = get_retval(tr)
         plan_traj = [ws.plan_state for ws in world_traj]
         env_traj = extract_traj(plan_traj)
-        color = goal_colors[tr[:goal_init => :goal]]
         if trace_future
             t_cur = length(world_traj)
             env_traj = env_traj[min(length(env_traj), t_cur+1):end]
         end
-        render!(env_traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
+        for state in env_traj
+            pt = (state[:xpos], state[:ypos])
+            goal_pt_weights[pt] = get(goal_pt_weights, pt, 0.0) + exp(w)
+        end
+    end
+    for (goal_idx, pt_ws) in pt_weights
+        color = goal_colors[goal_idx]
+        pts, ws = collect(keys(pt_ws)), collect(values(pt_ws))
+        alphas = max_alpha .* ws
+        render!(pts; alphas=alphas, color=color, radius=0.175)
     end
 end
 
@@ -391,7 +421,7 @@ function plot_goal_lines!(goal_probs, goal_names=nothing,
     if (timesteps == nothing)
         timesteps = collect(1:size(goal_probs, 2)) end
     # Plot line graph, one series per goal
-    plt = plot!(plt, timesteps, goal_probs'; linewidth=3,
+    plt = plot!(plt, timesteps, goal_probs'; linewidth=6,
                 legend=:topright, legendtitle="Goals",
                 fg_legend=:transparent, bg_legend=:transparent,
                 labels=permutedims(goal_names), color=permutedims(goal_colors),
@@ -439,17 +469,21 @@ end
 
 "Callback function that renders each state."
 function render_cb(t::Int, state, traces, weights;
-                   plan=nothing, start_pos=nothing,
+                   plan=nothing, start_pos=nothing, start_dir=nothing,
                    canvas=nothing, show_inventory=true, kwargs...)
     # Render canvas if not provided
     plt = canvas == nothing ? render(state; kwargs...) : deepcopy(canvas)
-    render_objects!(state, plt; kwargs...) # Render objects in gridworld
-    render_pos!(state, plt; kwargs...)  # Render agent's current position
-    render_traces!(traces, weights, plt; kwargs...) # Render trajectories
-    if !isnothing(plan) # Render past actions
-        render!(plan[1:min(t, length(plan))], start_pos, plt;
-                fade=true, trunc=7, color=:black)
+    dir = start_dir # Set agent direction to start dir
+    if !isnothing(plan) # Render past actions if provided
+        plan = plan[1:max(1,min(t-1, length(plan)))]
+        render!(plan, start_pos, plt; fade=true, trunc=6, color=:black)
+        i = findlast(a -> a.name in [:up, :down, :left, :right, :unlock], plan)
+        dir = i == nothing ? start_dir : plan[i].name
+        if (dir == :unlock) dir = plan[i].args[2].name end
     end
+    render_objects!(state, plt; kwargs...) # Render objects in gridworld
+    render_pos!(state, plt; dir=dir, kwargs...)  # Render agent's position
+    render_traces!(traces, weights, plt; kwargs...) # Render trajectories
     title!(plt, "t = $t")
     if show_inventory
         i_plt = render_inventory!(state; kwargs...)
@@ -510,23 +544,93 @@ function multiplot_cb(t::Int, state, traces, weights,
     return plt
 end
 
-function plot_storyboard(frames::Vector, goal_probs=nothing, times=nothing;
+## Storyboard plotters ##
+
+"Plot storyboard of frames showing goal inferences over time."
+function plot_storyboard(frames::Vector, goal_probs=nothing, times=Int[];
+                         titles=[], labels=["(i)", "(ii)", "(iii)", "(iv)"],
+                         time_lims=nothing, legend=false,
                          goal_names=nothing, goal_colors=cgrad(:plasma)[1:3:30])
+    frames = deepcopy(frames)
     n_frames = length(frames)
+    # Add titles and times to each frame to each frame
+    for i in 1:n_frames
+        if i <= length(titles)
+            lbl, ttl = labels[i], titles[i]
+            title!(frames[i][1], "$lbl $ttl"; titlefontsize=20)
+            plot!(frames[i][1]; top_margin=10*Plots.mm)
+        end
+        if i <= length(times)
+            center = sum(frames[i][end][:xaxis][:lims]) / 2
+            annotate!(frames[i][end], center, 1.35,
+                      Plots.text("t = $(times[i])"))
+        end
+    end
     # Plot keyframes in sequence
     plt = plot(frames...; layout=(1, n_frames), size=(n_frames*600, 700))
     if goal_probs == nothing return plt end
     # Plot line graph of goal probabilities below frames
     if isa(goal_probs, Vector) goal_probs = reduce(hcat, goal_probs) end
     l_plt = plot_goal_lines!(goal_probs, goal_names, goal_colors)
-    plot!(l_plt; legend=:right, bottom_margin=5 * Plots.mm,
-          left_margin=20*Plots.mm, right_margin=20*Plots.mm)
-    xlims!(l_plt, 1, size(goal_probs)[2])
-    xlabel!(l_plt, "")
-    if times != nothing
-        vline!(l_plt, times; ls=:dash, lw=2, color=:black, label="")
+    plot!(l_plt; legend=legend, legendfontsize=12, legendtitlefontsize=16,
+          left_margin=20*Plots.mm, right_margin=20*Plots.mm,
+          bottom_margin=5*Plots.mm, )
+    if time_lims == nothing
+        xlims!(l_plt, 1, size(goal_probs)[2])
+    else
+        xlims!(l_plt, time_lims[1], time_lims[2])
     end
+    xlabel!(l_plt, "")
+    annotate!(l_plt, l_plt[1][:xaxis][:lims][2], -0.1, Plots.text("Time"))
+    vline!(l_plt, times; ls=:dash, lw=2, color=:black, label="")
+    for (t, lbl) in zip(times, labels) annotate!(t, -0.075, Plots.text(lbl)) end
     layout = grid(2, 1, heights=[0.75, 0.25])
     plt = plot(plt, l_plt; layout=layout, size=(n_frames*600, 900))
+    return plt
+end
+
+"Plot legend for storyboard figure."
+function plot_storyboard_legend(n_frames, gem_colors=cgrad(:plasma)[1:3:30])
+    plt = plot(size=(n_frames*600, 200), aspect_ratio=1, framestyle=:none)
+    # Observations label
+    annotate!(plt, -0.75, 1, Plots.text("Observations:", 36, :right))
+    # Agent label
+    agent = Plots.scale(make_triangle(1, 1, 0.25*1.5, :right), 1.0, 0.8)
+    plot!(plt, agent; color=:red, linealpha=0, alpha=1)
+    annotate!(plt, 1.5, 1, Plots.text("Agent", 30, :left))
+    # Actions label
+    for (i, x) in enumerate([4, 4.3, 4.6])
+        triangle = make_triangle(x, 1, 0.1*1.5, :right)
+        plot!(plt, triangle; color=:black, linealpha=0, alpha=i*1/3)
+    end
+    annotate!(plt, 5, 1, Plots.text("Recent Actions", 30, :left))
+    # Door label
+    render_door!(10.5, 1, 0.7, plt=plt)
+    annotate!(plt, 11.25, 1, Plots.text("Door", 30, :left))
+    # Key label
+    render_key!(13.5, 1, 0.4, plt=plt)
+    annotate!(plt, 14.1, 1, Plots.text("Key", 30, :left))
+    # Gem labels
+    for (i, color) in enumerate(gem_colors)
+        render_gem!(16+(i-1)*0.5, 1, 0.3, plt=plt, color=color)
+    end
+    n_gems = length(gem_colors)
+    annotate!(plt, 16 + n_gems*0.5, 1, Plots.text("Gems", 30, :left))
+    # Inferences label
+    annotate!(plt, -0.75, 0, Plots.text("Inferences:", 36, :right))
+    # Labels for inferred plans
+    gem_offset = 1
+    for gem_color in gem_colors
+        for (i, x) in enumerate([0, 0.5, 1.0] .+ gem_offset)
+            circ = make_circle(x, 0, 0.2)
+            plot!(plt, circ; color=gem_color, linealpha=0, alpha=0.5)
+        end
+        annotate!(plt, gem_offset+1.5, 0,
+                  Plots.text("Inferred Plans to", 30, :left))
+        render_gem!(gem_offset+6.1, 0, 0.3, plt=plt, color=gem_color)
+        gem_offset += 7
+    end
+    xlims!(plt, -5, 25)
+    ylims!(plt, -0.5, 1.5)
     return plt
 end

@@ -10,7 +10,7 @@ include("render.jl")
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
 domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, "problem-6.pddl"))
+problem = load_problem(joinpath(path, "problem-7.pddl"))
 
 # Initialize state, set goal and goal colors
 state = initialize(problem)
@@ -68,15 +68,16 @@ goal_strata = Dict((:goal_init => :goal) => goal_idxs)
 
 # Assume either a planning agent or replanning agent as a model
 planner = ProbAStarPlanner(heuristic=GemHeuristic(), search_noise=0.1)
-replanner = Replanner(planner=planner, persistence=(5, 0.95))
-agent_planner = replanner # replanner
+replanner = Replanner(planner=planner, persistence=(2, 0.95))
+agent_planner = replanner # planner
 
-# Sample a trajectory as the ground truth (no observation noise)
-goal = goals[uniform_discrete(1, length(goals))]
-plan, traj = planner(domain, state, goal)
-plt = render(state; start=start_pos, gem_colors=gem_colors)
-plt = render!(plan, start_pos, plt; alpha=0.75, fade=true)
-anim = anim_traj(traj; gem_colors=gem_colors)
+# Construct a trajectory with backtracking to perform inference on
+plan1, traj = planner(domain, state, @julog(has(key2)))
+plan2, traj = planner(domain, traj[end], @julog(not(door(8, 5))))
+plan3, traj = planner(domain, traj[end], @julog(has(key1)))
+plan4, traj = planner(domain, traj[end], @julog(has(gem3)))
+plan = [plan1; plan2; plan3; plan4]
+traj = PDDL.simulate(domain, state, plan)
 
 # Define observation noise model
 obs_params = observe_params(
@@ -120,7 +121,7 @@ plot_goal_bars!(goal_probs, goal_names, goal_colors)
 # Set up visualization and logging callbacks for online goal inference
 
 anim = Animation() # Animation to store each plotted frame
-keytimes = [3, 9, 17, 27] # Timesteps to save keyframes
+keytimes = [4, 9, 17, 21] # Timesteps to save keyframes
 keyframes = [] # Buffer of keyframes to plot as a storyboard
 goal_probs = [] # Buffer of goal probabilities over time
 plotters = [ # List of subplot callbacks:
@@ -135,7 +136,8 @@ callback = (t, s, trs, ws) ->
     (goal_probs_t = collect(values(sort!(get_goal_probs(trs, ws, goal_idxs))));
      push!(goal_probs, goal_probs_t);
      multiplot_cb(t, s, trs, ws, plotters;
-                  trace_future=true, plan=plan, start_pos=start_pos,
+                  trace_future=true, plan=plan,
+                  start_pos=start_pos, start_dir=:down,
                   canvas=canvas, animation=anim, show=true,
                   keytimes=keytimes, keyframes=keyframes,
                   gem_colors=gem_colors, goal_colors=goal_colors,
@@ -153,6 +155,12 @@ gif(anim; fps=2)
 
 ## Plot storyboard of keyframes ##
 
-storyboard = plot_storyboard(keyframes, goal_probs[1:33], keytimes;
-                             goal_names=["Red Gem", "Yellow Gem", "Blue Gem"],
-                             goal_colors=goal_colors)
+storyboard = plot_storyboard(
+    keyframes, goal_probs, keytimes;
+    time_lims=(1, 27), legend=:right,
+    titles=["Initially ambiguous goal",
+            "Red eliminated upon key pickup",
+            "Yellow most likely upon unlock",
+            "Switch to blue upon backtracking"],
+    goal_names=["Red Gem", "Yellow Gem", "Blue Gem"],
+    goal_colors=goal_colors)
