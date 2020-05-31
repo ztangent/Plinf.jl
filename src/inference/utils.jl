@@ -48,6 +48,42 @@ function initialize_pf_stratified(model::GenerativeFunction,
     initialize_particle_filter(model, model_args, observations, n_particles)
 end
 
+"Return the effective sample size of the particles in the filter."
+function get_ess(pf_state::Gen.ParticleFilterState)
+    return Gen.effective_sample_size(lognorm(pf_state.log_weights))
+end
+
+"Perform stratified resampling of the particles in the filter."
+function pf_stratified_resample!(pf_state::Gen.ParticleFilterState;
+                                 sort_particles::Bool=true)
+    # Optionally sort particles by weight before resampling
+    if sort_particles
+        order = sortperm(pf_state.log_weights)
+        pf_state.log_weights = pf_state.log_weights[order]
+        pf_state.traces = pf_state.traces[order]
+    end
+    n_particles = length(pf_state.traces)
+    log_total_weight, log_weights = Gen.normalize_weights(pf_state.log_weights)
+    weights = exp.(log_weights)
+    pf_state.log_ml_est += log_total_weight - log(n_particles)
+    # Sample particles at the points [u_init:(1/n_particles):1]
+    u_init = uniform(0, 1/n_particles)
+    i_old, accum_weight = 0, 0.0
+    for (i_new, u) in enumerate(u_init:(1/n_particles):1)
+        while accum_weight < u
+            accum_weight += weights[i_old+1]
+            i_old += 1
+        end
+        pf_state.new_traces[i_new] = pf_state.traces[i_old]
+        pf_state.log_weights[i_new] = 0.0
+    end
+    # Swap references
+    tmp = pf_state.traces
+    pf_state.traces = pf_state.new_traces
+    pf_state.new_traces = tmp
+    return pf_state
+end
+
 "Move-reweight MCMC update (cf. Marques & Storvik, 2013)."
 function move_reweight(trace, proposal::GenerativeFunction,
                        proposal_args::Tuple, involution)

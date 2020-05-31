@@ -52,8 +52,8 @@ end
 function world_particle_filter(
         world_init::WorldInit, world_config::WorldConfig,
         obs_traj::Vector{State}, obs_terms::Vector{<:Term}, n_particles::Int;
-        batch_size::Int=1, resample=true, rejuvenate=nothing,
-        strata=nothing, callback=nothing)
+        batch_size::Int=1, strata=nothing, callback=nothing,
+        ess_threshold::Float64=1/4, resample=true, rejuvenate=nothing)
     # Construct choicemaps from observed trajectory
     @unpack domain = world_config
     n_obs = length(obs_traj)
@@ -69,10 +69,10 @@ function world_particle_filter(
     if timesteps[end] != n_obs push!(timesteps, n_obs) end
     # Feed new observations batch-wise
     for (batch_idx, t) in enumerate(timesteps)
-        if resample
-            resampled = maybe_resample!(pf_state, ess_threshold=n_particles/4)
-            if resampled @debug "Resampling..." end
-            if resampled && rejuvenate != nothing rejuvenate(pf_state) end
+        if resample && get_ess(pf_state) < (n_particles * ess_threshold)
+            @debug "Resampling..."
+            pf_stratified_resample!(pf_state)
+            if rejuvenate != nothing rejuvenate(pf_state) end
         end
         particle_filter_step!(pf_state, (t, world_args...),
                               argdiffs, obs_choices[batch_idx])
