@@ -1,4 +1,4 @@
-export labeled_cat, labeled_unif, flip
+export labeled_cat, labeled_unif, flip, block_words_RNN_conversion
 
 "Unzips an array of tuples to a tuple of arrays."
 unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
@@ -40,34 +40,53 @@ dist_type(d::Distribution{T}) where {T} = T
     end
 end
 
-function get_arg_dims(argtypes)
+function get_arg_dims(argtypes, type_counts)
     dims = []
-    for i, argtype in enumerate(argtypes)
+    for (i, argtype) in enumerate(argtypes)
         # Assuming one object can't be passed as multiple inputs to a predicate
         dim = type_counts[argtype] - count(isequal(argtype), argtypes[1:i-1])
         push!(dims, dim)
     end
+    return dims
 end
 
 #= Within the ordered objects, finds the index position of the given object among
 the other objects of the given type =#
-function get_object_type_index(ordered_objects, type, object)
-    
+function get_object_type_index(ordered_objects, type_map, type, object_name)
+    count = 1
+    for object in ordered_objects
+        if object == object_name
+            return count
+        end
+        if type_map[object] == type
+            count += 1
+        end
+    end
+    return nothing
 end
 
 function calculate_vector_sublengths(predtypes, predicate_names, type_counts)
     vec_sublens = [1]
     for name in predicate_names
         argtypes = predtypes[name]
-        # Skipping if the predicate takes no arguments
+        # Making a single boolean if the predicate takes no arguments
         if length(argtypes) == 0
-            continue
+            dims = [1]
+        else
+            dims = get_arg_dims(argtypes, type_counts)
         end
 
-        dims = get_arg_dims(argtypes)
-        push!(vec_sublens, pred_spaces[length(vec_sublens)] + prod(dims))
+        push!(vec_sublens, vec_sublens[length(vec_sublens)] + prod(dims))
     end
     return vec_sublens
+end
+
+function set_bools(fact::Compound)
+
+end
+
+function set_bools(fact::Const)
+
 end
 
 "Convert from block-words PDDL state representation to RNN input representation"
@@ -75,50 +94,48 @@ function block_words_RNN_conversion(domain::Domain, state::State)
     predicates, predtypes, fluents = domain.predicates, domain.predtypes, domain.functions
     types, facts = state.types, state.facts
 
+    # Map each object name to its type name
+    type_map = Dict(term.args[1].name => term.name for term in types)
+
     # Get the number of each type of object
-    type_counts = Dict(type.name => 0 for type in Set(keys(types)))
+    type_counts = Dict(type.name => 0 for type in types)
     for type in types
         type_counts[type.name] += 1
     end
 
     # Alphabetized names of predicates, objects, and fluents
-    ordered_predicates = sort(keys(predicates))
+    ordered_predicates = sort(collect(keys(predicates)))
     ordered_objects = sort([term.args[1].name for term in types])
-    ordered_fluents = sort(keys(fluents))
+    ordered_fluents = sort(collect(keys(fluents)))
 
-    pred_start_idxs = calculate_vector_sublengths(domain, ordered_predicates,
+    pred_start_idxs = calculate_vector_sublengths(predtypes, ordered_predicates,
                                                   type_counts)
-    vec_len = pred_spaces[length(pred_start_idxs)] + length(ordered_fluents) - 1
+    vec_len = pred_start_idxs[length(pred_start_idxs)] + length(ordered_fluents) - 1
     encoding = zeros(vec_len)
     for fact in facts
         base_idx = pred_start_idxs[findfirst(isequal(fact.name), ordered_predicates)]
         args = fact.args
         num_args = length(args)
         idx = base_idx
-        terms = get_object_type_index(ordered_objects, type, object)
-        for i, term in enumerate(terms)
-            idx += (term - 1) * prod(terms[i+1:length(terms)])
+        terms = []
+        for arg in args
+            object_name = arg.name
+            type = type_map[object_name]
+            push!(terms, get_object_type_index(ordered_objects, type_map, type, object_name))
         end
-        # if fact.name == :on
-        #     top, base = fact.args
-        #     idx = (n - 1) * findfirst(isequal(top), blocks) + findfirst(isequal(base), blocks)
-        # elseif fact.name == :ontable
-        #     block = fact.args[1]
-        #     idx = n ^ 2 + findfirst(isequal(block), blocks)
-        # elseif fact.name == :clear
-        #     block = fact.args[1]
-        #     idx = n ^ 2 + n + findfirst(isequal(block), blocks)
-        # elseif fact.name == :holding
-        #     block = fact.args[1]
-        #     idx = n ^ 2 + 2 * n + findfirst(isequal(block), blocks)
-        # elseif fact.name == :handempty
-        #     idx = n ^ 2 + 3 * n + 1
-        # end
+        for (i, term) in enumerate(terms)
+            remaining = terms[i+1:length(terms)]
+            multiplicand = 1
+            if length(remaining) != 0
+                multiplicand = prod(remaining)
+            end
+            idx += (term - 1) * multiplicand
+        end
         encoding[idx] = 1
     end
-    for fluent in fluents
-        idx =
-        encoding[idx] =
+    for (fluent, val) in fluents
+        idx += 1
+        encoding[idx] = val
     end
     return encoding
 end
