@@ -81,12 +81,43 @@ function calculate_vector_sublengths(predtypes, predicate_names, type_counts)
     return vec_sublens
 end
 
-function set_bools(fact::Compound)
-
+function set_bools(fact::Compound, base_idx, ordered_objects, type_map, type_counts, predtypes)
+    args = fact.args
+    argtypes = predtypes[fact.name]
+    ordered_object_types = [type_map[obj_name] for obj_name in ordered_objects]
+    arg_order_idxs = [findfirst(isequal(arg.name), ordered_objects) for arg in args]
+    num_args = length(args)
+    idx = base_idx
+    terms = []
+    for (i, arg) in enumerate(args)
+        object_name = arg.name
+        type = type_map[object_name]
+        baseline = get_object_type_index(ordered_objects, type_map, type, object_name)
+        # Get the number of other args of the same type and prior to the current
+        # arg alphabetically before the current arg in order of the ordered objects
+        repeat_count = 0
+        for (j, arg_order_idx) in enumerate(arg_order_idxs[1:i-1])
+            if type_map[args[j].name] == type && arg_order_idx < arg_order_idxs[i]
+                repeat_count += 1
+            end
+        end
+        #repeat_count = count(isequal(type), ordered_object_types[1:args_ordered_idx-1])
+        push!(terms, baseline - repeat_count)
+    end
+    for (i, term) in enumerate(terms)
+        dims = get_arg_dims(argtypes, type_counts)
+        remaining = dims[i+1:length(dims)]
+        multiplicand = 1
+        if length(remaining) != 0
+            multiplicand = prod(remaining)
+        end
+        idx += (term - 1) * multiplicand
+    end
+    return idx
 end
 
-function set_bools(fact::Const)
-
+function set_bools(fact::Const, base_idx, ordered_objects, type_map, type_counts, predtypes)
+    return base_idx
 end
 
 "Convert from block-words PDDL state representation to RNN input representation"
@@ -105,7 +136,9 @@ function block_words_RNN_conversion(domain::Domain, state::State)
 
     # Alphabetized names of predicates, objects, and fluents
     ordered_predicates = sort(collect(keys(predicates)))
+    println(ordered_predicates)
     ordered_objects = sort([term.args[1].name for term in types])
+    println(ordered_objects)
     ordered_fluents = sort(collect(keys(fluents)))
 
     pred_start_idxs = calculate_vector_sublengths(predtypes, ordered_predicates,
@@ -113,24 +146,10 @@ function block_words_RNN_conversion(domain::Domain, state::State)
     vec_len = pred_start_idxs[length(pred_start_idxs)] + length(ordered_fluents) - 1
     encoding = zeros(vec_len)
     for fact in facts
+        println(fact)
         base_idx = pred_start_idxs[findfirst(isequal(fact.name), ordered_predicates)]
-        args = fact.args
-        num_args = length(args)
-        idx = base_idx
-        terms = []
-        for arg in args
-            object_name = arg.name
-            type = type_map[object_name]
-            push!(terms, get_object_type_index(ordered_objects, type_map, type, object_name))
-        end
-        for (i, term) in enumerate(terms)
-            remaining = terms[i+1:length(terms)]
-            multiplicand = 1
-            if length(remaining) != 0
-                multiplicand = prod(remaining)
-            end
-            idx += (term - 1) * multiplicand
-        end
+        idx = set_bools(fact, base_idx, ordered_objects, type_map, type_counts, predtypes)
+        println(idx)
         encoding[idx] = 1
     end
     for (fluent, val) in fluents
