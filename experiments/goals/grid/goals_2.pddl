@@ -1,0 +1,5 @@
+(and (at-robot place_0_4))
+(and (at-robot place_1_4))
+(and (at-robot place_2_4))
+(and (at-robot place_3_4))
+(and (at-robot place_4_4))
