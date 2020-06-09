@@ -37,7 +37,7 @@ function initialize_pf_stratified(model::GenerativeFunction{T,U},
         traces[i_particle:end] = trs[idxs]
         log_weights[i_particle:end] = ws[idxs]
     end
-    return Gen.ParticleFilterState{U}(traces, Vector{U}(undef, n_particles),
+    return ParticleFilterState{U}(traces, Vector{U}(undef, n_particles),
                                       log_weights, 0., collect(1:n_particles))
 end
 
@@ -49,12 +49,12 @@ function initialize_pf_stratified(model::GenerativeFunction,
 end
 
 "Return the effective sample size of the particles in the filter."
-function get_ess(pf_state::Gen.ParticleFilterState)
+function get_ess(pf_state::ParticleFilterState)
     return Gen.effective_sample_size(lognorm(pf_state.log_weights))
 end
 
 "Perform stratified resampling of the particles in the filter."
-function pf_stratified_resample!(pf_state::Gen.ParticleFilterState;
+function pf_stratified_resample!(pf_state::ParticleFilterState;
                                  sort_particles::Bool=true)
     # Optionally sort particles by weight before resampling
     if sort_particles
@@ -86,6 +86,20 @@ end
 
 "Move-reweight MCMC update (cf. Marques & Storvik, 2013)."
 function move_reweight(trace, proposal::GenerativeFunction,
+                       proposal_args::Tuple)
+    model_args = get_args(trace)
+    argdiffs = map((_) -> NoChange(), model_args)
+    (fwd_choices, fwd_score, fwd_ret) =
+        propose(proposal, (trace, proposal_args...,))
+    (new_trace, weight, _, discard) = update(trace,
+        model_args, argdiffs, fwd_choices)
+    (bwd_score, bwd_ret) =
+        assess(proposal, (new_trace, proposal_args...), discard)
+    rel_weight = weight - fwd_score + bwd_score
+    return new_trace, rel_weight
+end
+
+function move_reweight(trace, proposal::GenerativeFunction,
                        proposal_args::Tuple, involution)
     (fwd_choices, fwd_score, fwd_ret) =
         propose(proposal, (trace, proposal_args...,))
@@ -97,7 +111,6 @@ function move_reweight(trace, proposal::GenerativeFunction,
     return new_trace, rel_weight
 end
 
-"Move-reweight MCMC update (cf. Marques & Storvik, 2013)."
 function move_reweight(trace, proposal_new::GenerativeFunction, args_new::Tuple,
                        proposal_old::GenerativeFunction, args_old::Tuple,
                        involution)
@@ -112,14 +125,15 @@ function move_reweight(trace, proposal_new::GenerativeFunction, args_new::Tuple,
 end
 
 "Rejuvenate particles via repeated move-reweight steps."
-function pf_move_reweight!(pf_state::Gen.ParticleFilterState,
-                           kern, n_iters::Int=3)
+function pf_move_reweight!(pf_state::ParticleFilterState,
+                           kern, kern_args::Tuple=(), n_iters::Int=1)
     # Move and reweight each trace
     for (i, trace) in enumerate(pf_state.traces)
         weight = 0
         for k = 1:n_iters
-            trace, rel_weight = kern(trace)
+            trace, rel_weight = kern(trace, kern_args...)
             weight += rel_weight
+            @debug "Rel. Weight: $rel_weight"
         end
         pf_state.new_traces[i] = trace
         pf_state.log_weights[i] += weight
@@ -131,12 +145,12 @@ function pf_move_reweight!(pf_state::Gen.ParticleFilterState,
 end
 
 "Rejuvenate particles by repeated application of a Metropolis-Hastings kernel."
-function pf_move_mh!(pf_state::Gen.ParticleFilterState,
-                     kern, n_iters::Int=3)
+function pf_move_accept!(pf_state::ParticleFilterState,
+                         kern, kern_args::Tuple=(), n_iters::Int=1)
     # Potentially rejuvenate each trace
     for (i, trace) in enumerate(pf_state.traces)
         for k = 1:n_iters
-            trace, accept = kern(trace)
+            trace, accept = kern(trace, kern_args...)
             @debug "Accepted: $accept"
         end
         pf_state.new_traces[i] = trace

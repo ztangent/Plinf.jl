@@ -1,5 +1,7 @@
 export world_importance_sampler, world_particle_filter
 
+using Gen: ParticleFilterState
+
 include("utils.jl")
 include("kernels.jl")
 
