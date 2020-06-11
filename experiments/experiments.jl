@@ -10,6 +10,8 @@ SAMPLE_MULT = 10
 RESAMPLE = false
 "Rejuvenation move"
 REJUVENATE = nothing
+"Storage for trained LSTMs"
+LSTMS = Dict()
 
 include("params.jl")
 include("rnn.jl")
@@ -269,7 +271,7 @@ function run_problem_experiments(path, domain_name, problem_idx,
     elseif method == :prp
         error("Not implemented.")
     elseif method == :rnn
-        lstm = 
+        lstm = LSTMS[(domain, problem)]
     end
 
     # Run goal inference for each trajectory
@@ -292,7 +294,7 @@ function run_problem_experiments(path, domain_name, problem_idx,
         elseif method == :prp
            error("Not implemented.")
         elseif method == :rnn
-           error("Not implemented.")
+           out = lstm([block_words_RNN_conversion(domain, state) for state in traj])
         end
         # Save dataframe
         push!(problem_dfs, df)
@@ -455,4 +457,19 @@ function analyze_domain_results(path, domain_name, save=false)
         CSV.write(stats_path, stats_df)
     end
     return stats_df
+end
+
+
+## RNN training loop ##
+
+function train_rnns(path, domain_prob_idx_pairs)
+    for (domain_name, problem_idx) in domain_prob_idx_pairs
+        obs_path = joinpath(path, "observations", "training", domain_name)
+        domain, problem, goals = load_problem_files(path, domain_name, problem_idx)
+        init_state = initialize(problem)
+        _, obs_trajs, obs_fns = load_observations(obs_path, problem_idx,
+                                                  domain, init_state)
+        trained = train_lstm(domain, obs_trajs, obs_fns, goals)
+        LSTMS[(domain, problem)] = trained
+    end
 end

@@ -132,7 +132,7 @@ function gems_keys_doors_RNN_conversion(state::State)
     return encoding
 end
 
-"""Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."""
+"Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
 @pydef mutable struct GoalsDataset <: data.Dataset
     function __init__(self, X, Y)
         self.X = X
@@ -148,22 +148,22 @@ end
     end
 end
 
-"""state_seqs is a list of sequences of states in a corresponding list of
+"state_seqs is a list of sequences of states in a corresponding list of
 observations, and goals is a list of the corresponding goal indices for those
-observations."""
-function train_lstm(domain, state_seqs, goals)
+observations."
+function train_lstm(domain, observations, fnames, poss_goals)
     # TODO: Change to accept blocks-word or grid-world
-    x_train = [[block_words_RNN_conversion(domain, state) for state in state_seq] for state_seq in state_seqs]
-    y_train = goals
+    x_train = [[block_words_RNN_conversion(domain, state) for state in observation] for observation in observations]
+    y_train = getindex.(get_idx_from_fn.(fnames), 2)
     vec_rep_dim = length(x_train[1][1])
     # TODO: Change to a power of 2 instead
-    hidden_dim = length(vec_rep)
-    goal_dim = length(goals)
+    hidden_dim = vec_rep_dim
+    goal_dim = length(poss_goals)
     model = LSTM_variable_input(vec_rep_dim, hidden_dim, goal_count)
     train_model(model, x_train, y_train)
 end
 
-"""Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."""
+"Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
 function train_model(model, x_train, y_train, epochs=10, lr=0.001):
     train_ds = GoalsDataset(x_train, y_train)
     train_dl = data.DataLoader(train_ds, batch_size=batch_size, shuffle=True)
@@ -186,9 +186,9 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001):
             sum_loss += loss.item()*y.shape[1]
             total += y.shape[1]
         if i % 5 == 1:
-            print("train loss %.3f, val loss %.3f, val accuracy %.3f, and val rmse %.3f" % (sum_loss/total, val_loss, val_acc, val_rmse))
+            print("train loss $(sum_loss/total), val loss $val_loss, val accuracy $val_acc, and val rmse $val_rmse")
 
-"""Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."""
+"Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
 @pydef mutable struct LSTM_variable_input <: nn.Module
     function __init__(self, vec_rep_dim, hidden_dim, goal_count)
         super().__init__()
@@ -197,9 +197,8 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001):
         self.linear = nn.Linear(hidden_dim, goal_count)
     end
 
-    function forward(self, x, s):
-        x_pack = rnn.pack_padded_sequence(x, s, batch_first=True, enforce_sorted=False)
-        out_pack, (ht, ct) = self.lstm(x_pack)
+    function forward(self, xs):
+        out_pack, (ht, ct) = self.lstm(xs)
         out_unnorm = self.linear(ht[-1])
         out = F.Softmax(out_unnorm)
         return out
