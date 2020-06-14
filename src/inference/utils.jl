@@ -87,11 +87,11 @@ end
 "Move-reweight MCMC update (cf. Marques & Storvik, 2013)."
 function move_reweight(trace, proposal::GenerativeFunction,
                        proposal_args::Tuple)
-    model_args = get_args(trace)
+    model_args = Gen.get_args(trace)
     argdiffs = map((_) -> NoChange(), model_args)
     (fwd_choices, fwd_score, fwd_ret) =
         propose(proposal, (trace, proposal_args...,))
-    (new_trace, weight, _, discard) = update(trace,
+    (new_trace, weight, _, discard) = Gen.update(trace,
         model_args, argdiffs, fwd_choices)
     (bwd_score, bwd_ret) =
         assess(proposal, (new_trace, proposal_args...), discard)
