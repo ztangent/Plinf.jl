@@ -10,7 +10,7 @@ include("render.jl")
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
 domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, "problem-7.pddl"))
+problem = load_problem(joinpath(path, "problem-6.pddl"))
 
 # Initialize state, set goal and goal colors
 state = initialize(problem)
@@ -23,7 +23,7 @@ gem_colors = Dict(zip(gem_terms, goal_colors))
 #--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(heuristic=GemHeuristic())
+planner = AStarPlanner(heuristic=GemManhattan())
 plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
@@ -32,7 +32,7 @@ anim = anim_traj(traj; gem_colors=gem_colors)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=GemHeuristic(), trace_states=true)
+planner = ProbAStarPlanner(heuristic=GemManhattan(), trace_states=true)
 plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=true)
 tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
 anim = anim_plan(tr, plt)
@@ -43,7 +43,7 @@ plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=false)
 anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=GemHeuristic(), trace_states=true)
+astar = ProbAStarPlanner(heuristic=GemManhattan(), trace_states=true)
 replanner = Replanner(planner=astar, persistence=(2, 0.95))
 plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=true)
 tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))
@@ -67,7 +67,7 @@ end
 goal_strata = Dict((:goal_init => :goal) => goal_idxs)
 
 # Assume either a planning agent or replanning agent as a model
-planner = ProbAStarPlanner(heuristic=GemHeuristic(), search_noise=0.1)
+planner = ProbAStarPlanner(heuristic=GemManhattan(), search_noise=0.1)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 
@@ -144,11 +144,16 @@ callback = (t, s, trs, ws) ->
                   goal_probs=goal_probs, goal_names=goal_names);
      print("t=$t\t"); print_goal_probs(get_goal_probs(trs, ws, goal_idxs)))
 
+# Set up rejuvenation moves
+goal_rejuv! = pf -> pf_goal_move_accept!(pf, goals)
+plan_rejuv! = pf -> pf_replan_move_accept!(pf)
+mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goals; mix_prob=0.25)
+
 # Run a particle filter to perform online goal inference
 n_samples = 30
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=pf_replan_move_mh!,
+                          resample=true, rejuvenate=mixed_rejuv!,
                           callback=callback, strata=goal_strata)
 # Show animation of goal inference
 gif(anim; fps=2)
@@ -157,7 +162,7 @@ gif(anim; fps=2)
 
 storyboard = plot_storyboard(
     keyframes, goal_probs, keytimes;
-    time_lims=(1, 27), legend=:right,
+    time_lims=(1, 27), legend=false,
     titles=["Initially ambiguous goal",
             "Red eliminated upon key pickup",
             "Yellow most likely upon unlock",

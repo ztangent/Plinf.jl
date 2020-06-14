@@ -2,20 +2,36 @@ using DataStructures: OrderedDict
 
 pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
 
-"Custom Manhattan distance heuristic to goal objects."
-struct GemHeuristic <: Heuristic end
+"Manhattan distance heuristic to location of goal gem."
+struct GemManhattan <: Heuristic end
 
 function Plinf.compute(heuristic::GemHeuristic,
                        domain::Domain, state::State, goal_spec::GoalSpec)
     goals = goal_spec.goals
     goal_objs = [g.args[1] for g in goals if g.name == :has]
-    queries = [@julog(at(:obj, X, Y)) for obj in goal_objs]
-    _, subst = satisfy(Compound(:or, queries), state, domain, mode=:all)
-    locs = [[s[@julog(X)].name, s[@julog(Y)].name] for s in subst]
+    at_terms = find_matches(@julog(at(O, X, Y)), state)
+    locs = [[t.args[2].name, t.args[3].name]
+            for t in at_terms if t.args[1] in goal_objs]
     pos = [state[:xpos], state[:ypos]]
     dists = [sum(abs.(pos - l)) for l in locs]
     min_dist = length(dists) > 0 ? minimum(dists) : 0
     return min_dist + GoalCountHeuristic()(domain, state, goal_spec)
+end
+
+"Maze distance heuristic to location of goal gem."
+struct GemMazeDist <: Heuristic end
+
+maze_planner =
+    AStarPlanner(heuristic=ManhattanHeuristic(@julog([xpos, ypos])))
+
+function Plinf.compute(heuristic::GemMazeDist,
+                       domain::Domain, state::State, goal_spec::GoalSpec)
+    relaxed_state = copy(state)
+    for t in find_matches(@julog(door(X, Y)), state)
+        relaxed_state[t] = false
+    end
+    relaxed_plan = relaxed_planner(domain, relaxed_state, goal_spec)[1]
+    return length(relaxed_plan)
 end
 
 function get_goal_probs(traces, weights, goal_idxs=[])

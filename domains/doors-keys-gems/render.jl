@@ -574,7 +574,7 @@ function plot_storyboard(frames::Vector, goal_probs=nothing, times=Int[];
     l_plt = plot_goal_lines!(goal_probs, goal_names, goal_colors)
     plot!(l_plt; legend=legend, legendfontsize=12, legendtitlefontsize=16,
           left_margin=20*Plots.mm, right_margin=20*Plots.mm,
-          bottom_margin=5*Plots.mm, )
+          bottom_margin=5*Plots.mm)
     if time_lims == nothing
         xlims!(l_plt, 1, size(goal_probs)[2])
     else
