@@ -193,7 +193,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
            !isempty(intersect(obs_descs, keys(probs)))
             # Select final node to be a descendant of the last observation
             for s in obs_descs
-                probs[s] += obs_bias * exp(0) end
+                probs[s] += obs_bias * (exp(0) + probs[s]) end
             probs = collect(values(probs)) ./ sum(values(probs))
             state_hash = @trace(labeled_cat(collect(keys(queue)), probs),
                                 (:node, count))
@@ -204,14 +204,14 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
             return reconstruct_plan(state_hash, state_dict, parents)
         elseif isempty(obs_queue)
             # Bias search towards descendants
-            for state_hash in intersect(obs_descs, keys(probs))
-                probs[state_hash] += obs_bias * exp(0) end
+            for s in intersect(obs_descs, keys(probs))
+                probs[s] += obs_bias * (exp(0) + probs[s]) end
         elseif obs_queue[1] != nothing && obs_queue[1] in keys(probs)
             # Bias search towards observed states
             obs_hash = obs_queue[1]
             nodes_left = max_nodes - count + 1
             node_mult = min(0.5 * length(obs_queue) / nodes_left, 10)
-            probs[obs_hash] += node_mult * obs_bias * exp(0)
+            probs[obs_hash] += node_mult * obs_bias * (exp(0) + probs[obs_hash])
         end
         probs = collect(values(probs)) ./ sum(values(probs))
         state_hash =
@@ -267,4 +267,4 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
 end
 
 # Initialize bias towards sampling observed states
-init_param!(aprob_propose, :obs_bias, 5)
+init_param!(aprob_propose, :obs_bias, 2)
