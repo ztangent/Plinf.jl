@@ -1,0 +1,5 @@
+(and (clear m) (ontable r) (on m o) (on o t) (on t h) (on h e) (on e r))
+(and (clear t) (ontable e) (on t o) (on o m) (on m e))
+(and (clear t) (ontable o) (on t w) (on w o))
+(and (clear t) (ontable w) (on t h) (on h r) (on r o) (on o w))
+(and (clear t) (ontable w) (on t h) (on h a) (on a w))
