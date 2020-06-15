@@ -30,6 +30,9 @@ end
 
 function compute(heuristic::ManhattanHeuristic,
                  domain::Domain, state::State, goal_spec::GoalSpec)
+    # Precompute if necessary
+    if !isdefined(heuristic, :goal_state)
+        heuristic = precompute(heuristic, domain, state, goal_spec) end
     @unpack fluents, goal_state = heuristic
     goal_vals = [goal_state[domain, f] for f in fluents]
     curr_vals = [state[domain, f] for f in fluents]

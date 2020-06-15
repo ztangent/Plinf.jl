@@ -1,4 +1,5 @@
-export observe_params, observe_state, observe_traj
+export observe_params, ground_obs_params
+export observe_state, observe_traj
 export state_choicemap, traj_choicemaps
 
 "Parameters of observation noise model."
