@@ -1,7 +1,7 @@
-# Online Bayesian Goal Inference For Boundedly Rational Planning Agents
+## Online Bayesian Goal Inference For Boundedly Rational Planning Agents
 Experiments for NeurIPS 2020 (preprint: https://arxiv.org/abs/2006.07532).
 
-## Setup
+### Setup
 
 Clone this branch of the repository via:
 ```
@@ -16,7 +16,7 @@ include("experiments/experiments.jl")
 ```
 This will take a while to load and precompile all code and dependencies, following which all experimental code can be run.
 
-## Experiments
+### Experiments
 
 Experiments for each domain and inference method and dataset can be run by calling the ```run_domain_experiments``` function, with the following arguments:
 ```julia
