@@ -1,3 +1,4 @@
+using Plinf, PyCall
 torch = pyimport("torch")
 nn = torch.nn
 rnn = nn.utils.rnn
@@ -110,7 +111,7 @@ function block_words_RNN_conversion(domain::Domain, state::State)
     vec_len = pred_start_idxs[length(pred_start_idxs)] + length(ordered_fluents) - 1
     encoding = zeros(vec_len)
     for fact in facts
-        println(fact)
+        println(fact.name)
         base_idx = pred_start_idxs[findfirst(isequal(fact.name), ordered_predicates)]
         idx = set_bools(fact, base_idx, ordered_objects, type_map, type_counts, predtypes)
         println(idx)
@@ -164,18 +165,18 @@ function train_lstm(domain, observations, fnames, poss_goals)
 end
 
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
-function train_model(model, x_train, y_train, epochs=10, lr=0.001):
+function train_model(model, x_train, y_train, epochs=10, lr=0.001)
     train_ds = GoalsDataset(x_train, y_train)
     train_dl = data.DataLoader(train_ds, batch_size=batch_size, shuffle=True)
 
-    parameters = filter(lambda p: p.requires_grad, model.parameters())
+    parameters = filter(p->p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters, lr=lr)
 
-    for i in range(epochs):
+    for i in range(epochs)
         model.train()
         sum_loss = 0.0
         total = 0
-        for x, y, l in train_dl:
+        for (x, y, l) in train_dl
             x = x.long()
             y = y.long()
             y_pred = model(x, l)
@@ -185,8 +186,12 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001):
             optimizer.step()
             sum_loss += loss.item()*y.shape[1]
             total += y.shape[1]
-        if i % 5 == 1:
+        end
+        if i % 5 == 1
             print("train loss $(sum_loss/total), val loss $val_loss, val accuracy $val_acc, and val rmse $val_rmse")
+        end
+    end
+end
 
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
 @pydef mutable struct LSTM_variable_input <: nn.Module
@@ -197,7 +202,7 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001):
         self.linear = nn.Linear(hidden_dim, goal_count)
     end
 
-    function forward(self, xs):
+    function forward(self, xs)
         out_pack, (ht, ct) = self.lstm(xs)
         out_unnorm = self.linear(ht[-1])
         out = F.Softmax(out_unnorm)
