@@ -1,8 +1,0 @@
-(unstack s a)
-(stack s u)
-(unstack a h)
-(stack a r)
-(pick-up t)
-(stack t a)
-(unstack s u)
-(stack s t)

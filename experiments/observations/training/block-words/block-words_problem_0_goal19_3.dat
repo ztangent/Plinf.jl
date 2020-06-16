@@ -1,8 +1,0 @@
-(unstack d a)
-(stack d o)
-(unstack r p)
-(put-down r)
-(unstack a c)
-(stack a w)
-(pick-up p)
-(stack p a)

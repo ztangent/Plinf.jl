@@ -1,5 +1,0 @@
-(and (at-robot place_0_9))
-(and (at-robot place_1_9))
-(and (at-robot place_2_9))
-(and (at-robot place_3_9))
-(and (at-robot place_4_9))
