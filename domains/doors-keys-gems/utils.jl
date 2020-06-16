@@ -5,7 +5,7 @@ pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
 "Manhattan distance heuristic to location of goal gem."
 struct GemManhattan <: Heuristic end
 
-function Plinf.compute(heuristic::GemHeuristic,
+function Plinf.compute(heuristic::GemManhattan,
                        domain::Domain, state::State, goal_spec::GoalSpec)
     goals = goal_spec.goals
     goal_objs = [g.args[1] for g in goals if g.name == :has]
