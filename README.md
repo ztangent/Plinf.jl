@@ -21,24 +21,24 @@ Plinf.jl can be used to model agents that perform model-based heuristic search
 to achieve their goals. Below, we visualize a sampled trace for a replanning
 agent that interleaves resource-bounded plan search with plan execution:
 
-[replanning-agent](img/replanning-agent.gif)
+<img src="./img/replanning-agent.gif" height="300" />
 
 We can then perform goal inference for these agents:
 
-[goal-inference-backtracking](img/goal-inference-backtracking.gif)
+<img src="./img/goal-inference-backtracking.gif" height="300"/>
 
 Notice that the correct goal is eventually inferred, despite backtracking
 by the agent. This is because we model the agent as *boundedly rational*:
 it does not always produce optimal plans. Indeed, this modeling assumption
 also allows us to infer goals from *failed plans*:
 
-[goal-inference-failure](img/goal-inference-failure.gif)
+<img src="./img/goal-inference-failure.gif" height="300" />
 
 Because we use the Planning Domain Definition Language (PDDL) as our underlying
 state representation, our architecture supports a large range of domains,
 including the classic Blocks World:
 
-[bw-goal-inference](img/bw-goal-inference.gif)
+<img src="./img/bw-goal-inference.gif" height="300" />
 
 For more details about the modeling and inference architecture,
 consult our paper:
