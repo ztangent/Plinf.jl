@@ -150,7 +150,8 @@ end
     end
 
     function __getitem__(self, idx)
-        return torch.from_numpy(self.X[idx][1].astype(np.int32))
+        item = torch.from_numpy(Int32.(self.X[idx][1]))
+        return item
     end
 end
 
@@ -181,6 +182,9 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001)
         model.train()
         sum_loss = 0.0
         total = 0
+        for val in train_dl
+            println(val)
+        end
         for (x, y, l) in train_dl
             x = x.long()
             y = y.long()
