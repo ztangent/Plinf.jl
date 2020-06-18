@@ -1,4 +1,4 @@
-using Plinf, PyCall
+using PyCall
 torch = pyimport("torch")
 nn = torch.nn
 rnn = nn.utils.rnn
@@ -112,7 +112,12 @@ function block_words_RNN_conversion(domain::Domain, state::State)
     encoding = zeros(vec_len)
     for fact in facts
         println(fact.name)
-        base_idx = pred_start_idxs[findfirst(isequal(fact.name), ordered_predicates)]
+        # excluding eq
+        if fact.name in ordered_predicates
+            base_idx = pred_start_idxs[findfirst(isequal(fact.name), ordered_predicates)]
+        else
+            continue
+        end
         idx = set_bools(fact, base_idx, ordered_objects, type_map, type_counts, predtypes)
         println(idx)
         encoding[idx] = 1
@@ -141,11 +146,11 @@ end
     end
 
     function __len__(self)
-        return len(self.y)
+        return length(self.y)
     end
 
     function __getitem__(self, idx)
-        return torch.from_numpy(self.X[idx][0].astype(np.int32))
+        return torch.from_numpy(self.X[idx][1].astype(np.int32))
     end
 end
 
@@ -160,19 +165,19 @@ function train_lstm(domain, observations, fnames, poss_goals)
     # TODO: Change to a power of 2 instead
     hidden_dim = vec_rep_dim
     goal_dim = length(poss_goals)
-    model = LSTM_variable_input(vec_rep_dim, hidden_dim, goal_count)
+    model = LSTM_variable_input(vec_rep_dim, hidden_dim, goal_dim)
     train_model(model, x_train, y_train)
 end
 
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
 function train_model(model, x_train, y_train, epochs=10, lr=0.001)
     train_ds = GoalsDataset(x_train, y_train)
-    train_dl = data.DataLoader(train_ds, batch_size=batch_size, shuffle=True)
+    train_dl = data.DataLoader(train_ds, shuffle=true)
 
-    parameters = filter(p->p.requires_grad, model.parameters())
+    parameters = pybuiltin(:filter)(p->p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters, lr=lr)
 
-    for i in range(epochs)
+    for i in 1:epochs
         model.train()
         sum_loss = 0.0
         total = 0
@@ -196,9 +201,9 @@ end
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
 @pydef mutable struct LSTM_variable_input <: nn.Module
     function __init__(self, vec_rep_dim, hidden_dim, goal_count)
-        super().__init__()
+        pybuiltin(:super)(LSTM_variable_input, self).__init__()
         self.hidden_dim = hidden_dim
-        self.lstm = nn.LSTM(vec_rep_dim, hidden_dim, batch_first=True)
+        self.lstm = nn.LSTM(vec_rep_dim, hidden_dim)
         self.linear = nn.Linear(hidden_dim, goal_count)
     end
 
