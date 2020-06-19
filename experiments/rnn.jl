@@ -150,7 +150,7 @@ end
     end
 
     function __getitem__(self, idx)
-        item = torch.from_numpy(Int32.(self.X[idx][1]))
+        item = torch.from_numpy(Int32.(self.X[idx+1][1])), self.y[idx+1], self.X[idx+1][2]
         return item
     end
 end
@@ -173,18 +173,16 @@ end
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
 function train_model(model, x_train, y_train, epochs=10, lr=0.001)
     train_ds = GoalsDataset(x_train, y_train)
-    train_dl = data.DataLoader(train_ds, shuffle=true)
+    train_dl = data.DataLoader(train_ds)
 
     parameters = pybuiltin(:filter)(p->p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters, lr=lr)
 
     for i in 1:epochs
         model.train()
+        println(model)
         sum_loss = 0.0
         total = 0
-        for val in train_dl
-            println(val)
-        end
         for (x, y, l) in train_dl
             x = x.long()
             y = y.long()
