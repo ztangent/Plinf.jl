@@ -1,5 +1,6 @@
 using PyCall
 torch = pyimport("torch")
+np = pyimport("numpy")
 nn = torch.nn
 rnn = nn.utils.rnn
 F = nn.functional
@@ -101,9 +102,7 @@ function block_words_RNN_conversion(domain::Domain, state::State)
 
     # Alphabetized names of predicates, objects, and fluents
     ordered_predicates = sort(collect(keys(predicates)))
-    println(ordered_predicates)
     ordered_objects = sort([term.args[1].name for term in types])
-    println(ordered_objects)
     ordered_fluents = sort(collect(keys(fluents)))
 
     pred_start_idxs = calculate_vector_sublengths(predtypes, ordered_predicates,
@@ -111,7 +110,6 @@ function block_words_RNN_conversion(domain::Domain, state::State)
     vec_len = pred_start_idxs[length(pred_start_idxs)] + length(ordered_fluents) - 1
     encoding = zeros(vec_len)
     for fact in facts
-        println(fact.name)
         # excluding eq
         if fact.name in ordered_predicates
             base_idx = pred_start_idxs[findfirst(isequal(fact.name), ordered_predicates)]
@@ -119,7 +117,6 @@ function block_words_RNN_conversion(domain::Domain, state::State)
             continue
         end
         idx = set_bools(fact, base_idx, ordered_objects, type_map, type_counts, predtypes)
-        println(idx)
         encoding[idx] = 1
     end
     for (fluent, val) in fluents
@@ -146,11 +143,14 @@ end
     end
 
     function __len__(self)
-        return length(self.y)
+        l = length(self.y)
+        return l
     end
 
     function __getitem__(self, idx)
-        item = torch.from_numpy(Int32.(self.X[idx+1][1])), self.y[idx+1], self.X[idx+1][2]
+        #item = torch.from_numpy([Int32.(t) for t in self.X[idx+1]]), self.y[idx+1]
+        item = torch.from_numpy(np.asarray(self.X[idx+1], dtype=np.int32)), self.y[idx+1]
+        println(item[1])
         return item
     end
 end
@@ -180,13 +180,12 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001)
 
     for i in 1:epochs
         model.train()
-        println(model)
         sum_loss = 0.0
         total = 0
-        for (x, y, l) in train_dl
+        for (x, y) in train_dl
             x = x.long()
             y = y.long()
-            y_pred = model(x, l)
+            y_pred = model(x, length(x[1]))
             optimizer.zero_grad()
             loss = F.cross_entropy(y_pred, y)
             loss.backward()
@@ -209,10 +208,14 @@ end
         self.linear = nn.Linear(hidden_dim, goal_count)
     end
 
-    function forward(self, xs)
+    function forward(self, xs, l)
+        println(xs)
         out_pack, (ht, ct) = self.lstm(xs)
+        println(xs)
         out_unnorm = self.linear(ht[-1])
+        println(xs)
         out = F.Softmax(out_unnorm)
+        println(xs)
         return out
     end
 end
