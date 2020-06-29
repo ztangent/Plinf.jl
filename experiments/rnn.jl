@@ -126,12 +126,36 @@ function block_words_RNN_conversion(domain::Domain, state::State)
     return encoding
 end
 
+# TODO: generalize from just doors-keys-gems
 "Convert from gems, keys, doors PDDL state representation to RNN input representation"
-function gems_keys_doors_RNN_conversion(state::State)
-    encoding = []
+function gems_keys_doors_RNN_conversion(domain::Domain, state::State)
     types = state.types
     facts = state.facts
     fluents = state.fluents
+    objects = [type.args[1].name for type in types if type.name != :direction]
+    width, height = fluents[:width], fluents[:height]
+    encoding = zeros(height, width)
+    for fact in facts
+        if fact.name == :wall
+            val = 1
+            y, x = fact.args
+        elseif fact.name == :door
+            val = 2
+            y, x = fact.args
+        elseif fact.name == :itemloc
+            val = 3
+            y, x = fact.args
+        elseif fact.name == :doorloc
+            val = 4
+            y, x = fact.args
+        elseif fact.name == :at
+            item, y, x = fact.args
+            obj_idx = findfirst(isequal(item.name), objects)
+            val = 4 + obj_idx
+        end
+        y, x = y.name, x.name
+        encoding[y, x] = val
+    end
     return encoding
 end
 
@@ -149,8 +173,7 @@ end
 
     function __getitem__(self, idx)
         #item = torch.from_numpy([Int32.(t) for t in self.X[idx+1]]), self.y[idx+1]
-        item = torch.from_numpy(np.asarray(self.X[idx+1], dtype=np.int32)), self.y[idx+1]
-        println(item[1])
+        item = torch.from_numpy(np.asarray(self.X[idx+1], dtype=np.int32)), self.y[idx+1], torch.from_numpy(np.asarray(length(self.X[idx+1]), dtype=np.int32))
         return item
     end
 end
@@ -182,10 +205,11 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001)
         model.train()
         sum_loss = 0.0
         total = 0
-        for (x, y) in train_dl
+        for (x, y, l) in train_dl
             x = x.long()
             y = y.long()
-            y_pred = model(x, length(x[1]))
+            l = l.long()
+            y_pred = model(x, l)
             optimizer.zero_grad()
             loss = F.cross_entropy(y_pred, y)
             loss.backward()
