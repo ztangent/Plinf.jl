@@ -39,7 +39,7 @@ function precompute(heuristic::HSP,
         for c in conds filter!(t -> t.name != :not, c) end
         preconds[act_name] = conds
         # Extract additions from each effect
-        diff = PDDL.get_diff(act_def.effect)
+        diff = effect_diff(act_def.effect)
         additions[act_name] = diff.add
     end
     cache = HSPCache(domain, axioms, preconds, additions)
@@ -155,7 +155,7 @@ function precompute(heuristic::HSPR,
         for act in actions
             # Compute cost of achieving relevant additions of each action
             effect = get_effect(act, domain)
-            additions = PDDL.get_diff(effect).add
+            additions = effect_diff(effect).add
             cost = op([0; [get(fact_costs, f, 0) for f in additions]])
             # Get preconditions of action
             preconds = reduce(vcat, get_preconditions(act, domain))
