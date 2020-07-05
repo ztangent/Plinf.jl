@@ -85,25 +85,14 @@ plan, traj = planner(blocksworld, bw_state, bw_problem.goal)
 
 end
 
-@testset "A* Planner" begin
+@testset "Backward Search Planner" begin
 
 clear_heuristic_cache!()
-clear_available_action_cache!()
+clear_relevant_action_cache!()
 
-planner = AStarPlanner(heuristic=ManhattanHeuristic(@julog[xpos, ypos]))
-plan, traj = planner(gridworld, gw_state, gw_problem.goal)
-@test satisfy(gw_problem.goal, traj[end], gridworld)[1] == true
-@test plan == @julog [down, down, right, right, up, up]
-
-planner = AStarPlanner(heuristic=GoalCountHeuristic())
-plan, traj = planner(doors_keys_gems, dkg_state, dkg_problem.goal)
-@test satisfy(dkg_problem.goal, traj[end], doors_keys_gems)[1] == true
-@test plan == @julog [down, pickup(key1), down, unlock(key1, right),
-                      right, right, up, up, pickup(gem1)]
-
-planner = AStarPlanner(heuristic=HAdd())
+planner = BackwardPlanner()
 plan, traj = planner(blocksworld, bw_state, bw_problem.goal)
-@test satisfy(bw_problem.goal, traj[end], blocksworld)[1] == true
+@test issubset(traj[1], bw_state) == true
 @test plan == [pddl"(pick-up a)", pddl"(stack a b)",
                pddl"(pick-up c)", pddl"(stack c a)"]
 
