@@ -90,7 +90,7 @@ end
 clear_heuristic_cache!()
 clear_relevant_action_cache!()
 
-planner = BackwardPlanner()
+planner = BackwardPlanner(heuristic=HAddR())
 plan, traj = planner(blocksworld, bw_state, bw_problem.goal)
 @test issubset(traj[1], bw_state) == true
 @test plan == [pddl"(pick-up a)", pddl"(stack a b)",
