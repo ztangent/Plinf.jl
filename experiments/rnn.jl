@@ -133,30 +133,30 @@ function gems_keys_doors_RNN_conversion(domain::Domain, state::State)
     facts = state.facts
     fluents = state.fluents
     objects = [type.args[1].name for type in types if type.name != :direction]
+    println(objects)
     width, height = fluents[:width], fluents[:height]
     encoding = zeros(height, width)
     for fact in facts
         if fact.name == :wall
             val = 1
-            y, x = fact.args
+            x, y = fact.args
         elseif fact.name == :door
             val = 2
-            y, x = fact.args
+            x, y = fact.args
         elseif fact.name == :itemloc
-            val = 3
-            y, x = fact.args
+            continue
         elseif fact.name == :doorloc
-            val = 4
-            y, x = fact.args
+            val = 3
+            x, y = fact.args
         elseif fact.name == :at
-            item, y, x = fact.args
+            item, x, y = fact.args
             obj_idx = findfirst(isequal(item.name), objects)
-            val = 4 + obj_idx
+            val = 3 + obj_idx
         end
         y, x = y.name, x.name
         encoding[y, x] = val
     end
-    return encoding
+    return encoding[end:-1:1, :]
 end
 
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
@@ -172,8 +172,7 @@ end
     end
 
     function __getitem__(self, idx)
-        #item = torch.from_numpy([Int32.(t) for t in self.X[idx+1]]), self.y[idx+1]
-        item = torch.from_numpy(np.asarray(self.X[idx+1], dtype=np.int32)), self.y[idx+1], torch.from_numpy(np.asarray(length(self.X[idx+1]), dtype=np.int32))
+        item = torch.from_numpy(np.asarray(self.X[idx+1], dtype=np.float32)), self.y[idx+1], torch.from_numpy(np.asarray(length(self.X[idx+1]), dtype=np.long))
         return item
     end
 end
@@ -206,10 +205,9 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001)
         sum_loss = 0.0
         total = 0
         for (x, y, l) in train_dl
-            x = x.long()
-            y = y.long()
             l = l.long()
             y_pred = model(x, l)
+            println(y_pred)
             optimizer.zero_grad()
             loss = F.cross_entropy(y_pred, y)
             loss.backward()
@@ -233,13 +231,9 @@ end
     end
 
     function forward(self, xs, l)
-        println(xs)
         out_pack, (ht, ct) = self.lstm(xs)
-        println(xs)
-        out_unnorm = self.linear(ht[-1])
-        println(xs)
-        out = F.Softmax(out_unnorm)
-        println(xs)
+        out_unnorm = self.linear(ht[length(ht)])
+        out = F.softmax(out_unnorm)
         return out
     end
 end

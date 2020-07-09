@@ -47,7 +47,7 @@ end
 
 "Plot a door with the given position and scale."
 function render_door!(x::Real, y::Real, scale::Real; color=:gray, alpha=1,
-                      plt::=nothing)
+                      plt=nothing)
     plt = (plt == nothing) ? plot!() : plt
     color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
     inner_col = HSV(color.h, 0.8*color.s, min(1.25*color.v, 1))
@@ -68,7 +68,7 @@ end
 
 "Plot a key with the given position and scale."
 function render_key!(x::Real, y::Real, scale::Real; color=:goldenrod1, alpha=1,
-                     plt::=nothing)
+                     plt=nothing)
     plt = (plt == nothing) ? plot!() : plt
     key = make_key(x, y, scale)
     shadow = make_key(x+0.05*scale, y-0.05*scale, scale)
@@ -87,7 +87,7 @@ end
 
 "Plot a gem with the given position, scale and color."
 function render_gem!(x::Real, y::Real, scale::Real; color=:magenta, alpha=1,
-                     plt::=nothing)
+                     plt=nothing)
     plt = (plt == nothing) ? plot!() : plt
     outer, inner = make_gem(x, y, scale)
     color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
@@ -99,7 +99,7 @@ end
 ## Gridworld rendering functions ##
 
 "Plot agent's current location."
-function render_pos!(state::State, plt::=nothing;
+function render_pos!(state::State, plt=nothing;
                      radius=0.25, color=:black, alpha=1, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
     x, y = state[:xpos], state[:ypos]
@@ -108,7 +108,7 @@ function render_pos!(state::State, plt::=nothing;
 end
 
 "Render doors, keys and gems present in the given state."
-function render_objects!(state::State, plt::=nothing;
+function render_objects!(state::State, plt=nothing;
                          gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
     obj_queries =
         @julog [door(X, Y), and(key(O), at(O, X, Y)), and(gem(O), at(O, X, Y))]
@@ -133,7 +133,7 @@ function render_objects!(state::State, plt::=nothing;
 end
 
 "Render state, optionally with start position and the trace of a plan."
-function render!(state::State, plt::=nothing;
+function render!(state::State, plt=nothing;
                  show_pos=false, show_objs=true, start=nothing, plan=nothing,
                  gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
     # Get last plot if not provided
@@ -168,7 +168,7 @@ function render(state::State; kwargs...)
 end
 
 function render!(plan::Vector{Term}, start::Tuple{Int,Int},
-                 plt::=nothing;
+                 plt=nothing;
                  alpha::Float64=0.50, color=:red, radius=0.1, kwargs...)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
