@@ -2,6 +2,8 @@ using InverseTAMP
 using ShapesWorld
 using PyPlot
 using LightGraphs
+using MetaGraphs
+using StaticArrays
 
 function pddl_to_scene_graph(state::State)
     # TODO: Clean up this function using functions in states.jl
@@ -84,30 +86,37 @@ function smooth_transition(initial_sg, final_sg, velocity)
     intermediate_sgs = []
 
     prev_sg = initial_sg
-    new_sg = copy(prev_sg)
-    while prev_sg != final_sg
+    new_sg = deepcopy(prev_sg)
+    still_iter = true
+    while still_iter
+        still_iter = false
         for object in vertices(prev_sg)
-            prev_pos = get_prop(prev_sg, object, :absolutePose)
-            final_pos = get_prop(final_sg, object, :absolutePose)
-            direction = sign.([final_pos - prev_pos])
+            prev_pos = get_prop(prev_sg, object, :absolutePose).pos
+            final_pos = get_prop(final_sg, object, :absolutePose).pos
+            direction = sign.(final_pos - prev_pos)
             if prev_pos != final_pos
+                still_iter = true
                 new_pos = prev_pos + (fill(velocity, 3) .* direction)
                 # Handle possible overshooting
                 for i=1:length(new_pos)
                     # TODO: Clean this up
                     if (final_pos[i] > prev_pos[i] && new_pos[i] > final_pos[i]) ||
-                        (final_pos[i] > prev_pos[i] && new_pos[i] > final_pos[i])
-                        new_pos[i] = final_pos[i]
+                        (final_pos[i] < prev_pos[i] && new_pos[i] < final_pos[i])
+                        new_pos = setindex(new_pos, Float64(final_pos[i]), i)
+                        println(object)
+                        println(new_pos)
                     end
                 end
                 name = get_prop(prev_sg, object, :name)
-                ShapesWorld.setPose!(g, name, new_pos,
-                            (yaw=yaws[object], pitch=pitches[object], roll=rolls[object]))
+                prev_rot = ShapesWorld.quaternionToYawPitchRoll(get_prop(prev_sg, object, :absolutePose).orientation)
+                ShapesWorld.setPose!(new_sg, name, new_pos,
+                            (yaw=prev_rot[1], pitch=prev_rot[2], roll=prev_rot[3]))
             end
         end
+        println(new_sg)
         push!(intermediate_sgs, new_sg)
         prev_sg = new_sg
-        new_sg = copy(prev_sg)
+        new_sg = deepcopy(prev_sg)
     end
     return intermediate_sgs
 end

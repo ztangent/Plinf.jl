@@ -39,6 +39,7 @@ function test1()
     visualize(scene_graph_putdown, save_path, "putdown")
 end
 
+# TODO: Clean up and separate into multiple test cases
 function test2()
     path = joinpath(dirname(pathof(InverseTAMP)), "..", "domains", "tabletop")
     @info "Path is $path"
@@ -89,4 +90,11 @@ function test2()
     visualize(scene_graph_5, save_path, "005")
 
     @test satisfy(problem.goal, state, domain)[1] == true
+
+    smoothed_transition = smooth_transition(scene_graph_1, scene_graph_2, 0.1)
+    transition_path = joinpath(dirname(pathof(InverseTAMP)), "..", "examples", "blocksworld", "smooth_transition")
+
+    for (i, sg) in enumerate(smoothed_transition)
+        visualize(sg, transition_path, "$i")
+    end
 end
