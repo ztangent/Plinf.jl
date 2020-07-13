@@ -172,7 +172,7 @@ end
     end
 
     function __getitem__(self, idx)
-        item = torch.from_numpy(np.asarray(self.X[idx+1], dtype=np.float32)), self.y[idx+1], torch.from_numpy(np.asarray(length(self.X[idx+1]), dtype=np.long))
+        item = torch.from_numpy(np.asarray(self.X[idx+1], dtype=np.float32)), self.y[idx+1, :], torch.from_numpy(np.asarray(length(self.X[idx+1]), dtype=np.long))
         return item
     end
 end
@@ -181,13 +181,18 @@ end
 observations, and goals is a list of the corresponding goal indices for those
 observations."
 function train_lstm(domain, observations, fnames, poss_goals)
+    goal_dim = length(poss_goals)
     # TODO: Change to accept blocks-word or grid-world
     x_train = [[block_words_RNN_conversion(domain, state) for state in observation] for observation in observations]
-    y_train = getindex.(get_idx_from_fn.(fnames), 2)
+    ys = getindex.(get_idx_from_fn.(fnames), 2)
+    y_train = zeros(length(ys), goal_dim)
+    for (i, v) in enumerate(ys)
+        y_train[i, v+1] = 1
+    end
+
     vec_rep_dim = length(x_train[1][1])
     # TODO: Change to a power of 2 instead
     hidden_dim = vec_rep_dim
-    goal_dim = length(poss_goals)
     model = LSTM_variable_input(vec_rep_dim, hidden_dim, goal_dim)
     train_model(model, x_train, y_train)
 end
@@ -208,8 +213,9 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001)
             l = l.long()
             y_pred = model(x, l)
             println(y_pred)
+            println(y[1])
             optimizer.zero_grad()
-            loss = F.cross_entropy(y_pred, y)
+            loss = F.cross_entropy(y_pred, y[1])
             loss.backward()
             optimizer.step()
             sum_loss += loss.item()*y.shape[1]
@@ -230,9 +236,9 @@ end
         self.linear = nn.Linear(hidden_dim, goal_count)
     end
 
-    function forward(self, xs, l)
-        out_pack, (ht, ct) = self.lstm(xs)
-        out_unnorm = self.linear(ht[length(ht)])
+    function forward(self, x, l)
+        out, (ht, ct) = self.lstm(x)
+        out_unnorm = self.linear(ht[1, length(ht)])
         out = F.softmax(out_unnorm)
         return out
     end
