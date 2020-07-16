@@ -50,28 +50,28 @@ get_call(::BackwardPlanner)::GenerativeFunction = bwd_call
         # Iterate over actions
         for act in actions
             # Regress (reverse-execute) the action
-            next_state = regress(act, state, domain; check=false)
+            prev_state = regress(act, state, domain; check=false)
             # Add constraints to regression state
-            if (constraints != nothing) update!(next_state, constraints) end
-            next_hash = hash(next_state)
+            if (constraints != nothing) update!(prev_state, constraints) end
+            prev_hash = hash(prev_state)
             # Compute path cost
             act_cost = metric == nothing ? 1 :
-                next_state[domain, metric] - state[domain, metric]
+                state[domain, metric] - prev_state[domain, metric]
             path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
-            cost_diff = get(path_costs, next_hash, Inf) - path_cost
+            cost_diff = get(path_costs, prev_hash, Inf) - path_cost
             if cost_diff > 0
-                if !(next_hash in keys(state_dict))
-                    state_dict[next_hash] = next_state end
-                parents[next_hash] = (state_hash, act)
-                path_costs[next_hash] = path_cost
-                # Update estimated cost from next state to goal
-                if !(next_hash in keys(queue))
-                    est_remain_cost = heuristic(domain, next_state, goal_spec)
+                if !(prev_hash in keys(state_dict))
+                    state_dict[prev_hash] = prev_state end
+                parents[prev_hash] = (state_hash, act)
+                path_costs[prev_hash] = path_cost
+                # Update estimated cost from prev state to start
+                if !(prev_hash in keys(queue))
+                    est_remain_cost = heuristic(domain, prev_state, goal_spec)
                     est_remain_cost *= h_mult
-                    enqueue!(queue, next_hash, path_cost + est_remain_cost)
+                    enqueue!(queue, prev_hash, path_cost + est_remain_cost)
                 else
-                    queue[next_hash] -= cost_diff
+                    queue[prev_hash] -= cost_diff
                 end
             end
         end
