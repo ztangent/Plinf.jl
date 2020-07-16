@@ -184,11 +184,7 @@ function train_lstm(domain, observations, fnames, poss_goals)
     goal_dim = length(poss_goals)
     # TODO: Change to accept blocks-word or grid-world
     x_train = [[block_words_RNN_conversion(domain, state) for state in observation] for observation in observations]
-    ys = getindex.(get_idx_from_fn.(fnames), 2)
-    y_train = zeros(length(ys), goal_dim)
-    for (i, v) in enumerate(ys)
-        y_train[i, v+1] = 1
-    end
+    y_train = getindex.(get_idx_from_fn.(fnames), 2)
 
     vec_rep_dim = length(x_train[1][1])
     # TODO: Change to a power of 2 instead
@@ -198,9 +194,9 @@ function train_lstm(domain, observations, fnames, poss_goals)
 end
 
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
-function train_model(model, x_train, y_train, epochs=10, lr=0.001)
+function train_model(model, x_train, y_train, batch_size=20, epochs=100, lr=0.001)
     train_ds = GoalsDataset(x_train, y_train)
-    train_dl = data.DataLoader(train_ds)
+    train_dl = data.DataLoader(train_ds, batch_size=batch_size)
 
     parameters = pybuiltin(:filter)(p->p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters, lr=lr)
@@ -212,8 +208,6 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001)
         for (x, y, l) in train_dl
             l = l.long()
             y_pred = model(x, l)
-            println(y_pred)
-            println(y[1])
             optimizer.zero_grad()
             loss = F.cross_entropy(y_pred, y[1])
             loss.backward()
@@ -221,10 +215,21 @@ function train_model(model, x_train, y_train, epochs=10, lr=0.001)
             sum_loss += loss.item()*y.shape[1]
             total += y.shape[1]
         end
-        if i % 5 == 1
-            print("train loss $(sum_loss/total), val loss $val_loss, val accuracy $val_acc, and val rmse $val_rmse")
-        end
+        correct = count_correct(model, train_dl).item()
+        println(correct/total)
+        println("train loss $(sum_loss/total), train accuracy $(correct/total)")
     end
+end
+
+function count_correct(model, train_dl)
+    correct = 0
+    for (x, y, l) in train_dl
+        l = l.long()
+        y_pred = model(x, l)
+        pred = torch.argmax(y_pred)
+        correct += pred == y
+    end
+    return correct
 end
 
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
@@ -240,6 +245,6 @@ end
         out, (ht, ct) = self.lstm(x)
         out_unnorm = self.linear(ht[1, length(ht)])
         out = F.softmax(out_unnorm)
-        return out
+        return torch.unsqueeze(out, 0)
     end
 end
