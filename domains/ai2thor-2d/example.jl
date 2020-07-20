@@ -78,9 +78,9 @@ plan, traj = astar(domain, state, goals[3])
 # Define observation noise model
 obs_params = observe_params(
     (@julog(handsfree), 0.05),
-    (@julog(xpos), normal, 0.25), (@julog(ypos), normal, 0.25),
-    (@julog(forall(item(Obj), xitem(Obj))), normal, 0.25),
-    (@julog(forall(item(Obj), yitem(Obj))), normal, 0.25)
+    (@julog(xpos), normal, 1.0), (@julog(ypos), normal, 1.0),
+    (@julog(forall(item(Obj), xitem(Obj))), normal, 1.0),
+    (@julog(forall(item(Obj), yitem(Obj))), normal, 1.0)
 )
 obs_terms = collect(keys(obs_params))
 

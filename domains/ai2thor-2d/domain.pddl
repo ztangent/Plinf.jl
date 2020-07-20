@@ -1,7 +1,6 @@
 (define (domain ai2thor-2d)
     (:requirements :fluents :adl :typing)
-    (:types cylinder block - item direction)
-    (:constants up down left right - direction)
+    (:types cylinder block - item)
     (:predicates (wall ?x ?y) (furniture ?x ?y) (obstacle ?x ?y)
                  (has ?o - item) (handsfree)
                  (reach ?x ?y) (retrieve ?i - item) (transfer ?i - item ?x ?y))
