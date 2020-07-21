@@ -375,9 +375,9 @@ function render_cb(t::Int, state, traces, weights;
         dir = i == nothing ? start_dir : plan[i].name
         if (dir == :unlock) dir = plan[i].args[2].name end
     end
-    render_objects!(state, plt; kwargs...) # Render objects in gridworld
     render_pos!(state, plt; dir=dir, kwargs...)  # Render agent's position
     render_traces!(traces, weights, plt; kwargs...) # Render trajectories
+    render_objects!(state, plt; kwargs...) # Render objects in gridworld
     title!(plt, "t = $t")
     return plt
 end

@@ -1,3 +1,10 @@
+;; ASCII ;;
+; W: wall, F: furniture, c: cylinder, b: block, s: start, .: empty
+; .....
+; .WcF.
+; sW.F.
+; .WbF.
+; .....
 (define (problem ai2thor-2d-problem-2)
   (:domain ai2thor-2d)
   (:objects cylinder1 - cylinder block1 - block)
