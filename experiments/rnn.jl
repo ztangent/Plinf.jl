@@ -195,6 +195,20 @@ end
 
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."
 function train_model(model, x_train, y_train, batch_size=20, epochs=100, lr=0.001)
+    rep_len = length(x_train[1][1])
+    sorted_x_train = sort(x_train, by=length, rev=true)
+    x_train_tensor = torch.Tensor(sorted_x_train)
+    x_train_lens = length.(sorted_x_train)
+    pad_list = []
+    const_len = x_train_lens[1]
+    for len in x_train_lens
+        push!(pad_list, 0)
+        push!(pad_list, const_len-len)
+    end
+    padding = Tuple(pad_list)
+    x_train_padded = F.pad(x_train_tensor, padding, "constant", [0 for i=1:rep_len])
+    #x_train_tensor = torch.ShortTensor(x_train_padded)
+    x_train = rnn.pack_padded_sequence(x_train_padded, x_train_lens, batch_first=True)
     train_ds = GoalsDataset(x_train, y_train)
     train_dl = data.DataLoader(train_ds, batch_size=batch_size)
 
