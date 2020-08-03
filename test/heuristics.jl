@@ -41,4 +41,16 @@ end
 
 end
 
+@testset "HSPr Heuristics" begin
+
+bw_init = init_state(bw_problem)
+bw_goal = goal_state(bw_problem)
+h_add_r = precompute(HAddR(), blocksworld, bw_init, bw_problem.goal)
+h_max_r = precompute(HMaxR(), blocksworld, bw_init, bw_problem.goal)
+
+@test h_add_r(blocksworld, bw_goal, bw_problem.goal) == 4
+@test h_max_r(blocksworld, bw_goal, bw_problem.goal) == 2
+
+end
+
 end

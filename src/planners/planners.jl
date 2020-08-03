@@ -59,6 +59,8 @@ end
 
 include("stepwise.jl")
 include("replanners.jl")
+include("common.jl")
 include("astar.jl")
 include("bfs.jl")
+include("backward.jl")
 include("external.jl")

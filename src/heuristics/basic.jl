@@ -1,14 +1,19 @@
 ## Basic heuristics ##
 export GoalCountHeuristic, ManhattanHeuristic
 
-"Heuristic that counts the number of goals unsatisfied in the domain."
-struct GoalCountHeuristic <: Heuristic end
+"Heuristic that counts the number of goals un/satisfied."
+struct GoalCountHeuristic <: Heuristic
+    dir::Symbol # :forward or :backward
+    GoalCountHeuristic() = new(:forward)
+    GoalCountHeuristic(dir) = new(dir)
+end
 
 Base.hash(::GoalCountHeuristic, h::UInt) = hash(GoalCountHeuristic, h)
 
 function compute(heuristic::GoalCountHeuristic,
                  domain::Domain, state::State, goal_spec::GoalSpec)
-    return sum([!state[domain, g] for g in goal_spec.goals])
+    count = sum([!state[domain, g] for g in goal_spec.goals])
+    return heuristic.dir == :backward ? length(goal_spec.goals) - count : count
 end
 
 "Computes Manhattan distance to the goal for the specified numeric fluents."

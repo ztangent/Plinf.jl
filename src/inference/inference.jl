@@ -1,6 +1,6 @@
 export world_importance_sampler, world_particle_filter
 
-using Gen: ParticleFilterState
+using GenParticleFilters
 
 include("utils.jl")
 include("kernels.jl")
@@ -70,14 +70,13 @@ function world_particle_filter(
     timesteps = collect(batch_size:batch_size:n_obs)
     if timesteps[end] != n_obs push!(timesteps, n_obs) end
     # Feed new observations batch-wise
-    for (batch_idx, t) in enumerate(timesteps)
+    for (batch_i, t) in enumerate(timesteps)
         if resample && get_ess(pf_state) < (n_particles * ess_threshold)
             @debug "Resampling..."
-            pf_stratified_resample!(pf_state)
+            pf_residual_resample!(pf_state)
             if rejuvenate != nothing rejuvenate(pf_state) end
         end
-        particle_filter_step!(pf_state, (t, world_args...),
-                              argdiffs, obs_choices[batch_idx])
+        pf_update!(pf_state, (t, world_args...), argdiffs, obs_choices[batch_i])
         if callback != nothing # Run callback on current traces
             trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
             callback(t, obs_traj[t], trs, ws)
