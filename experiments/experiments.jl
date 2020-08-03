@@ -1,6 +1,9 @@
 using Printf, DataFrames, CSV, Logging
 using DataStructures: OrderedDict
 using Julog, PDDL, Gen, Plinf
+pushfirst!(PyVector(pyimport("sys")."path"), pwd())
+
+py_rnn = pyimport("py_rnn")
 
 "Path to all experiment files."
 EXPERIMENTS_PATH = joinpath("./experiments")
@@ -462,14 +465,18 @@ end
 
 ## RNN training loop ##
 
-function train_rnns(path, domain_prob_idx_pairs)
+# TODO: Clean this up
+function train_rnns(path, domain_prob_idx_pairs, figures_directory)
     for (domain_name, problem_idx) in domain_prob_idx_pairs
         obs_path = joinpath(path, "observations", "training", domain_name)
         domain, problem, goals = load_problem_files(path, domain_name, problem_idx)
         init_state = initialize(problem)
         _, obs_trajs, obs_fns = load_observations(obs_path, problem_idx,
                                                   domain, init_state)
-        trained = train_lstm(domain, obs_trajs, obs_fns, goals)
+        goal_idx_pairs = get_idx_from_fn.(obs_fns)
+        x_train = [[block_words_RNN_conversion(domain, state) for state in observation] for observation in obs_trajs]
+        println(py_rnn)
+        trained = py_rnn.train_lstm(figures_directory, domain_name, problem_idx, length(goals), x_train, goal_idx_pairs)
         LSTMS[(domain, problem)] = trained
     end
 end

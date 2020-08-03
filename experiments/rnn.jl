@@ -133,7 +133,6 @@ function gems_keys_doors_RNN_conversion(domain::Domain, state::State)
     facts = state.facts
     fluents = state.fluents
     objects = [type.args[1].name for type in types if type.name != :direction]
-    println(objects)
     width, height = fluents[:width], fluents[:height]
     encoding = zeros(height, width)
     for fact in facts
@@ -172,7 +171,8 @@ end
     end
 
     function __getitem__(self, idx)
-        item = torch.from_numpy(np.asarray(self.X[idx+1], dtype=np.float32)), self.y[idx+1, :], torch.from_numpy(np.asarray(length(self.X[idx+1]), dtype=np.long))
+        #println(torch.from_numpy(np.asarray(self.X[2][idx+1], dtype=np.long)))
+        item = torch.from_numpy(np.asarray(self.X[1][idx+1], dtype=np.float32)), self.y[idx+1, :], torch.from_numpy(np.asarray(self.X[2][idx+1], dtype=np.long))
         return item
     end
 end
@@ -181,10 +181,14 @@ end
 observations, and goals is a list of the corresponding goal indices for those
 observations."
 function train_lstm(domain, observations, fnames, poss_goals)
+    println(length(poss_goals))
     goal_dim = length(poss_goals)
     # TODO: Change to accept blocks-word or grid-world
     x_train = [[block_words_RNN_conversion(domain, state) for state in observation] for observation in observations]
-    y_train = getindex.(get_idx_from_fn.(fnames), 2)
+    y_train = getindex.(get_idx_from_fn.(fnames), 1)
+
+    println("y_train")
+    println(y_train)
 
     vec_rep_dim = length(x_train[1][1])
     # TODO: Change to a power of 2 instead
@@ -197,19 +201,20 @@ end
 function train_model(model, x_train, y_train, batch_size=20, epochs=100, lr=0.001)
     rep_len = length(x_train[1][1])
     sorted_x_train = sort(x_train, by=length, rev=true)
-    x_train_tensor = torch.Tensor(sorted_x_train)
     x_train_lens = length.(sorted_x_train)
-    pad_list = []
+    x_train_padded = []
     const_len = x_train_lens[1]
-    for len in x_train_lens
-        push!(pad_list, 0)
-        push!(pad_list, const_len-len)
+    pad_val = [0 for i=1:rep_len]
+    for (i, len) in enumerate(x_train_lens)
+        padded_seq = sorted_x_train[i]
+        for j=1:const_len - len
+            push!(padded_seq, pad_val)
+        end
+        push!(x_train_padded, padded_seq)
     end
-    padding = Tuple(pad_list)
-    x_train_padded = F.pad(x_train_tensor, padding, "constant", [0 for i=1:rep_len])
-    #x_train_tensor = torch.ShortTensor(x_train_padded)
-    x_train = rnn.pack_padded_sequence(x_train_padded, x_train_lens, batch_first=True)
-    train_ds = GoalsDataset(x_train, y_train)
+
+    x_train_tensor = torch.ShortTensor(x_train_padded)
+    train_ds = GoalsDataset((x_train_tensor, x_train_lens), y_train)
     train_dl = data.DataLoader(train_ds, batch_size=batch_size)
 
     parameters = pybuiltin(:filter)(p->p.requires_grad, model.parameters())
@@ -251,14 +256,23 @@ end
     function __init__(self, vec_rep_dim, hidden_dim, goal_count)
         pybuiltin(:super)(LSTM_variable_input, self).__init__()
         self.hidden_dim = hidden_dim
-        self.lstm = nn.LSTM(vec_rep_dim, hidden_dim)
+        self.lstm = nn.LSTM(vec_rep_dim, hidden_dim, batch_first=true)
         self.linear = nn.Linear(hidden_dim, goal_count)
     end
 
     function forward(self, x, l)
-        out, (ht, ct) = self.lstm(x)
+        #println(l)
+        packed = rnn.pack_padded_sequence(x, l, batch_first=true)
+        println(typeof(packed))
+        input, batch_sizes, sorted_indices, unsorted_indices = packed
+        println(batch_sizes)
+        #println(size(packed[2]))
+        out, (ht, ct) = self.lstm(packed)
+        println(3)
         out_unnorm = self.linear(ht[1, length(ht)])
+        println(4)
         out = F.softmax(out_unnorm)
+        println(5)
         return torch.unsqueeze(out, 0)
     end
 end
