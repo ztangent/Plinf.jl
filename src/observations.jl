@@ -142,19 +142,20 @@ end
 "Construct array of Gen choicemaps from observed trajectory."
 function traj_choicemaps(traj::Vector{State}, domain::Union{Domain,Nothing},
                          terms::Vector{<:Term}, traj_addr=:timestep,
-                         obs_addr=:obs; as_choicemap::Bool=false, batch_size=1)
+                         obs_addr=:obs; as_choicemap::Bool=false,
+                         batch_size::Int=1, offset::Int=0)
     traj_choices = ChoiceMap[]
     batch_choices = choicemap()
     if as_choicemap batch_size = length(traj) end
     for (t, state) in enumerate(traj)
         state_choices = state_choicemap(state, domain, terms, obs_addr)
         set_submap!(batch_choices, (traj_addr => t), state_choices)
-        if mod(t, batch_size) == 0
+        if t > offset && mod(t-offset, batch_size) == 0
             push!(traj_choices, batch_choices)
             batch_choices = choicemap()
         end
     end
-    if mod(length(traj), batch_size) > 0 push!(traj_choices, batch_choices) end
+    if batch_choices != choicemap() push!(traj_choices, batch_choices) end
     return as_choicemap ? traj_choices[1] : traj_choices
 end
 

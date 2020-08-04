@@ -1,3 +1,5 @@
+# Custom MCMC proposals and kernels
+
 export pf_replan_move_accept!, pf_replan_move_reweight!
 export pf_goal_move_accept!, pf_goal_move_reweight!
 export pf_mixed_move_accept!, pf_mixed_move_reweight!
