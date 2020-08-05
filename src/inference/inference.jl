@@ -57,7 +57,7 @@ function world_particle_filter(
         obs_traj::Vector{State}, obs_terms::Vector{<:Term}, n_particles::Int;
         batch_size::Int=1, delay::Int=0, strata=nothing, callback=nothing,
         ess_threshold::Float64=1/4, update_proposal=nothing,
-        resample=true, rejuvenate=nothing)
+        priority_fn=w->w*0.75, resample=true, rejuvenate=nothing)
     # Construct choicemaps from observed trajectory
     @unpack domain = world_config
     n_obs = length(obs_traj)
@@ -80,7 +80,7 @@ function world_particle_filter(
     for (batch_i, t) in enumerate(timesteps)
         if resample && get_ess(pf_state) < (n_particles * ess_threshold)
             @debug "Resampling..."
-            pf_residual_resample!(pf_state)
+            pf_residual_resample!(pf_state, priority_fn=priority_fn)
             if rejuvenate != nothing rejuvenate(pf_state) end
         end
         t_prev = batch_i == 1 ? 0 : t - batch_size
