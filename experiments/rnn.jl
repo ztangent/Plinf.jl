@@ -180,7 +180,7 @@ end
 "state_seqs is a list of sequences of states in a corresponding list of
 observations, and goals is a list of the corresponding goal indices for those
 observations."
-function train_lstm(domain, observations, fnames, poss_goals)
+function train_and_test_lstm(domain, observations, fnames, poss_goals)
     println(length(poss_goals))
     goal_dim = length(poss_goals)
     # TODO: Change to accept blocks-word or grid-world

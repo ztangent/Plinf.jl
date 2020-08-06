@@ -1,6 +1,7 @@
 using Printf, DataFrames, CSV, Logging
 using DataStructures: OrderedDict
-using Julog, PDDL, Gen, Plinf
+using Julog, PDDL, Gen, Plinf, PyCall
+import Dates
 pushfirst!(PyVector(pyimport("sys")."path"), pwd())
 
 py_rnn = pyimport("py_rnn")
@@ -465,18 +466,34 @@ end
 
 ## RNN training loop ##
 
-# TODO: Clean this up
-function train_rnns(path, domain_prob_idx_pairs, figures_directory)
-    for (domain_name, problem_idx) in domain_prob_idx_pairs
-        obs_path = joinpath(path, "observations", "training", domain_name)
+function load_data(path, domain_name, probs, data_type)
+    all_xs = []
+    all_goal_idx_pairs = []
+    for problem_idx in probs
+        obs_path = joinpath(path, "observations", data_type, domain_name)
         domain, problem, goals = load_problem_files(path, domain_name, problem_idx)
         init_state = initialize(problem)
         _, obs_trajs, obs_fns = load_observations(obs_path, problem_idx,
                                                   domain, init_state)
+        xs = [[block_words_RNN_conversion(domain, state) for state in observation] for observation in obs_trajs]
+        all_xs = vcat(all_xs, xs)
         goal_idx_pairs = get_idx_from_fn.(obs_fns)
-        x_train = [[block_words_RNN_conversion(domain, state) for state in observation] for observation in obs_trajs]
-        println(py_rnn)
-        trained = py_rnn.train_lstm(figures_directory, domain_name, problem_idx, length(goals), x_train, goal_idx_pairs)
-        LSTMS[(domain, problem)] = trained
+        all_goal_idx_pairs = vcat(all_goal_idx_pairs, goal_idx_pairs)
     end
+    return all_xs, all_goal_idx_pairs
+end
+
+
+# TODO: Clean this up
+function train_rnns(path, domain_name, test_probs, train_probs, all_prob_idxs, test_optimality, figures_directory)
+    moment_begin = Dates.now()
+    t_begin = Dates.value(moment_begin)
+    train_xs, train_goal_idx_pairs = load_data(path, domain_name, train_probs, "training")
+    test_xs, test_goal_idx_pairs = load_data(path, domain_name, test_probs, test_optimality)
+
+    trained = py_rnn.train_and_test_lstm(figures_directory, domain_name, train_probs, test_probs, length(train_goals), x_train, x_test, train_goal_idx_pairs, test_goal_idx_pairs, test_optimality)
+    LSTMS[(domain, problem)] = trained
+    moment_end = Dates.now()
+    t_end = Dates.value(moment_end)
+    println("Training time: $(t_end-t_begin)")
 end
