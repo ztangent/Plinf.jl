@@ -138,7 +138,7 @@ function setup_model(domain::Domain, init_state::State, goals)
     heuristic = get(HEURISTICS, string(domain.name), HAdd)()
     heuristic = precompute(heuristic, domain)
     planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
-    replanner = Replanner(planner=planner, persistence=(4, 0.95))
+    replanner = Replanner(planner=planner, persistence=(2, 0.95))
     agent_planner = replanner # planner
 
     # Initialize world model with planner, goal prior, initial state, and obs params
@@ -294,7 +294,7 @@ function run_sips_inference(goal_idx, traj, goals, obs_terms,
     with_logger(logger) do
         traces, weights = world_particle_filter(
             world_init, world_config, traj, obs_terms, n_samples;
-            resample=RESAMPLE, rejuvenate=mixed_rejuv!,
+            resample=RESAMPLE, rejuvenate=REJUVENATE,
             callback=data_callback, strata=goal_strata)
     end
 
