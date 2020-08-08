@@ -68,7 +68,8 @@ end
 
 "Generate a dataset of observations for the given domain / problem."
 function generate_observations(path, domain_name::String, problem_idx::Int,
-                               optimal::Bool=false, n_obs::Int=2, subdir=nothing)
+                               optimal::Bool=false, n_obs::Int=2; subdir=nothing,
+                               search_noise=0.1, persistence=(2, 0.95))
     domain, problem, goals = load_problem_files(path, domain_name, problem_idx)
     init_state, n_goals = initialize(problem), length(goals)
     # Make directory for observations
@@ -80,8 +81,8 @@ function generate_observations(path, domain_name::String, problem_idx::Int,
     if optimal # Generate optimal plans (assuming an admissible heuristic)
         planner = AStarPlanner(heuristic=heuristic)
     else # Generate non-optimal plans using a replanning model
-        planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
-        planner = Replanner(planner=planner, persistence=(2, 0.95))
+        planner = ProbAStarPlanner(heuristic=heuristic, search_noise=search_noise)
+        planner = Replanner(planner=planner, persistence=persistence)
     end
     # Generate n_obs plans for each goal
     println("Generating $n_obs plans per goal for problem $(problem_idx)...")
@@ -103,7 +104,7 @@ end
 
 "Generate a dataset of observations for the given domain / problem."
 function generate_observations(path, domain_name::String, optimal::Bool=false,
-                               n_obs::Int=2, subdir=nothing)
+                               n_obs::Int=2; kwargs...)
     # Extract problem indices
     problem_fns = filter(fn -> occursin(r"problem_(\d+).pddl", fn),
                         readdir(joinpath(path, "problems", domain_name)))
@@ -112,7 +113,7 @@ function generate_observations(path, domain_name::String, optimal::Bool=false,
     # Generate observations for each problem
     println("Generating observations for $domain_name...")
     for idx in problem_idxs
-        generate_observations(path, domain_name, idx, optimal, n_obs, subdir)
+        generate_observations(path, domain_name, idx, optimal, n_obs; kwargs...)
     end
 end
 
