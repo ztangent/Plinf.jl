@@ -19,17 +19,23 @@ goal = [problem.goal]
 goal_colors = [colorant"#D41159", colorant"#FFC20A", colorant"#1A85FF"]
 gem_terms = @julog [gem1, gem2, gem3]
 gem_colors = Dict(zip(gem_terms, goal_colors))
+color_names = ["red", "yellow", "blue"]
 
 #--- Annotate Plans ---#
 
-function collect_human_data(problem_idx)
+function collect_doors_keys_gems_human_data(problem_idx, goal_idx)
+    path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
+    domain = load_domain(joinpath(path, "domain.pddl"))
+
     problem = load_problem(joinpath(path, "problem-$(problem_idx).pddl"))
     plan = Term[]
     state = init_state(problem)
+    gem_color = color_names[goal_idx]
     while true
         display(render(state; gem_colors=gem_colors,
                        show_pos=true, show_inventory=true))
         actions = available(state, domain)
+        println("Please pick up the $gem_color gem.")
         println("Select action by number (press enter to terminate):")
         println(join([rpad("($i) $a", 20) for (i, a) in enumerate(actions)]))
         input = readline(stdin)
@@ -40,8 +46,8 @@ function collect_human_data(problem_idx)
     end
     # Write plan to file
     plan_str = write_pddl.(plan)
-    obs_fn = "doors-keys-gems_problem_$(problem_idx)_1.dat"
-    open(joinpath(path, obs_fn), "w") do f
+    obs_fn = "doors-keys-gems_problem_$(problem_idx)_goal_$(goal_idx)_1.dat"
+    open(joinpath(dirname(pathof(Plinf)), "..", "annotations", "doors-keys-gems", obs_fn), "w") do f
         for act in plan_str println(f, act) end
     end
     return plan

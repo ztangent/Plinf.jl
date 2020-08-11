@@ -1,5 +1,0 @@
-draw
-crow
-rope
-power
-wade

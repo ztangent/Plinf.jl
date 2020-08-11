@@ -17,13 +17,19 @@ goal = problem.goal
 
 #--- Annotate Plans ---#
 
-function collect_human_data(problem_idx)
+function collect_block_words_human_data(problem_idx, goal_idx)
+    path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
+    domain = load_domain(joinpath(path, "domain.pddl"))
+
+    goals = get_goal_text(path, problem_idx)
+    goal_word = goals[goal_idx]
     problem = load_problem(joinpath(path, "problem-$(problem_idx).pddl"))
     plan = Term[]
     state = init_state(problem)
     while true
         display(render(state))
         actions = available(state, domain)
+        println("Please spell the word $goal_word.")
         println("Select action by number (press enter to terminate):")
         println(join([rpad("($i) $a", 20) for (i, a) in enumerate(actions)]))
         input = readline(stdin)
@@ -34,11 +40,20 @@ function collect_human_data(problem_idx)
     end
     # Write plan to file
     plan_str = write_pddl.(plan)
-    obs_fn = "block-words_problem_$(problem_idx)_1.dat"
-    open(joinpath(path, obs_fn), "w") do f
+    obs_fn = "block-words_problem_$(problem_idx)_goal_$(goal_idx)_1.dat"
+    open(joinpath(dirname(pathof(Plinf)), "..", "annotations", "block-words", obs_fn), "w") do f
         for act in plan_str println(f, act) end
     end
     return plan
+end
+
+function get_goal_text(path, problem_idx)
+    goals = []
+    f = open(joinpath(path, "goals-$(problem_idx).txt"), "r")
+    for line in readlines(f)
+        push!(goals, line)
+    end
+    return goals
 end
 
 #--- Visualize Plans ---#
