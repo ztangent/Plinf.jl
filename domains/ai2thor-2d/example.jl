@@ -18,9 +18,6 @@ start_pos = (state[:xpos], state[:ypos])
 goal = [problem.goal]
 goal_colors = [colorant"#D41159", colorant"#FFC20A", colorant"#1A85FF"]
 
-gem_terms = @julog [gem1, gem2, gem3]
-gem_colors = Dict(zip(gem_terms, goal_colors))
-
 #--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
@@ -40,7 +37,7 @@ anim = anim_plan(tr, plt)
 
 # Visualize distribution over trajectories induced by planner
 trajs = [planner(domain, state, goal)[2] for i in 1:20]
-plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=false)
+plt = render(state; start=start_pos, show_objs=false)
 anim = anim_traj(trajs, plt; alpha=0.1)
 
 # Visualize sample-based replanning search
@@ -52,7 +49,7 @@ anim = anim_replan(tr, plt; show_objs=false)
 
 # Visualize distribution over trajectories induced by replanner
 trajs = [replanner(domain, state, goal)[2] for i in 1:20]
-anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
+anim = anim_traj(trajs, plt; alpha=0.1)
 
 #--- Goal Inference Setup ---#
 
@@ -101,7 +98,7 @@ traces, weights, lml_est =
                              use_proposal=true, strata=goal_strata)
 
 # Plot sampled trajectory for each trace
-plt = render(state; start=start_pos, gem_colors=gem_colors)
+plt = render(state; start=start_pos)
 render_traces!(traces, weights, plt; goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
 
