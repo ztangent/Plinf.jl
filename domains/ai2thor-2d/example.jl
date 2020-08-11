@@ -18,11 +18,14 @@ start_pos = (state[:xpos], state[:ypos])
 goal = [problem.goal]
 goal_colors = [colorant"#D41159", colorant"#FFC20A", colorant"#1A85FF"]
 
+gem_terms = @julog [gem1, gem2, gem3]
+gem_colors = Dict(zip(gem_terms, goal_colors))
+
 #--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
 planner = AStarPlanner(heuristic=GoalManhattan())
-plan, traj = planner(domain, state, goals[1])
+plan, traj = planner(domain, state, goal[1])
 println("== Plan ==")
 display(plan)
 plt = render(state; start=start_pos)
