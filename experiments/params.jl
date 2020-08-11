@@ -14,6 +14,22 @@ function Plinf.compute(heuristic::GemHeuristic,
     return min_dist + GoalCountHeuristic()(domain, state, goal_spec)
 end
 
+"Maze distance heuristic to location of goal gem."
+struct GemMazeDist <: Heuristic end
+
+maze_planner =
+    AStarPlanner(heuristic=ManhattanHeuristic(@julog([xpos, ypos])))
+
+function Plinf.compute(heuristic::GemMazeDist,
+                       domain::Domain, state::State, goal_spec::GoalSpec)
+    relaxed_state = copy(state)
+    for t in find_matches(@julog(door(X, Y)), state)
+        relaxed_state[t] = false
+    end
+    relaxed_plan = maze_planner(domain, relaxed_state, goal_spec)[1]
+    return length(relaxed_plan)
+end
+
 "Custom relaxed distance heuristic for the taxi domain."
 struct TaxiHeuristic <: Heuristic end
 
@@ -35,6 +51,10 @@ function Plinf.compute(heuristic::TaxiHeuristic,
     dist = abs(cur_loc_x - goal_loc_x) + abs(cur_loc_y - goal_loc_y)
     return dist
 end
+
+"Planner parameters for inference."
+SEARCH_NOISE = 0.1
+PERSISTENCE = (2, 0.95)
 
 "Planner heuristics for each domain."
 HEURISTICS = Dict{String,Any}()

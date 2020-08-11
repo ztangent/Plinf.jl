@@ -138,8 +138,8 @@ function setup_model(domain::Domain, init_state::State, goals)
     # Assume either a planning agent or replanning agent as a model
     heuristic = get(HEURISTICS, string(domain.name), HAdd)()
     heuristic = precompute(heuristic, domain)
-    planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
-    replanner = Replanner(planner=planner, persistence=(2, 0.95))
+    planner = ProbAStarPlanner(heuristic=heuristic, search_noise=SEARCH_NOISE)
+    replanner = Replanner(planner=planner, persistence=PERSISTENCE)
     agent_planner = replanner # planner
 
     # Initialize world model with planner, goal prior, initial state, and obs params
