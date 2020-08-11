@@ -299,10 +299,54 @@ end
 ## Gridworld animation functions ##
 
 "Render animation of state trajectory/ies."
+function anim_traj(traj::AbstractVector{State}, canvas=nothing, animation=nothing;
+                   show=true, fps=3, show_objs=true, show_inventory=true,
+                   plan=nothing, start_pos=nothing, start_dir=nothing,
+                   splitpoints=Int[], kwargs...)
+    canvas = canvas == nothing ?
+        render(traj[1]; show_objs=false, kwargs...) : canvas
+    animation = animation == nothing ? Animation() : animation
+    splitflag = length(splitpoints) > 0
+    splitanims, splitpoints = Animation[], collect(splitpoints)
+    dir = start_dir
+    for (t, state) in enumerate(traj)
+        plt = deepcopy(canvas)
+        if !isnothing(plan) # Render past actions if provided
+            part_plan = plan[1:max(1,min(t-1, length(plan)))]
+            render!(part_plan, start_pos, plt; fade=true, trunc=6, color=:black)
+            i = findlast(a -> a.name in [:up, :down, :left, :right, :unlock],
+                         part_plan)
+            dir = i == nothing ? start_dir : part_plan[i].name
+            if (dir == :unlock) dir = part_plan[i].args[2].name end
+        end
+        render_pos!(state, plt; dir=dir, kwargs...) # Render position
+        if show_objs # Render objcets
+            render_objects!(state, plt; kwargs...) end
+        if show_inventory # Render inventory
+            i_plt = render_inventory!(state; kwargs...)
+            sz = [plt[:size][1], plt[:size][2] + i_plt[:size][2]]
+            plt = plot(plt, i_plt; size=sz,
+                       layout=grid(2,1, heights=[0.9, 0.1]))
+        end
+        frame(animation)
+        if length(splitpoints) > 0 && t >= splitpoints[1]
+            # Split animation if split points are given
+            push!(splitanims, animation)
+            if t < length(traj) animation = Animation() end
+            popfirst!(splitpoints)
+        end
+    end
+    if splitflag && length(animation.frames) > 0
+        push!(splitanims, animation) end
+    if show
+        display(gif(animation; fps=fps)) end
+    return length(splitanims) > 0 ? splitanims : animation
+end
+
+"Render animation of multiple state trajectories."
 function anim_traj(trajs, canvas=nothing, animation=nothing;
                    show=true, fps=3, show_objs=true, show_inventory=true,
                    kwargs...)
-    if isa(trajs, Vector{State}) trajs = [trajs] end
     canvas = canvas == nothing ?
         render(trajs[1][1]; show_objs=false, kwargs...) : canvas
     animation = animation == nothing ? Animation() : animation
@@ -311,14 +355,7 @@ function anim_traj(trajs, canvas=nothing, animation=nothing;
         for traj in trajs
             state = t <= length(traj) ? traj[t] : traj[end]
             render_pos!(state, plt; kwargs...)
-            if show_objs
-                render_objects!(state, plt; kwargs...) end
-            if show_inventory && length(trajs) == 1
-                i_plt = render_inventory!(state; kwargs...)
-                sz = [plt[:size][1], plt[:size][2] + i_plt[:size][2]]
-                plt = plot(plt, i_plt; size=sz,
-                           layout=grid(2,1, heights=[0.9, 0.1]))
-            end
+            if show_objs render_objects!(state, plt; kwargs...) end
         end
         frame(animation)
     end
