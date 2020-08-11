@@ -47,7 +47,7 @@ function collect_human_data(problem_idx)
     return plan
 end
 
-#--- Visualize Plans ---#
+# #--- Visualize Plans ---#
 #
 # # Check that A* heuristic search correctly solves the problem
 # planner = AStarPlanner(heuristic=GemManhattan())
