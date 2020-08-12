@@ -23,10 +23,13 @@ color_names = ["red", "yellow", "blue"]
 
 #--- Annotate Plans ---#
 
-function collect_doors_keys_gems_human_data(problem_idx, goal_idx)
-    path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
-    domain = load_domain(joinpath(path, "domain.pddl"))
+function annotate_plans()
+    for problem_idx=3:7, goal_idx=1:3
+        collect_human_data(problem_idx, goal_idx)
+    end
+end
 
+function collect_human_data(problem_idx, goal_idx)
     problem = load_problem(joinpath(path, "problem-$(problem_idx).pddl"))
     plan = Term[]
     state = init_state(problem)
@@ -47,6 +50,7 @@ function collect_doors_keys_gems_human_data(problem_idx, goal_idx)
     # Write plan to file
     plan_str = write_pddl.(plan)
     obs_fn = "doors-keys-gems_problem_$(problem_idx)_goal_$(goal_idx)_1.dat"
+    mkpath(joinpath(dirname(pathof(Plinf)), "..", "annotations", "doors-keys-gems"))
     open(joinpath(dirname(pathof(Plinf)), "..", "annotations", "doors-keys-gems", obs_fn), "w") do f
         for act in plan_str println(f, act) end
     end

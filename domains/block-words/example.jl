@@ -17,10 +17,13 @@ goal = problem.goal
 
 #--- Annotate Plans ---#
 
-function collect_block_words_human_data(problem_idx, goal_idx)
-    path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
-    domain = load_domain(joinpath(path, "domain.pddl"))
+function annotate_plans()
+    for problem_idx=1:3, goal_idx=1:5
+        collect_human_data(problem_idx, goal_idx)
+    end
+end
 
+function collect_human_data(problem_idx, goal_idx)
     goals = get_goal_text(path, problem_idx)
     goal_word = goals[goal_idx]
     problem = load_problem(joinpath(path, "problem-$(problem_idx).pddl"))
@@ -41,6 +44,7 @@ function collect_block_words_human_data(problem_idx, goal_idx)
     # Write plan to file
     plan_str = write_pddl.(plan)
     obs_fn = "block-words_problem_$(problem_idx)_goal_$(goal_idx)_1.dat"
+    mkpath(joinpath(dirname(pathof(Plinf)), "..", "annotations", "block-words"))
     open(joinpath(dirname(pathof(Plinf)), "..", "annotations", "block-words", obs_fn), "w") do f
         for act in plan_str println(f, act) end
     end
