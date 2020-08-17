@@ -17,11 +17,11 @@ include("params.jl")
 
 "Extract goal and trajectory indices."
 function get_idx_from_fn(fn)
-    m = match(r".*_goal(\d+)_(\d+)\..*", fn)
+    m = match(r".*problem(\d+)_goal(\d+)_(\d+).*", fn)
     if m == nothing
-        return parse(Int, match(r".*_goal(\d+)\..*", fn).captures[1])
+        return parse(Int, match(r".*_goal(\d+).*", fn).captures[1])
     else
-        return (parse(Int, m.captures[1]), parse(Int, m.captures[2]))
+        return Tuple(parse.(Int, m.captures))
     end
 end
 
@@ -283,9 +283,12 @@ function run_sips_inference(goal_idx, traj, goals, obs_terms,
     end
 
     # Set up rejuvenation moves
-    goal_rejuv! = pf -> pf_goal_move_accept!(pf, goals)
-    plan_rejuv! = pf -> pf_replan_move_accept!(pf)
-    mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goals; mix_prob=0.50)
+    rejuv_fns = Dict(
+        :goal => pf -> pf_goal_move_accept!(pf, goals),
+        :replan => pf -> pf_replan_move_accept!(pf),
+        :mixed => pf -> pf_mixed_move_accept!(pf, goals; mix_prob=0.50),
+        nothing => nothing
+    )
 
     # Run a particle filter to perform online goal inference
     n_goals = length(goals)
@@ -295,7 +298,7 @@ function run_sips_inference(goal_idx, traj, goals, obs_terms,
     with_logger(logger) do
         traces, weights = world_particle_filter(
             world_init, world_config, traj, obs_terms, n_samples;
-            resample=RESAMPLE, rejuvenate=REJUVENATE,
+            resample=RESAMPLE, rejuvenate=rejuv_fns[REJUVENATE],
             callback=data_callback, strata=goal_strata)
     end
 
