@@ -90,9 +90,9 @@ get_action(rp::ReplanState)::Term =
     # Plan to achieve the goals until the maximum node budget
     part_plan, part_traj =
         @trace(sample_plan(planner, domain, state, goal_spec), :subplan)
-    if part_plan == nothing || length(part_plan) == 0
+    if isnothing(part_plan) || length(part_plan) == 0
         # Return no-op if goal cannot be reached, or plan is of zero-length
-        plan_done |= (part_plan == nothing) # Terminate if goal is unreachable
+        plan_done |= isnothing(part_plan)  # Terminate if goal is unreachable
         part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
     end
     return ReplanState(1, part_plan, part_traj, plan_done)
@@ -105,7 +105,7 @@ end
                                   obs_states::Vector{<:Union{State,Nothing}},
                                   proposal_args::Union{Tuple,Nothing})
     @unpack planner, persistence = replanner
-    max_resource = proposal_args == nothing ? nothing : proposal_args[1]
+    max_resource = proposal_args === nothing ? nothing : proposal_args[1]
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
     state = rp.part_traj[rel_step] # Get expected current state
@@ -118,7 +118,7 @@ end
         return ReplanState(rel_step, rp.part_plan, rp.part_traj, plan_done)
     end
     # Otherwise, make a new partial plan from the current state
-    if max_resource == nothing
+    if isnothing(max_resource)
         n_attempts, p_cont = persistence  # Sample a planner resource bound
         max_resource = @trace(neg_binom(n_attempts, 1-p_cont), :max_resource)
     else
@@ -128,9 +128,9 @@ end
     # Plan to achieve the goals until the maximum node budget
     part_plan, part_traj = @trace(propose_plan(planner, domain, state,
                                                goal_spec, obs_states), :subplan)
-    if part_plan == nothing || length(part_plan) == 0
+    if isnothing(part_plan) || length(part_plan) == 0
         # Return no-op if goal cannot be reached, or plan is of zero-length
-        plan_done |= (part_plan == nothing) # Terminate if goal is unreachable
+        plan_done |= isnothing(part_plan)  # Terminate if goal is unreachable
         part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
     end
     return ReplanState(1, part_plan, part_traj, plan_done)

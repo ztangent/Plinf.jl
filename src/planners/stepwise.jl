@@ -53,7 +53,7 @@ get_step_proposal(::Planner)::GenerativeFunction = planner_propose_step
    if ps.step == 0 # Calls planner at the start
        call = get_call(planner)
        plan, traj = @trace(call(planner, domain, state, goal_spec))
-       if plan == nothing || traj == nothing # Return no-op on plan failure
+       if isnothing(plan) || isnothing(traj)  # Return no-op on plan failure
            plan, traj = Term[Const(PDDL.no_op.name)], State[state]
        end
        return PlanState(1, plan, traj)

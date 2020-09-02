@@ -1,6 +1,6 @@
 export world_importance_sampler, world_particle_filter
 
-using GenParticleFilters
+using Gen: ParticleFilterState
 
 include("utils.jl")
 include("kernels.jl")
@@ -16,7 +16,7 @@ function world_importance_sampler(
     obs_choices = traj_choicemaps(obs_traj, domain, obs_terms;
                                   as_choicemap=true)
     # Initialize traces of world model
-    init_traces, _ = strata == nothing ?
+    init_traces, _ = strata === nothing ?
         unzip(generate(init_world_model, (world_init,)) for i in 1:n_samples) :
         enumerate_traces(init_world_model, (world_init,), strata)
     # Compute importance sample for each initial trace
@@ -43,7 +43,7 @@ function world_importance_sampler(
     lml_est = logsumexp(weights) - log(n_samples)
     weights = lognorm(weights)
     # Run callback on sampled traces
-    if callback != nothing
+    if !isnothing(callback)
         callback(n_obs, obs_traj[end], traces, weights)
     end
     # Return traces and their weights
@@ -70,14 +70,15 @@ function world_particle_filter(
     timesteps = collect(batch_size:batch_size:n_obs)
     if timesteps[end] != n_obs push!(timesteps, n_obs) end
     # Feed new observations batch-wise
-    for (batch_i, t) in enumerate(timesteps)
+    for (batch_idx, t) in enumerate(timesteps)
         if resample && get_ess(pf_state) < (n_particles * ess_threshold)
             @debug "Resampling..."
-            pf_residual_resample!(pf_state)
-            if rejuvenate != nothing rejuvenate(pf_state) end
+            pf_stratified_resample!(pf_state)
+            if !isnothing(rejuvenate) rejuvenate(pf_state) end
         end
-        pf_update!(pf_state, (t, world_args...), argdiffs, obs_choices[batch_i])
-        if callback != nothing # Run callback on current traces
+        particle_filter_step!(pf_state, (t, world_args...),
+                              argdiffs, obs_choices[batch_idx])
+        if !isnothing(callback)  # Run callback on current traces
             trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
             callback(t, obs_traj[t], trs, ws)
         end
