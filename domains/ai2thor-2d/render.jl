@@ -8,8 +8,8 @@ function state_to_array(state::State)
     width, height = state[:width], state[:height]
     array = zeros(Int64, (width, height))
     for x=1:width, y=1:height
-        if state[:(wall($x, $y))] array[y, x] = 1 end
-        if state[:(furniture($x, $y))] array[y, x] = 2 end
+        if state[:(wall($x, $y))] array[y, x] = 2 end
+        if state[:(furniture($x, $y))] array[y, x] = 1 end
     end
     return array, (width, height)
 end
@@ -100,7 +100,7 @@ function render!(state::State, plt=nothing; start=nothing, plan=nothing,
                yticks=(collect(0:size(array)[2]+1) .- 0.5, []))
     xgrid!(plt, :on, :black, 2, :dot, 0.75)
     ygrid!(plt, :on, :black, 2, :dot, 0.75)
-    cmap = cgrad([RGBA(1,1,1,0), RGBA(0,0,0,1), RGBA(0.75,0.06,0.235,1)])
+    cmap = cgrad([RGBA(1,1,1,0), RGBA(0.75,0.06,0.235,1), RGBA(0.1,0.1,0.1,1)])
     heatmap!(plt, array, aspect_ratio=1, color=cmap, colorbar_entry=false)
     # Plot start position
     if isa(start, Tuple{Int,Int})
