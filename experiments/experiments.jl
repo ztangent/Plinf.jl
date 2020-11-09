@@ -466,7 +466,7 @@ end
 
 ## RNN training loop ##
 
-function load_data(path, domain_name, probs, data_type)
+function load_data(path, domain_name, probs, poss_goals_per_prob, data_type)
     all_xs = []
     all_goal_idx_pairs = []
     for problem_idx in probs
@@ -478,6 +478,10 @@ function load_data(path, domain_name, probs, data_type)
         xs = [[block_words_RNN_conversion(domain, state) for state in observation] for observation in obs_trajs]
         all_xs = vcat(all_xs, xs)
         goal_idx_pairs = get_idx_from_fn.(obs_fns)
+        if goal_idx_pairs[1] isa Number
+            goal_idx_pairs = [(x, 0) for x in goal_idx_pairs]
+        end
+        goal_idx_pairs = [(problem_idx * poss_goals_per_prob + goal, idx) for (goal, idx) in goal_idx_pairs]
         all_goal_idx_pairs = vcat(all_goal_idx_pairs, goal_idx_pairs)
     end
     return all_xs, all_goal_idx_pairs
@@ -485,15 +489,26 @@ end
 
 
 # TODO: Clean this up
-function train_rnns(path, domain_name, test_probs, train_probs, all_prob_idxs, test_optimality, figures_directory)
+# TODO: Remove need for poss_goals_per_prob arg
+# Assumes that each problem has the same number of possible goals
+function train_rnns(path, domain_name, test_probs, train_probs, total_num_poss_goals, poss_goals_per_prob, test_optimality, figures_directory)
     moment_begin = Dates.now()
     t_begin = Dates.value(moment_begin)
-    train_xs, train_goal_idx_pairs = load_data(path, domain_name, train_probs, "training")
-    test_xs, test_goal_idx_pairs = load_data(path, domain_name, test_probs, test_optimality)
+    train_xs, train_goal_idx_pairs = load_data(path, domain_name, train_probs, poss_goals_per_prob, "training")
+    test_xs, test_goal_idx_pairs = load_data(path, domain_name, test_probs, poss_goals_per_prob, test_optimality)
 
-    trained = py_rnn.train_and_test_lstm(figures_directory, domain_name, train_probs, test_probs, length(train_goals), x_train, x_test, train_goal_idx_pairs, test_goal_idx_pairs, test_optimality)
-    LSTMS[(domain, problem)] = trained
+    trained = py_rnn.train_and_test_lstm(figures_directory, domain_name,
+                                         train_probs, test_probs,
+                                         total_num_poss_goals, train_xs, test_xs,
+                                         train_goal_idx_pairs,
+                                         test_goal_idx_pairs, test_optimality)
+    LSTMS[(domain_name, train_probs)] = trained
     moment_end = Dates.now()
     t_end = Dates.value(moment_end)
     println("Training time: $(t_end-t_begin)")
+end
+
+
+function train_all_permutations()
+    
 end

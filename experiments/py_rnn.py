@@ -33,7 +33,7 @@ def train_model(model, x_train, x_test, y_train, y_test, directory, domain,
     sorted_y_train = [y for (x, y, pairs) in sorted_train_pairs]
     sorted_x_train = [x for (x, y, pairs) in sorted_train_pairs]
 
-    sorted_test_pairs = sorted(zip(x_train, y_train, test_goal_idx_pairs),
+    sorted_test_pairs = sorted(zip(x_test, y_test, test_goal_idx_pairs),
                                key=lambda pair: len(pair[0]), reverse=True)
     sorted_y_test = [y for (x, y, pairs) in sorted_test_pairs]
     sorted_x_test = [x for (x, y, pairs) in sorted_test_pairs]
