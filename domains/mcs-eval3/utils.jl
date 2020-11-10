@@ -47,3 +47,11 @@ function print_goal_probs(goal_probs)
     end
     print("\n")
 end
+
+function kl_divergence(probs_1, probs_2)
+    return sum(p1 * (log(p1) - log(p2)) for (p1, p2) in zip(probs_1, probs_2))
+end
+
+function total_variation(probs_1, probs_2)
+    return 0.5 * sum(abs(p1-p2) for (p1, p2) in zip(probs_1, probs_2))
+end

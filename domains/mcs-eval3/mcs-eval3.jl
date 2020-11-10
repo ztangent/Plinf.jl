@@ -8,7 +8,7 @@ include("render.jl")
 #--- Initial Setup ---#
 
 # Load domain and problem
-path = joinpath(dirname(pathof(Plinf)), "..", "domains", "ai2thor-2d")
+path = joinpath(dirname(pathof(Plinf)), "..", "domains", "mcs-eval3")
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "mcs-eval3-map1-goal1.pddl"))
 
@@ -37,7 +37,7 @@ goal_colors= [cgrad(:plasma)[1], cgrad(:plasma)[128]]
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
-    GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
+    GoalSpec(goals[{:goal} ~ categorical([0.5, 0.5])])
 end
 goal_strata = Dict((:goal_init => :goal) => goal_idxs)
 
@@ -104,3 +104,101 @@ traces, weights =
                           callback=callback, strata=goal_strata)
 # Show animation of goal inference
 gif(anim; fps=2)
+
+#--- Hierarchical Online Goal Inference ---#
+
+function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
+                                     anim=Animation())
+    n_heads, n_tails = 1.0, 1.0
+    goal_probs = nothing
+    for (i, (plan, traj)) in enumerate(plans_and_trajs)
+        # Compute posterior mean, assuming a Beta(1, 1) hyperprior
+        if i > 1
+            n_heads += goal_probs[2]
+            n_tails += goal_probs[1]
+        end
+        p = n_heads / (n_heads + n_tails)
+        prior_probs = [1-p, p]
+
+        @gen goal_prior() = GoalSpec(goals[{:goal} ~ categorical(prior_probs)])
+        state = traj[1]
+        start_pos = (state[:xpos], state[:ypos])
+        world_init = WorldInit(agent_planner, goal_prior, state)
+
+        println("== Trial $i ==")
+        println("Prior: ", prior_probs)
+
+        goal_probs = [] # Buffer of goal probabilities over time
+        plotters = [ # List of subplot callbacks:
+            render_cb,
+            # goal_lines_cb,
+            goal_bars_cb,
+            # plan_lengths_cb,
+            # particle_weights_cb,
+        ]
+        canvas = render(state; start=start_pos, show_objs=false)
+        callback = (t, s, trs, ws) -> begin
+            goal_probs_t = sort!(get_goal_probs(trs, ws, goal_idxs))
+            push!(goal_probs, goal_probs_t |> values |> collect)
+            multiplot_cb(t, s, trs, ws, plotters;
+                         trace_future=true, plan=plan,
+                         start_pos=start_pos, start_dir=:down,
+                         canvas=canvas, animation=anim, show=true,
+                         goal_colors=goal_colors, goal_probs=goal_probs,
+                         goal_names=goal_names);
+             print("t=$t\t")
+             for (_, prob) in goal_probs_t @printf("%.3f\t", prob) end
+             tv = total_variation(goal_probs[1], goal_probs[end])
+             @printf("TV: %.3f\t", tv)
+             @printf("Unexpected: %s\t", tv >= 0.5)
+             @printf("Confidence: %.2f\t", (abs(tv - 0.5)/0.5)^0.5)
+             println()
+        end
+
+        traces, weights =
+            world_particle_filter(world_init, world_config, traj, obs_terms,
+                                  n_samples; resample=true, rejuvenate=nothing,
+                                  callback=callback, strata=goal_strata)
+
+        goal_probs = get_goal_probs(traces, weights)
+    end
+    return anim
+end
+
+# Generate state from problem with randomized object locations
+function randomized_state(problem::Problem)
+    state = init_state(problem)
+    width, height = state[:width], state[:height]
+    free_loc = state -> begin
+        while true # Rejection sample for free location
+            x, y = rand(1:width), rand(1:height)
+            if state[:(wall($x, $y))]
+                continue end
+            if (state[:(xitem(block1))], state[:(yitem(block1))]) == (x, y)
+                continue end
+            if (state[:(xitem(cylinder1))], state[:(yitem(cylinder1))]) == (x, y)
+                continue end
+            return x, y
+        end
+    end
+    state[:(xitem(block1))], state[:(yitem(block1))] = free_loc(state)
+    state[:(xitem(cylinder1))], state[:(yitem(cylinder1))] = free_loc(state)
+    state[:xpos], state[:ypos] = free_loc(state)
+    return state
+end
+
+# Generate gridworld trajectories with random object locations
+function generate_trajs(problem::Problem, n::Int,
+                        goals=fill(pddl"(retrieve cylinder1)", n))
+    states = [randomized_state(problem) for i in 1:n]
+    astar = AStarPlanner(heuristic=GoalManhattan())
+    plans_and_trajs = map(zip(states, goals)) do (state, goal)
+        plan, traj = astar(domain, state, goal)
+    end
+    return plans_and_trajs
+end
+
+true_goals = [fill(pddl"(retrieve cylinder1)", 7); pddl"(retrieve block1)"]
+plans_and_trajs = generate_trajs(problem, 8, true_goals)
+n_samples = 30
+anim = hierarchical_goal_inference(plans_and_trajs, n_samples)
