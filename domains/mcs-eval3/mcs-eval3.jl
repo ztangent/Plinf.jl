@@ -104,3 +104,40 @@ traces, weights =
                           callback=callback, strata=goal_strata)
 # Show animation of goal inference
 gif(anim; fps=2)
+
+#--- Testing ASCII state conversion ---#
+# Load domain and problem
+path = joinpath(dirname(pathof(Plinf)), "..", "domains", "mcs-eval3")
+
+# Testing on scene with one block
+# Initialize state from problem
+problem = load_ascii_problem(joinpath(path, "agent_grid_outputs", "0000_0000_0000.txt"))
+state = initialize(problem)
+
+# Get state vectors
+scene_num = 0
+states = load_scene(scene_num, joinpath(path, "agent_grid_outputs"))
+@assert states[1][1] == state
+@assert states[1][2] != state
+
+# Testing on scene with one cylinder
+# Initialize state from problem
+problem = load_ascii_problem(joinpath(path, "agent_grid_outputs", "0010_0000_0000.txt"))
+state = initialize(problem)
+
+# Get state vectors
+scene_num = 10
+states = load_scene(scene_num, joinpath(path, "agent_grid_outputs"))
+@assert states[1][1] == state
+@assert states[1][2] != state
+
+# Testing on scene with two bblocks (this is scene 3 of the multi-object dataset)
+# Initialize state from problem
+problem = load_ascii_problem(joinpath(path, "agent_grid_outputs", "0016_0001_0000.txt"))
+state = initialize(problem)
+
+# Get state vectors
+scene_num = 16
+states = load_scene(scene_num, joinpath(path, "agent_grid_outputs"))
+@assert states[2][1] == state
+@assert states[2][2] != state
