@@ -8,7 +8,8 @@ function state_to_array(state::State)
     width, height = state[:width], state[:height]
     array = zeros(Int64, (width, height))
     for x=1:width, y=1:height
-        if state[:(wall($x, $y))] array[y, x] = 1 end
+        term = @julog wall($x, $y)
+        if state[term] array[y, x] = 1 end
     end
     return array, (width, height)
 end

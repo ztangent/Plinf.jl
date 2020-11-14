@@ -9,7 +9,8 @@ include("utils.jl")
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, "problem-1.pddl"))
+#problem = load_problem(joinpath(path, "problem-1.pddl"))
+problem = load_problem(joinpath(path, "backtracking-problem.pddl"))
 
 # Initialize state
 state = initialize(problem)
