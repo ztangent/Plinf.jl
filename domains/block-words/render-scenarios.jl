@@ -40,7 +40,7 @@ state = initialize(problem)
 goal = problem.goal
 plt = render(state)
 
-# Execute list of actions and generate intermediet states
+# Execute list of actions and generate intermediate states
 function execute_plan(state, domain, actions)
     states = State[]
     push!(states, state)
