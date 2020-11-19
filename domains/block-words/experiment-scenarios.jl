@@ -22,7 +22,19 @@ actions = ["(pick-up a)", "(stack a b)", "(unstack a b)",
         "(put-down a)", "(pick-up b)", "(stack b a)",
         "(unstack b a)", "(put-down b)"]
 
-#experiment 4b - intermediate matching goal
-actions = ["(unstack a r)", "(stack a w)",
-        "(pick-up r)", "(stack r w)", "(unstack d e)",
-        "(stack d r)"]
+#experiment 4a - initial configuration matches goal state
+actions = ["(unstack c r)", "(stack c p)", "(unstack r o)",
+        "(stack r e)", "(unstack o w)", "(stack o r)",
+        "(unstack c p)", "(stack c o)"]
+
+#experiment 4b1 - intermediate matching goal
+actions = ["(unstack a r)", "(stack a w)", "(pick-up r)",
+        "(stack r a)", "(unstack d e)", "(stack d r)"]
+
+#experiment 4b2 - intermediate matching goal
+actions = ["(unstack a w)", "(stack a r)", "(unstack e p)",
+        "(stack e a)", "(pick-up w)", "(stack w e)"]
+
+#experiment 4c - rhyming suffix (not a goal state)
+actions = ["(unstack a e)", "(stack a r)", "(unstack e p)",
+        "(stack e a)", "(pick-up w)", "(stack w e)"]
