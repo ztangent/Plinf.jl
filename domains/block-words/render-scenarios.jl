@@ -19,12 +19,16 @@ include("utils.jl")
 
 
 # Specify problem name and your list of actions
-problem_name = "experiment-4b.pddl"
-actions = ["(unstack a r)", "(stack a w)", "(pick-up r)",
-        "(stack r a)", "(unstack d e)", "(stack d r)"]
+experiment_number = "4"
+experiment_problem = "b2"
+problem_name = "experiment-" * experiment_number * experiment_problem * ".pddl"
+
+actions = ["(unstack a w)", "(stack a r)", "(unstack e p)",
+        "(stack e a)", "(pick-up w)", "(stack w e)"]
 
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
+save_image_path = joinpath(path, "experiments-frames")
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, problem_name))
 
@@ -36,20 +40,25 @@ plt = render(state)
 # Execute list of actions and generate intermediate states
 function execute_plan(state, domain, actions)
     states = State[]
+    timestep = 0
     push!(states, state)
+    png(render(state), joinpath(save_image_path, experiment_number,
+                                experiment_problem, string(timestep)))
     for action in actions
         print(action)
         action = parse_pddl(action)
         state = execute(action, state, domain)
+        timestep += 1
+        png(render(state), joinpath(save_image_path, experiment_number,
+                                    experiment_problem, string(timestep)))
         push!(states, state)
     end
     return states
 end
 
 
-
 traj_s = execute_plan(state, domain, actions)
 anim = anim_traj(traj_s)
 
-
-gif(anim, "domains/block-words/experiments-gifs/experiment-4b.gif", fps=30)
+gif(anim, "domains/block-words/experiments-gifs/experiment-" *
+            experiment_number * experiment_problem * ".gif", fps=30)
