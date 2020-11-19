@@ -19,8 +19,8 @@ include("utils.jl")
 include("experiment-scenarios.jl")
 
 # Specify problem name and your list of actions
-category = "4"
-subcategory = "c"
+category = "2"
+subcategory = "a"
 experiment = "experiment-" * category * subcategory
 problem_name =  experiment * ".pddl"
 
@@ -74,5 +74,4 @@ open(json_file, "w") do f
     JSON.print(f, json_data)
 end
 
-gif(anim, "domains/block-words/experiments-gifs/experiment-" *
-            experiment_number * experiment_problem * ".gif", fps=30)
+gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=30)

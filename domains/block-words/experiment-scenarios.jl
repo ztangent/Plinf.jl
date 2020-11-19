@@ -4,13 +4,13 @@
 action_dict = Dict()
 
 #experiment 1a - backtracking
-action_dict["1a"] = ["(unstack o e)", "(stack o w)", "(unstack e c)",
+action_dict["1a1"] = ["(unstack o e)", "(stack o w)", "(unstack e c)",
                 "(stack e r)", "(unstack o w)", "(stack o c)",
                 "(unstack w p)", "(stack w e)", "(unstack o c)",
                 "(stack o w)", "(pick-up p)", "(stack p o)"]
 
 #experiment 2- misspelled word
-action_dict["2"] = ["(unstack p r)", "(put-down p)", "(unstack c e)",
+action_dict["2a"] = ["(unstack p r)", "(put-down p)", "(unstack c e)",
                 "(stack c p)", "(pick-up e)", "(stack e r)",
                 "(pick-up o)", "(stack o e)", "(pick-up w)",
                 "(stack w o)", "(unstack c p)", "(stack c w)",
