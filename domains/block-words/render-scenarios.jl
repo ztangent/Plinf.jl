@@ -18,9 +18,9 @@ include("render.jl")
 include("utils.jl")
 include("experiment-scenarios.jl")
 
-# Specify problem name and your list of actions
-category = "2"
-subcategory = "a"
+# Specify problem name
+category = "3"
+subcategory = "d"
 experiment = "experiment-" * category * subcategory
 problem_name =  experiment * ".pddl"
 
