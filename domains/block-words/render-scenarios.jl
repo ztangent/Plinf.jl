@@ -19,12 +19,12 @@ include("utils.jl")
 include("experiment-scenarios.jl")
 
 # Specify problem name
-category = "3"
-subcategory = "d"
-experiment = "experiment-" * category * subcategory
+category = "4"
+subcategory = "3"
+experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
-actions = get_action(category * subcategory)
+actions = get_action(category * "-" * subcategory)
 
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
@@ -46,20 +46,33 @@ json_dict["actions"] = actions
 # Execute list of actions and generate intermediate states
 function execute_plan(state, domain, actions)
     states = State[]
-    timestep = 0
-    push!(states, state)
+    temp_states = State[]
 
-    json_dict[string(timestep)] = state
-    png(render(state), joinpath(save_image_path, string(timestep)))
+    push!(states, state)
+    push!(temp_states, state)
+
+    png_timestep = 0
+    gif_timestep = 0
+    json_dict[string(png_timestep)] = state
+    png(render(state), joinpath(save_image_path, string(png_timestep)))
 
     for action in actions
-        print(action)
         action = parse_pddl(action)
         state = execute(action, state, domain)
-        timestep += 1
-        json_dict[string(timestep)] = state
-        png(render(state), joinpath(save_image_path, string(timestep)))
+
+        png_timestep += 1
+        json_dict[string(png_timestep)] = state
+        png(render(state), joinpath(save_image_path, string(png_timestep)))
+
         push!(states, state)
+        push!(temp_states, state)
+
+        if png_timestep % 2 == 0
+            gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=15)
+            gif_timestep += 1
+            temp_states = State[]
+            push!(temp_states, state)
+        end
     end
     return states
 end
@@ -74,4 +87,4 @@ open(json_file, "w") do f
     JSON.print(f, json_data)
 end
 
-gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=30)
+gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=20)
