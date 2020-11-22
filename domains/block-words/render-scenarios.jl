@@ -19,12 +19,13 @@ include("utils.jl")
 include("experiment-scenarios.jl")
 
 # Specify problem name
-category = "4"
-subcategory = "3"
+category = "1"
+subcategory = "4"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
 actions = get_action(category * "-" * subcategory)
+goal_space = get_goal_space(category * "-" * subcategory)
 
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
@@ -41,6 +42,7 @@ plt = render(state)
 # Initialize items for json file
 json_dict =  Dict()
 json_dict["goal"] = goal
+json_dict["goal_space"] = goal_space
 json_dict["actions"] = actions
 
 # Execute list of actions and generate intermediate states
@@ -54,7 +56,7 @@ function execute_plan(state, domain, actions)
     png_timestep = 0
     gif_timestep = 0
     json_dict[string(png_timestep)] = state
-    png(render(state), joinpath(save_image_path, string(png_timestep)))
+    #png(render(state), joinpath(save_image_path, string(png_timestep)))
 
     for action in actions
         action = parse_pddl(action)
@@ -62,17 +64,17 @@ function execute_plan(state, domain, actions)
 
         png_timestep += 1
         json_dict[string(png_timestep)] = state
-        png(render(state), joinpath(save_image_path, string(png_timestep)))
+        #png(render(state), joinpath(save_image_path, string(png_timestep)))
 
         push!(states, state)
         push!(temp_states, state)
 
-        if png_timestep % 2 == 0
-            gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=15)
-            gif_timestep += 1
-            temp_states = State[]
-            push!(temp_states, state)
-        end
+        # if png_timestep % 2 == 0
+        #     gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=15)
+        #     gif_timestep += 1
+        #     temp_states = State[]
+        #     push!(temp_states, state)
+        # end
     end
     return states
 end
@@ -87,4 +89,4 @@ open(json_file, "w") do f
     JSON.print(f, json_data)
 end
 
-gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=20)
+#gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=20)
