@@ -3,7 +3,7 @@ export observe_state, observe_traj
 export state_choicemap, traj_choicemaps
 
 "Parameters of observation noise model."
-ObserveParams = Dict{Term,Tuple{Distribution, Tuple}}
+const ObserveParams = Dict{Term,Tuple{Distribution, Tuple}}
 
 "Construct a dictionary of observation noise parameters."
 function observe_params(args...; state=nothing, domain=nothing)
