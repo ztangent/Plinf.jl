@@ -79,7 +79,7 @@ plotters = [ # List of subplot callbacks:
     # particle_weights_cb,
 ]
 canvas = render(state; start=start_pos, show_objs=false)
-callback = (t, s, trs, ws) ->
+callback = (t, s, trs, ws, _) ->
     (goal_probs_t = collect(values(sort!(get_goal_probs(trs, ws, goal_idxs))));
      push!(goal_probs, goal_probs_t);
      multiplot_cb(t, s, trs, ws, plotters;
@@ -129,15 +129,17 @@ function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
         println("Prior: ", prior_probs)
 
         goal_probs = [] # Buffer of goal probabilities over time
+        prev_lml = 0 # Previous log marginal likelihood estimate
         plotters = [ # List of subplot callbacks:
             render_cb,
-            # goal_lines_cb,
-            goal_bars_cb,
+            goal_lines_cb,
+            # goal_bars_cb,
             # plan_lengths_cb,
             # particle_weights_cb,
         ]
         canvas = render(state; start=start_pos, show_objs=false)
-        callback = (t, s, trs, ws) -> begin
+        callback = (t, s, trs, ws, pf) -> begin
+            lml = log_ml_estimate(pf)
             goal_probs_t = sort!(get_goal_probs(trs, ws, goal_idxs))
             push!(goal_probs, goal_probs_t |> values |> collect)
             multiplot_cb(t, s, trs, ws, plotters;
@@ -149,10 +151,15 @@ function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
              print("t=$t\t")
              for (_, prob) in goal_probs_t @printf("%.3f\t", prob) end
              tv = total_variation(goal_probs[1], goal_probs[end])
+             ll = lml - prev_lml # Log likelihood for current observation
+             unexpected = ll <= -6.5 # Unexpected if highly unlikely
+             confidence = threshold_confidence(ll, -6.5, 0.2)
+             @printf("Log. Likelihood: %.3f\t", ll)
              @printf("TV: %.3f\t", tv)
-             @printf("Unexpected: %s\t", tv >= 0.5)
-             @printf("Confidence: %.2f\t", (abs(tv - 0.5)/0.5)^0.5)
+             @printf("Unexpected: %s\t", unexpected)
+             @printf("Confidence: %.2f\t", confidence)
              println()
+             prev_lml = lml
         end
 
         traces, weights =
@@ -187,9 +194,21 @@ function randomized_state(problem::Problem)
     return state
 end
 
-# Generate gridworld trajectories with random object locations
-function generate_trajs(problem::Problem, n::Int,
-                        goals=fill(pddl"(retrieve cylinder1)", n))
+# Generate gridworld trajectories demonstrating agent efficiency
+function generate_efficiency_trajs(problem::Problem, n::Int,
+                                   params=fill((0.1, 4, 0.95), n))
+    states = [randomized_state(problem) for i in 1:n]
+    plans_and_trajs = map(zip(states, params)) do (state, (γ, r, q))
+        planner = ProbAStarPlanner(heuristic=GoalManhattan(), search_noise=γ)
+        replanner = Replanner(planner=planner, persistence=(r, q))
+        plan, traj = replanner(domain, state, pddl"(retrieve cylinder1)")
+    end
+    return plans_and_trajs
+end
+
+# Generate gridworld trajectories demonstrating object preference
+function generate_preference_trajs(problem::Problem, n::Int,
+                                   goals=fill(pddl"(retrieve cylinder1)", n))
     states = [randomized_state(problem) for i in 1:n]
     astar = AStarPlanner(heuristic=GoalManhattan())
     plans_and_trajs = map(zip(states, goals)) do (state, goal)
@@ -198,7 +217,17 @@ function generate_trajs(problem::Problem, n::Int,
     return plans_and_trajs
 end
 
+# Detect violation of expectations for agent efficiency
+plans_and_trajs = generate_efficiency_trajs(problem, 7)
+test_plan = @julog Term[right, up, up, left, left, up, up,
+                        left, left, down, pickup(cylinder1)]
+test_traj = PDDL.simulate(domain, state, strange_plan)
+push!(plans_and_trajs, (test_plan, test_traj))
+n_samples = 50
+anim = hierarchical_goal_inference(plans_and_trajs, n_samples)
+
+# Detect violation of expectations for object preference
 true_goals = [fill(pddl"(retrieve cylinder1)", 7); pddl"(retrieve block1)"]
-plans_and_trajs = generate_trajs(problem, 8, true_goals)
-n_samples = 30
+plans_and_trajs = generate_preference_trajs(problem, 8, true_goals)
+n_samples = 50
 anim = hierarchical_goal_inference(plans_and_trajs, n_samples)

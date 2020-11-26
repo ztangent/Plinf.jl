@@ -2,7 +2,7 @@
 using Julog, PDDL
 
 "Converts ASCII gridworlds to PDDL problem."
-function ascii_to_pddl(str::String, name="ai2thor-2d-problem")
+function ascii_to_pddl(str::String, name="mcs-agency-problem")
     rows = split(str, "\n", keepempty=false)
     init = @julog Term[handsfree]
     cylinders, blocks = Const[], Const[]

@@ -1,4 +1,5 @@
 using DataStructures: OrderedDict
+using Distributions: Normal, cdf
 
 pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
 
@@ -54,4 +55,9 @@ end
 
 function total_variation(probs_1, probs_2)
     return 0.5 * sum(abs(p1-p2) for (p1, p2) in zip(probs_1, probs_2))
+end
+
+function threshold_confidence(val, threshold, std)
+    z_score = (val - threshold) / std
+    return cdf(Normal(), abs(z_score))
 end

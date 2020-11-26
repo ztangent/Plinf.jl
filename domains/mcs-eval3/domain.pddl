@@ -1,4 +1,4 @@
-(define (domain mcs-eval3)
+(define (domain mcs-agency)
     (:requirements :fluents :adl :typing)
     (:types cylinder block - item)
     (:predicates (wall ?x ?y) (obstacle ?x ?y)

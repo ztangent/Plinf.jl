@@ -1,4 +1,4 @@
-(define (problem ai2thor-2d-problem)
+(define (problem mcs-agency-problem)
   (:domain ai2thor-2d)
   (:objects cylinder1 - cylinder block1 - block)
   (:init (= (width) (10))
