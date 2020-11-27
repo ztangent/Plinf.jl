@@ -13,13 +13,12 @@
 
 using Julog, PDDL, Gen, Printf, JSON
 using Plinf
-
 include("render.jl")
 include("utils.jl")
 include("experiment-scenarios.jl")
 
 # Specify problem name
-category = "1"
+category = "4"
 subcategory = "4"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
@@ -69,12 +68,12 @@ function execute_plan(state, domain, actions)
         push!(states, state)
         push!(temp_states, state)
 
-        # if png_timestep % 2 == 0
-        #     gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=15)
-        #     gif_timestep += 1
-        #     temp_states = State[]
-        #     push!(temp_states, state)
-        # end
+        if png_timestep % 2 == 0
+            gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=20, loop=-1)
+            gif_timestep += 1
+            temp_states = State[]
+            push!(temp_states, state)
+        end
     end
     return states
 end
@@ -83,10 +82,10 @@ end
 traj_s = execute_plan(state, domain, actions)
 anim = anim_traj(traj_s)
 
-json_data = JSON.json(json_dict)
-json_file = joinpath(save_image_path, experiment * ".json")
-open(json_file, "w") do f
-    JSON.print(f, json_data)
-end
+# json_data = JSON.json(json_dict)
+# json_file = joinpath(save_image_path, experiment * ".json")
+# open(json_file, "w") do f
+#     JSON.print(f, json_data)
+# end
 
-#gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=20)
+gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=20, loop=-1)
