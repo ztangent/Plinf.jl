@@ -18,7 +18,7 @@ include("utils.jl")
 include("experiment-scenarios.jl")
 
 # Specify problem name
-category = "4"
+category = "0"
 subcategory = "4"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
@@ -55,7 +55,7 @@ function execute_plan(state, domain, actions)
     png_timestep = 0
     gif_timestep = 0
     json_dict[string(png_timestep)] = state
-    #png(render(state), joinpath(save_image_path, string(png_timestep)))
+    png(render(state), joinpath(save_image_path, string(png_timestep)))
 
     for action in actions
         action = parse_pddl(action)
@@ -63,7 +63,7 @@ function execute_plan(state, domain, actions)
 
         png_timestep += 1
         json_dict[string(png_timestep)] = state
-        #png(render(state), joinpath(save_image_path, string(png_timestep)))
+        png(render(state), joinpath(save_image_path, string(png_timestep)))
 
         push!(states, state)
         push!(temp_states, state)
@@ -82,10 +82,10 @@ end
 traj_s = execute_plan(state, domain, actions)
 anim = anim_traj(traj_s)
 
-# json_data = JSON.json(json_dict)
-# json_file = joinpath(save_image_path, experiment * ".json")
-# open(json_file, "w") do f
-#     JSON.print(f, json_data)
-# end
+json_data = JSON.json(json_dict)
+json_file = joinpath(save_image_path, experiment * ".json")
+open(json_file, "w") do f
+    JSON.print(f, json_data)
+end
 
 gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=20, loop=-1)

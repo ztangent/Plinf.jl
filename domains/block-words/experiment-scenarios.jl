@@ -7,6 +7,29 @@ action_dict = Dict()
 goal_space_dict = Dict()
 
 #experiment 1a - backtracking - letter need later
+action_dict["0-1"] = ["(unstack o e)", "(stack o w)", "(unstack e c)",
+                        "(put-down e)", "(pick-up r)", "(stack r e)",
+                        "(unstack o w)", "(stack o r)", "(pick-up c)",
+                        "(stack c o)"]
+goal_space_dict["0-1"] = ["power", "cower", "crow", "core", "pore"]
+
+action_dict["0-2"] = ["(unstack p a)", "(put-down p)", "(unstack a r)",
+                        "(stack a d)", "(pick-up w)",
+                        "(stack w a)"]
+goal_space_dict["0-2"] = ["wad", "reap", "war", "wade", "draw"]
+
+action_dict["0-3"] = ["(unstack a w)", "(stack a p)", "(unstack r e)",
+                        "(put-down r)", "(unstack a p)", "(stack a r)", "(pick-up w)",
+                        "(stack w a)"]
+goal_space_dict["0-3"] = ["wad", "reap", "war", "wade", "draw"]
+
+action_dict["0-4"] = ["(unstack r o)", "(put-down r)", "(unstack c e)",
+                        "(stack c p)", "(pick-up e)", "(stack e r)",
+                        "(unstack o w)", "(put-down o)", "(pick-up w)",
+                        "(stack w e)", "(pick-up o)", "(stack o w)",
+                        "(unstack c p)", "(stack c o)"]
+goal_space_dict["0-4"] = ["power", "cower", "crow", "core", "pore"]
+
 action_dict["1-1"] = ["(unstack o e)", "(stack o w)", "(unstack e c)",
                 "(stack e r)", "(unstack o w)", "(stack o c)",
                 "(unstack w p)", "(stack w e)", "(unstack o c)",
@@ -118,6 +141,21 @@ goal_space_dict["4-3"] = ["ear", "paw", "dear", "war", "wear"]
 action_dict["4-4"]= ["(unstack a e)", "(stack a r)", "(unstack e p)",
                 "(stack e a)", "(pick-up w)", "(stack w e)"]
 goal_space_dict["4-4"] = ["raw", "paw", "draw", "war", "wear"]
+
+#experiment demo - simple example for demonistration
+action_dict["tutorial-demo"]= ["(unstack o e)", "(stack o w)", "(unstack e c)",
+                "(put-down e)", "(pick-up r)", "(stack r e)",
+                "(unstack o w)", "(stack o r)", "(pick-up c)", "(stack c o)"]
+goal_space_dict["tutorial-demo"] = ["power", "cower", "crow", "core", "pore"]
+
+#experiment tutorial - simple example for tutorial
+action_dict["tutorial-tutorial"]= ["(unstack e w)", "(stack e r)",
+                                "(unstack o p)", "(stack o e)", "(unstack o e)",
+                                "(put-down o)", "(pick-up w)", "(stack w e)",
+                                "(pick-up o)", "(stack o w)", "(unstack p c)",
+                                "(stack p o)"]
+goal_space_dict["tutorial-tutorial"] = ["power", "cower", "crow", "core", "pore"]
+
 
 # Get action list for respective experiment
 function get_action(experiment)
