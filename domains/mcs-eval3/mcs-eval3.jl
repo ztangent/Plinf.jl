@@ -130,9 +130,11 @@ function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
 
         goal_probs = [] # Buffer of goal probabilities over time
         prev_lml = 0 # Previous log marginal likelihood estimate
+        expected_grid = nothing
         plotters = [ # List of subplot callbacks:
             render_cb,
-            goal_lines_cb,
+            heatmap_cb,
+            # goal_lines_cb,
             # goal_bars_cb,
             # plan_lengths_cb,
             # particle_weights_cb,
@@ -140,6 +142,11 @@ function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
         canvas = render(state; start=start_pos, show_objs=false)
         callback = (t, s, trs, ws, pf) -> begin
             lml = log_ml_estimate(pf)
+            obs_grid = zeros(Float64, s[:width], s[:height])
+            for obs in traj[1:t] obs_grid[obs[:xpos], obs[:ypos]] = 1 end
+            future_voe_grid = abs.(get_future_grid(trs, ws) .- expected_grid)
+            past_voe_grid = get_past_voe_grid(trs, ws)
+            expected_grid = get_future_grid(trs, ws, 1)
             goal_probs_t = sort!(get_goal_probs(trs, ws, goal_idxs))
             push!(goal_probs, goal_probs_t |> values |> collect)
             multiplot_cb(t, s, trs, ws, plotters;
@@ -147,7 +154,7 @@ function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
                          start_pos=start_pos, start_dir=:down,
                          canvas=canvas, animation=anim, show=true,
                          goal_colors=goal_colors, goal_probs=goal_probs,
-                         goal_names=goal_names);
+                         goal_names=goal_names, hmap=future_voe_grid');
              print("t=$t\t")
              for (_, prob) in goal_probs_t @printf("%.3f\t", prob) end
              tv = total_variation(goal_probs[1], goal_probs[end])

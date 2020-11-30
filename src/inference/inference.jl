@@ -79,7 +79,7 @@ function world_particle_filter(
         pf_update!(pf_state, (t, world_args...), argdiffs, obs_choices[batch_i])
         if callback != nothing # Run callback on current traces
             trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
-            callback(t, obs_traj[t], trs, ws)
+            callback(t, obs_traj[t], trs, ws, pf_state)
         end
     end
     # Return particles and their weights

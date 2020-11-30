@@ -381,6 +381,23 @@ function render_cb(t::Int, state, traces, weights;
     return plt
 end
 
+"Callback function that renders each (violation of) expectation heatmaps."
+function heatmap_cb(t::Int, state, traces, weights;
+                    hmap=nothing, kwargs...)
+    array = isnothing(hmap) ? get_future_grid(traces, weights)' : hmap
+    plt = plot(xticks=(collect(0:size(array)[1]+1) .- 0.5, []),
+               yticks=(collect(0:size(array)[2]+1) .- 0.5, []))
+    xgrid!(plt, :on, :black, 2, :dot, 0.75)
+    ygrid!(plt, :on, :black, 2, :dot, 0.75)
+    cmap = cgrad([RGBA(1,1,1,0), RGBA(1,0,0,1)])
+    heatmap!(plt, array, aspect_ratio=1, clim=(0.0, 1.0),
+             color=cmap, colorbar_entry=false)
+    xlims!(plt, 0.5, size(array)[1]+0.5)
+    ylims!(plt, 0.5, size(array)[2]+0.5)
+    title!(plt, "t = $t")
+    return plt
+end
+
 "Callback function for plotting goal probability bar chart."
 function goal_bars_cb(t::Int, state, traces, weights; kwargs...)
     goal_names = get(kwargs, :goal_names, [])
