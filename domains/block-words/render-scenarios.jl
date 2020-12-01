@@ -18,8 +18,8 @@ include("utils.jl")
 include("experiment-scenarios.jl")
 
 # Specify problem name
-category = "0"
-subcategory = "4"
+category = "4"
+subcategory = "2"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
