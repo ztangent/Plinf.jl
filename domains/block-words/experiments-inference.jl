@@ -9,7 +9,7 @@ include("experiment-scenarios.jl")
 
 # Specify problem name
 category = "1"
-subcategory = "1"
+subcategory = "3"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
@@ -22,41 +22,24 @@ problem = load_problem(joinpath(path, problem_name))
 state = initialize(problem)
 goal = problem.goal
 
-#--- Visualize Plans ---#
-
-# Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(heuristic=HAdd())
-plan, traj = planner(domain, state, goal)
-println("== Plan ==")
-display(plan)
-anim = anim_traj(traj)
-
-# Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=HAdd(), search_noise=1)
-plt = render(state)
-tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
-# anim = anim_plan(tr, plt)
-
-# Visualize distribution over trajectories induced by planner
-trajs = [planner(domain, state, goal)[2] for i in 1:5]
-anim = anim_traj(trajs; alpha=0.1)
-
-# Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=HAdd(), search_noise=0.1)
-replanner = Replanner(planner=astar, persistence=(2, 0.95))
-plt = render(state)
-tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))
-# anim = anim_replan(tr, plt)
-
-# Visualize distribution over trajectories induced by replanner
-trajs = [replanner(domain, state, goal)[2] for i in 1:5]
-anim = anim_traj(trajs; alpha=1/length(trajs))
-
-#--- Goal Inference Setup ---#
-
 # Read possible goal words from file
 goal_words = sort(get_goal_space(category * "-" * subcategory))
 goals = word_to_terms.(goal_words)
+
+actions = get_action(category * "-" * subcategory)
+# Execute list of actions and generate intermediate states
+function execute_plan(state, domain, actions)
+    states = State[]
+    push!(states, state)
+    for action in actions
+        action = parse_pddl(action)
+        state = execute(action, state, domain)
+        push!(states, state)
+    end
+    return states
+end
+traj = execute_plan(state, domain, actions)
+#--- Goal Inference Setup ---#
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
@@ -76,6 +59,8 @@ plan, traj = replanner(domain, state, goal)
 traj = traj[1:min(length(traj), 7)]
 anim = anim_traj(traj)
 
+traj = execute_plan(state, domain, actions)
+
 # Define observation noise model
 obs_params = observe_params(domain, pred_noise=0.05; state=state)
 obs_terms = collect(keys(obs_params))
@@ -85,20 +70,6 @@ world_init = WorldInit(agent_planner, goal_prior, state)
 world_config = WorldConfig(domain, agent_planner, obs_params)
 
 #--- Offline Goal Inference ---#
-
-actions = get_action(category * "-" * subcategory)
-# Execute list of actions and generate intermediate states
-function execute_plan(state, domain, actions)
-    states = State[]
-    push!(states, state)
-    for action in actions
-        action = parse_pddl(action)
-        state = execute(action, state, domain)
-        push!(states, state)
-    end
-    return states
-end
-traj_s = execute_plan(state, domain, actions)
 
 # Run importance sampling to infer the likely goal
 n_samples = 20
@@ -141,11 +112,15 @@ callback = (t, s, trs, ws) ->
      print("t=$t\t");
      print_goal_probs(get_goal_probs(trs, ws, goal_words)))
 
+goal_rejuv! = pf -> pf_goal_move_accept!(pf, goals)
+plan_rejuv! = pf -> pf_replan_move_accept!(pf)
+mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goals; mix_prob=0.25)
+
 # Run a particle filter to perform online goal inference
 n_samples = 20
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=nothing,
+                          resample=true, rejuvenate=plan_rejuv!,
                           strata=goal_strata, callback=callback)
 # Show animation of goal inference
-gif(anim; fps=1)
+gif(anim, joinpath(path, "sips-results", experiment * ".gif"), fps=1)
