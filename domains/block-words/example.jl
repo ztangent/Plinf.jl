@@ -104,7 +104,7 @@ traces, weights, lml_est =
 
 # Render distribution over goal states
 plt = render(traj[end])
-render_traces!(traces, weights, plt)
+#render_traces!(traces, weights, plt)
 
 # Compute posterior probability of each goal
 goal_probs = get_goal_probs(traces, weights, goal_words)

@@ -296,7 +296,7 @@ function render_cb(t::Int, state, traces, weights; canvas=nothing, kwargs...)
     # Render canvas if not provided
     plt = canvas == nothing ? render(state; kwargs...) : deepcopy(canvas)
     render_blocks!(state, plt; kwargs...) # Render blocks
-    render_traces!(traces, weights, plt; kwargs...) # Render likely goal states
+    #render_traces!(traces, weights, plt; kwargs...) # Render likely goal states
     title!(plt, "t = $t")
     return plt
 end
