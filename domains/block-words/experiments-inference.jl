@@ -25,6 +25,12 @@ goal = problem.goal
 # Read possible goal words from file
 goal_words = sort(get_goal_space(category * "-" * subcategory))
 goals = word_to_terms.(goal_words)
+# Define uniform prior over possible goals
+@gen function goal_prior()
+    GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
+end
+goal_strata = Dict((:goal_init => :goal) => goal_words)
+# goal = goal_prior()
 
 actions = get_action(category * "-" * subcategory)
 # Execute list of actions and generate intermediate states
@@ -39,13 +45,8 @@ function execute_plan(state, domain, actions)
     return states
 end
 traj = execute_plan(state, domain, actions)
-#--- Goal Inference Setup ---#
 
-# Define uniform prior over possible goals
-@gen function goal_prior()
-    GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
-end
-goal_strata = Dict((:goal_init => :goal) => goal_words)
+#--- Goal Inference Setup ---#
 
 # Assume either a planning agent or replanning agent as a model
 heuristic = precompute(HAdd(), domain)
@@ -54,12 +55,7 @@ replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 
 # Sample a trajectory as the ground truth (no observation noise)
-goal = goal_prior()
-plan, traj = replanner(domain, state, goal)
-traj = traj[1:min(length(traj), 7)]
-anim = anim_traj(traj)
-
-traj = execute_plan(state, domain, actions)
+plan, _ = replanner(domain, state, goal)
 
 # Define observation noise model
 obs_params = observe_params(domain, pred_noise=0.05; state=state)
@@ -112,15 +108,11 @@ callback = (t, s, trs, ws) ->
      print("t=$t\t");
      print_goal_probs(get_goal_probs(trs, ws, goal_words)))
 
-goal_rejuv! = pf -> pf_goal_move_accept!(pf, goals)
-plan_rejuv! = pf -> pf_replan_move_accept!(pf)
-mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goals; mix_prob=0.25)
-
 # Run a particle filter to perform online goal inference
 n_samples = 20
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=plan_rejuv!,
+                          resample=true, rejuvenate=nothing,
                           strata=goal_strata, callback=callback)
 # Show animation of goal inference
 gif(anim, joinpath(path, "sips-results", experiment * ".gif"), fps=1)
