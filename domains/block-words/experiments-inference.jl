@@ -8,8 +8,8 @@ include("experiment-scenarios.jl")
 #--- Initial Setup ---#
 
 # Specify problem name
-category = "1"
-subcategory = "3"
+category = "4"
+subcategory = "2"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
@@ -25,12 +25,6 @@ goal = problem.goal
 # Read possible goal words from file
 goal_words = sort(get_goal_space(category * "-" * subcategory))
 goals = word_to_terms.(goal_words)
-# Define uniform prior over possible goals
-@gen function goal_prior()
-    GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
-end
-goal_strata = Dict((:goal_init => :goal) => goal_words)
-# goal = goal_prior()
 
 actions = get_action(category * "-" * subcategory)
 # Execute list of actions and generate intermediate states
@@ -48,14 +42,23 @@ traj = execute_plan(state, domain, actions)
 
 #--- Goal Inference Setup ---#
 
+# Define uniform prior over possible goals
+@gen function goal_prior()
+    GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
+end
+goal_strata = Dict((:goal_init => :goal) => goal_words)
+
 # Assume either a planning agent or replanning agent as a model
 heuristic = precompute(HAdd(), domain)
 planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 
-# Sample a trajectory as the ground truth (no observation noise)
-plan, _ = replanner(domain, state, goal)
+# # Sample a trajectory as the ground truth (no observation noise)
+# goal = goal_prior()
+# plan, traj = replanner(domain, state, goal)
+# traj = traj[1:min(length(traj), 7)]
+# anim = anim_traj(traj)
 
 # Define observation noise model
 obs_params = observe_params(domain, pred_noise=0.05; state=state)
@@ -68,7 +71,7 @@ world_config = WorldConfig(domain, agent_planner, obs_params)
 #--- Offline Goal Inference ---#
 
 # Run importance sampling to infer the likely goal
-n_samples = 20
+n_samples = 100
 traces, weights, lml_est =
     world_importance_sampler(world_init, world_config,
                              traj, obs_terms, n_samples;
@@ -76,7 +79,7 @@ traces, weights, lml_est =
 
 # Render distribution over goal states
 plt = render(traj[end])
-render_traces!(traces, weights, plt)
+#render_traces!(traces, weights, plt)
 
 # Compute posterior probability of each goal
 goal_probs = get_goal_probs(traces, weights, goal_words)
@@ -109,10 +112,15 @@ callback = (t, s, trs, ws) ->
      print_goal_probs(get_goal_probs(trs, ws, goal_words)))
 
 # Run a particle filter to perform online goal inference
-n_samples = 20
+n_samples = 100
+# Set up rejuvenation moves
+goal_rejuv! = pf -> pf_goal_move_accept!(pf, goal_words)
+plan_rejuv! = pf -> pf_replan_move_accept!(pf)
+mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goal_words; mix_prob=0.25)
+
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
                           resample=true, rejuvenate=nothing,
                           strata=goal_strata, callback=callback)
 # Show animation of goal inference
-gif(anim, joinpath(path, "sips-results", experiment * ".gif"), fps=1)
+gif(anim, joinpath(path, "sips-results", experiment*".gif"), fps=1)
