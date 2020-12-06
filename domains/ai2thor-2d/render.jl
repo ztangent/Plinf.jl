@@ -8,8 +8,7 @@ function state_to_array(state::State)
     width, height = state[:width], state[:height]
     array = zeros(Int64, (width, height))
     for x=1:width, y=1:height
-        if state[:(wall($x, $y))] array[y, x] = 2 end
-        if state[:(furniture($x, $y))] array[y, x] = 1 end
+        if state[:(wall($x, $y))] array[y, x] = 1 end
     end
     return array, (width, height)
 end
@@ -71,19 +70,34 @@ end
 function render_objects!(state::State, plt=nothing; kwargs...)
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
-    obj_queries = @julog [cylinder(O), block(O)]
-    obj_colors = [cgrad(:plasma)[1:16:127], cgrad(:plasma)[128:16:255]]
-    obj_makers = [l -> make_circle(l[1], l[2], 0.15),
-                  l -> make_square(l[1], l[2], 0.2)]
+    obj_queries = @julog [fixed(O), movable(O), item(O)]
+    obj_colors = [:grey32, :grey, cgrad(:tab20)[1:end]]
+    obj_makers = [l -> make_square(l[1], l[2], 0.6),
+                  l -> make_square(l[1], l[2], 0.3),
+                  l -> make_circle(l[1], l[2], 0.2),]
     for (query, colors, make) in zip(obj_queries, obj_colors, obj_makers)
         _, subst = satisfy(query, state; mode=:all)
         objs = [s[@julog(O)] for s in subst]
-        locs = [(state[@julog(xitem(:o))], state[@julog(yitem(:o))]) for o in objs]
+        locs = [(state[@julog(xobj(:o))], state[@julog(yobj(:o))]) for o in objs]
         if !isa(colors, AbstractArray) colors = fill(colors, length(locs)) end
         for (o, loc, col) in zip(objs, locs, colors)
             shape = make(loc)
-            col = state[@julog(has(:o))] ? :white : col
-            plot!(plt, shape, color=col, linealpha=0, legend=false)
+            col = if state[@julog(has(:o))]
+                weighted_color_mean(0.5, plot_color(col), plot_color(:white))
+            elseif state[@julog(isopen(:o))]
+                :springgreen
+            elseif state[@julog(openable(:o))]
+                :teal
+            elseif state[@julog(receptacle(:o))]
+                :mediumseagreen
+            else
+                col
+            end
+            if state[@julog(hidden(:o))]
+                plot!(plt, shape, color=col, alpha=0, linealpha=1, legend=false)
+            else
+                plot!(plt, shape, color=col, linealpha=0, legend=false)
+            end
         end
     end
     return plt
@@ -91,7 +105,7 @@ end
 
 "Render state, optionally with start position and the trace of a plan."
 function render!(state::State, plt=nothing; start=nothing, plan=nothing,
-                 show_pos=false, show_objs=true, dir=nothing, kwargs...)
+                 show_pos=false, show_objs=true, dir=:up, kwargs...)
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
     # Plot base grid
@@ -100,7 +114,7 @@ function render!(state::State, plt=nothing; start=nothing, plan=nothing,
                yticks=(collect(0:size(array)[2]+1) .- 0.5, []))
     xgrid!(plt, :on, :black, 2, :dot, 0.75)
     ygrid!(plt, :on, :black, 2, :dot, 0.75)
-    cmap = cgrad([RGBA(1,1,1,0), RGBA(0.75,0.06,0.235,1), RGBA(0.1,0.1,0.1,1)])
+    cmap = cgrad([RGBA(1,1,1,0), RGBA(0,0,0,1)])
     heatmap!(plt, array, aspect_ratio=1, color=cmap, colorbar_entry=false)
     # Plot start position
     if isa(start, Tuple{Int,Int})
@@ -200,20 +214,26 @@ end
 
 ## Gridworld animation functions ##
 
-"Render animation of state trajectory/ies."
-function anim_traj(trajs, canvas=nothing, animation=nothing;
-                   show=true, fps=3, show_objs=true, kwargs...)
-    if isa(trajs, Vector{State}) trajs = [trajs] end
+"Render animation of state trajectory."
+function anim_traj(traj, canvas=nothing, animation=nothing;
+                   show=true, fps=3, show_objs=true,
+                   plan=nothing, start_dir=nothing, kwargs...)
     canvas = canvas == nothing ?
-        render(trajs[1][1]; show_objs=false, kwargs...) : canvas
+        render(traj[1]; show_objs=false, kwargs...) : canvas
     animation = animation == nothing ? Animation() : animation
-    for t in 1:maximum(length.(trajs))
+    start_pos = traj[1][:xpos], traj[1][:ypos]
+    for (t, state) in enumerate(traj)
         plt = deepcopy(canvas)
-        for traj in trajs
-            state = t <= length(traj) ? traj[t] : traj[end]
-            render_pos!(state, plt; kwargs...)
-            if show_objs render_objects!(state, plt; kwargs...) end
+        if !isnothing(plan) # Render past actions if provided
+            p = plan[1:max(1, min(t-1, length(plan)))]
+            render!(p, start_pos, plt; fade=true, trunc=6, color=:black)
+            i = findlast(a -> a.name in [:up, :down, :left, :right], p)
+            dir = i == nothing ? start_dir : p[i].name
+        else
+            dir = start_dir
         end
+        render_pos!(state, plt; dir=dir, kwargs...)
+        if show_objs render_objects!(state, plt; kwargs...) end
         frame(animation)
     end
     if show display(gif(animation; fps=fps)) end
