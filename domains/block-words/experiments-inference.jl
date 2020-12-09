@@ -1,5 +1,6 @@
 using Julog, PDDL, Gen, Printf
-using Plinf
+using Plinf, CSV
+using DataFrames
 
 include("render.jl")
 include("utils.jl")
@@ -8,8 +9,8 @@ include("experiment-scenarios.jl")
 #--- Initial Setup ---#
 
 # Specify problem name
-category = "1"
-subcategory = "2"
+category = "0"
+subcategory = "1"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
@@ -109,7 +110,8 @@ callback = (t, s, trs, ws) ->
                   canvas=canvas, animation=anim, show=true,
                   goal_probs=goal_probs, goal_names=goal_words);
      print("t=$t\t");
-     print_goal_probs(get_goal_probs(trs, ws, goal_words)))
+     push!(goal_probs, print_goal_probs(get_goal_probs(trs, ws, goal_words)))
+     )
 
 # Run a particle filter to perform online goal inference
 n_samples = 50
@@ -123,4 +125,7 @@ traces, weights =
                           resample=true, rejuvenate=plan_rejuv!,
                           strata=goal_strata, callback=callback)
 # Show animation of goal inference
-gif(anim, joinpath(path, "sips-results", experiment*".gif"), fps=1)
+#gif(anim, joinpath(path, "sips-results", experiment*".gif"), fps=1)
+
+df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
+CSV.write( joinpath(path, "sips-results", experiment*".csv"), df)
