@@ -9,7 +9,7 @@ include("experiment-scenarios.jl")
 #--- Initial Setup ---#
 
 # Specify problem name
-category = "0"
+category = "2"
 subcategory = "1"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
@@ -115,7 +115,7 @@ callback = (t, s, trs, ws) ->
      )
 
 # Run a particle filter to perform online goal inference
-n_samples = 50
+n_samples = 30
 # Set up rejuvenation moves
 goal_rejuv! = pf -> pf_goal_move_accept!(pf, goal_words)
 plan_rejuv! = pf -> pf_replan_move_accept!(pf)
