@@ -22,8 +22,12 @@ function get_goal_probs(traces, weights, goal_idxs=[])
 end
 
 function print_goal_probs(goal_probs)
+    goals = zeros(0)
     for (goal, prob) in sort(goal_probs)
-        @printf("%.3f\t", prob)
+        @printf("%.3f\t", prob);
+        push!(goals, prob)
     end
     print("\n")
+    print(goals)
+    return goals
 end
