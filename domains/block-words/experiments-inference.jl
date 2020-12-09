@@ -110,7 +110,8 @@ callback = (t, s, trs, ws) ->
                   canvas=canvas, animation=anim, show=true,
                   goal_probs=goal_probs, goal_names=goal_words);
      print("t=$t\t");
-     push!(goal_probs, print_goal_probs(get_goal_probs(trs, ws, goal_words)))
+     push!(goal_probs, return_goal_probs(get_goal_probs(trs, ws, goal_words)));
+     print_goal_probs(get_goal_probs(trs, ws, goal_words))
      )
 
 # Run a particle filter to perform online goal inference
