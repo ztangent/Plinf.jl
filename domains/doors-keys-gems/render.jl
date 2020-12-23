@@ -57,7 +57,7 @@ end
 "Plot a door with the given position and scale."
 function render_door!(x::Real, y::Real, scale::Real; color=:gray, alpha=1,
                       plt=nothing)
-    plt = (plt == nothing) ? plot!() : plt
+    plt = (plt === nothing) ? plot!() : plt
     color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
     inner_col = HSV(color.h, 0.8*color.s, min(1.25*color.v, 1))
     door = make_door(x, y, scale)
@@ -78,7 +78,7 @@ end
 "Plot a key with the given position and scale."
 function render_key!(x::Real, y::Real, scale::Real; color=:goldenrod1, alpha=1,
                      plt=nothing)
-    plt = (plt == nothing) ? plot!() : plt
+    plt = (plt === nothing) ? plot!() : plt
     key = make_key(x, y, scale)
     shadow = make_key(x+0.05*scale, y-0.05*scale, scale)
     plot!(plt, [shadow; key], alpha=alpha, linealpha=0, legend=false,
@@ -97,7 +97,7 @@ end
 "Plot a gem with the given position, scale and color."
 function render_gem!(x::Real, y::Real, scale::Real; color=:magenta, alpha=1,
                      plt=nothing)
-    plt = (plt == nothing) ? plot!() : plt
+    plt = (plt === nothing) ? plot!() : plt
     outer, inner = make_gem(x, y, scale)
     color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
     inner_col = HSV(color.h, 0.6*color.s, min(1.5*color.v, 1))
@@ -110,7 +110,7 @@ end
 "Plot agent's current location."
 function render_pos!(state::State, plt=nothing;
                      radius=0.25, color=:red, alpha=1, dir=nothing, kwargs...)
-    plt = (plt == nothing) ? plot!() : plt
+    plt = (plt === nothing) ? plot!() : plt
     x, y = state[:xpos], state[:ypos]
     if dir in [:up, :down, :right, :left]
         marker = make_triangle(x, y, radius*1.5, dir)
@@ -151,7 +151,7 @@ end
 "Render agent inventory as a bar below the gridworld."
 function render_inventory!(state::State, plt=nothing;
                            gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
-    if (plt == nothing)
+    if isnothing(plt)
         plt = plot(size=(600,100), framestyle=:box, aspect_ratio=1, grid=true,
                    margin=0*Plots.mm, top_margin=2*Plots.mm)
     end
@@ -186,7 +186,7 @@ function render!(state::State, plt=nothing; start=nothing, plan=nothing,
                  show_pos=false, show_objs=true, show_inventory=false,
                  gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
     # Get last plot if not provided
-    plt = (plt == nothing) ? plot!() : plt
+    plt = (plt === nothing) ? plot!() : plt
     # Plot base grid
     array, (w, h) = state_to_array(state)
     plot!(plt, xticks=(collect(0:size(array)[1]+1) .- 0.5, []),
@@ -202,7 +202,7 @@ function render!(state::State, plt=nothing; start=nothing, plan=nothing,
     # Plot objects
     if show_objs render_objects!(state, plt; gem_colors=gem_colors) end
     # Plot trace of plan
-    if (plan != nothing && start != nothing) render!(plan, start, plt) end
+    if (!isnothing(plan) && !isnothing(start)) render!(plan, start, plt) end
     # Plot current position
     if show_pos render_pos!(state, plt) end
     # Resize limits
@@ -225,9 +225,9 @@ function render!(plan::Vector{Term}, start::Tuple{Int,Int}, plt=nothing;
                  alpha::Float64=1.0, color=:red, radius=0.1,
                  fade=false, trunc=nothing, kwargs...)
     # Get last plot if not provided
-    plt = (plt == nothing) ? plot!() : plt
+    plt = (plt === nothing) ? plot!() : plt
     traj = plan_to_traj(plan, start)
-    if trunc != nothing && length(plan) >= trunc
+    if !isnothing(trunc) && length(plan) >= trunc
         plan, traj = plan[end-trunc+1:end], traj[end-trunc:end-1] end
     i_alpha = fade ? 0.0 : alpha
     for (act, (x, y)) in zip(plan, traj)
@@ -245,7 +245,7 @@ end
 function render!(traj::Vector{State}, plt=nothing;
                  alpha::Float64=0.50, color=:red, radius=0.1, kwargs...)
      # Get last plot if not provided
-     plt = (plt == nothing) ? plot!() : plt
+     plt = (plt === nothing) ? plot!() : plt
      for state in traj
          x, y = state[:xpos], state[:ypos]
          dot = make_circle(x, y, radius)
@@ -257,7 +257,7 @@ end
 function render!(pts::Vector{Tuple{Int,Int}}, plt=nothing;
                  alphas=[0.50], color=:red, radius=0.1, kwargs...)
      # Get last plot if not provided
-     plt = (plt == nothing) ? plot!() : plt
+     plt = (plt === nothing) ? plot!() : plt
      for (i, (x, y)) in enumerate(pts)
          alpha = alphas[min(i, length(alphas))]
          dot = make_circle(x, y, radius)
@@ -270,7 +270,7 @@ end
 function render_traces!(traces, weights=nothing, plt=nothing;
                         goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.60,
                         trace_future=false, kwargs...)
-    weights = weights == nothing ? lognorm(get_score.(traces)) : weights
+    weights = weights === nothing ? lognorm(get_score.(traces)) : weights
     pt_weights = Dict{Int,Dict{Tuple{Int,Int},Float64}}()
     for (tr, w) in zip(traces, weights)
         goal_idx = tr[:goal_init => :goal]
@@ -303,9 +303,9 @@ function anim_traj(trajs, canvas=nothing, animation=nothing;
                    show=true, fps=3, show_objs=true, show_inventory=true,
                    kwargs...)
     if isa(trajs, Vector{State}) trajs = [trajs] end
-    canvas = canvas == nothing ?
+    canvas = canvas === nothing ?
         render(trajs[1][1]; show_objs=false, kwargs...) : canvas
-    animation = animation == nothing ? Animation() : animation
+    animation = animation === nothing ? Animation() : animation
     for t in 1:maximum(length.(trajs))
         plt = deepcopy(canvas)
         for traj in trajs
@@ -331,7 +331,7 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
                    node_radius=0.1, search_color=:red, search_alpha=0.3,
                    plan_color=:blue, plan_alpha=0.5, kwargs...)
     plt = deepcopy(canvas)
-    animation = animation == nothing ? Animation() : animation
+    animation = animation === nothing ? Animation() : animation
     node_choices = OrderedDict(get_values_shallow(get_choices(trace)))
     sort!(filter!(p -> p[1][1] == :state, node_choices))
     # Render each node expanded in sequence
@@ -355,7 +355,7 @@ end
 "Animate interleaved search and execution of a replanner."
 function anim_replan(trace, canvas, animation=nothing;
                      show=true, fps=10, kwargs...)
-    animation = animation == nothing ? Animation() : animation
+    animation = animation === nothing ? Animation() : animation
     # Iterate over time steps
     choices = get_submap(get_choices(trace), :timestep)
     step_submaps = sort!(OrderedDict(get_submaps_shallow(choices)))
@@ -390,13 +390,13 @@ plot_canvas() = plot(size=(600,600), framestyle=:box, margin=4*Plots.mm)
 function plot_goal_bars!(goal_probs, goal_names=nothing,
                          goal_colors=cgrad(:plasma)[1:3:30]; plt=nothing)
     # Construct new plot if not provided
-    if (plt == nothing) plt = plot_canvas() end
+    if isnothing(plt) plt = plot_canvas() end
     # Extract goal names and probabilities
     if isa(goal_probs, AbstractDict)
         goal_probs = sort!(OrderedDict(goal_probs))
-        if goal_names == nothing goal_names = collect(keys(goal_probs)) end
+        if isnothing(goal_names) goal_names = collect(keys(goal_probs)) end
         goal_probs = collect(values(goal_probs))
-    elseif goal_names == nothing
+    elseif isnothing(goal_names)
         goal_names = collect(1:length(goal_probs))
     end
     goal_colors = goal_colors[1:length(goal_probs)]
@@ -414,11 +414,11 @@ function plot_goal_lines!(goal_probs, goal_names=nothing,
                           goal_colors=cgrad(:plasma)[1:3:30];
                           timesteps=nothing, plt=nothing)
     # Construct new plot if not provided
-    if (plt == nothing) plt = plot_canvas() end
+    if isnothing(plt) plt = plot_canvas() end
     # Set default goal names and timesteps
-    if (goal_names == nothing)
+    if isnothing(goal_names)
         goal_names = ["Goal $i" for i in 1:size(goal_probs, 1)] end
-    if (timesteps == nothing)
+    if isnothing(timesteps)
         timesteps = collect(1:size(goal_probs, 2)) end
     # Plot line graph, one series per goal
     plt = plot!(plt, timesteps, goal_probs'; linewidth=6,
@@ -433,7 +433,7 @@ end
 "Plot histogram of particle weights."
 function plot_particle_weights!(weights; plt=nothing)
     # Construct new plot if not provided
-    if (plt == nothing) plt = plot_canvas() end
+    if isnothing(plt) plt = plot_canvas() end
     # Plot histogram
     weights = exp.(weights)
     plt = histogram!(plt, weights; normalize=:probability, legend=false,
@@ -444,7 +444,7 @@ end
 "Plot histogram of partial plan lengths."
 function plot_plan_lengths!(traces, weights; plt=nothing)
     # Construct new plot if not provided
-    if (plt == nothing) plt = plot_canvas() end
+    if isnothing(plt) plt = plot_canvas() end
     # Get plan lengths from traces
     plan_lengths = map(traces) do tr
         world_states = get_retval(tr)
@@ -472,13 +472,13 @@ function render_cb(t::Int, state, traces, weights;
                    plan=nothing, start_pos=nothing, start_dir=nothing,
                    canvas=nothing, show_inventory=true, kwargs...)
     # Render canvas if not provided
-    plt = canvas == nothing ? render(state; kwargs...) : deepcopy(canvas)
+    plt = canvas === nothing ? render(state; kwargs...) : deepcopy(canvas)
     dir = start_dir # Set agent direction to start dir
     if !isnothing(plan) # Render past actions if provided
         plan = plan[1:max(1,min(t-1, length(plan)))]
         render!(plan, start_pos, plt; fade=true, trunc=6, color=:black)
         i = findlast(a -> a.name in [:up, :down, :left, :right, :unlock], plan)
-        dir = i == nothing ? start_dir : plan[i].name
+        dir = i === nothing ? start_dir : plan[i].name
         if (dir == :unlock) dir = plan[i].args[2].name end
     end
     render_objects!(state, plt; kwargs...) # Render objects in gridworld
@@ -534,13 +534,13 @@ function multiplot_cb(t::Int, state, traces, weights,
                       animation=nothing, show=true, kwargs...)
     subplots = [p(t, state, traces, weights; kwargs...) for p in plotters]
     margin = plotters == [render_cb] ? 2*Plots.mm : 10*Plots.mm
-    if layout == nothing
+    if isnothing(layout)
         layout = length(subplots) > 1 ? (length(subplots) ÷ 2, 2) : (1, 1) end
     plt = plot(subplots...; layout=layout, margin=margin,
                size=(layout[2], layout[1]) .* 600)
-    if keyframes != nothing && t in keytimes push!(keyframes, deepcopy(plt)) end
+    if !isnothing(keyframes) && t in keytimes push!(keyframes, deepcopy(plt)) end
     if show display(plt) end # Display the plot in the GUI
-    if animation != nothing frame(animation) end # Save frame to animation
+    if !isnothing(animation) frame(animation) end # Save frame to animation
     return plt
 end
 
@@ -568,14 +568,14 @@ function plot_storyboard(frames::Vector, goal_probs=nothing, times=Int[];
     end
     # Plot keyframes in sequence
     plt = plot(frames...; layout=(1, n_frames), size=(n_frames*600, 700))
-    if goal_probs == nothing return plt end
+    if isnothing(goal_probs) return plt end
     # Plot line graph of goal probabilities below frames
     if isa(goal_probs, Vector) goal_probs = reduce(hcat, goal_probs) end
     l_plt = plot_goal_lines!(goal_probs, goal_names, goal_colors)
     plot!(l_plt; legend=legend, legendfontsize=12, legendtitlefontsize=16,
           left_margin=20*Plots.mm, right_margin=20*Plots.mm,
           bottom_margin=5*Plots.mm)
-    if time_lims == nothing
+    if isnothing(time_lims)
         xlims!(l_plt, 1, size(goal_probs)[2])
     else
         xlims!(l_plt, time_lims[1], time_lims[2])

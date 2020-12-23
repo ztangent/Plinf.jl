@@ -130,7 +130,7 @@ function render_blocks!(block_locs::AbstractDict, plt=nothing; alpha=1.0,
 end
 
 function render_blocks!(state::State, plt=nothing; kwargs...)
-    plt = (plt == nothing) ? plot!() : plt
+    plt = (plt === nothing) ? plot!() : plt
     block_locs = compute_locations(state)
     return render_blocks!(block_locs, plt; kwargs...)
 end
@@ -139,7 +139,7 @@ end
 function render!(state::State, plt=nothing;
                  show_blocks=true, kwargs...)
     # Get last plot if not provided
-    plt = (plt == nothing) ? plot!() : plt
+    plt = (plt === nothing) ? plot!() : plt
     # Get list of blocks
     _, subst = satisfy(@julog(block(X)), state, mode=:all)
     blocks = sort!([s[Var(:X)].name for s in subst])
@@ -165,8 +165,8 @@ end
 "Render goal states for each (weighted) trace of the world model."
 function render_traces!(traces, weights=nothing, plt=nothing;
                         max_alpha=0.50, kwargs...)
-    weights = weights == nothing ? lognorm(get_score.(traces)) : weights
-    plt = (plt == nothing) ? plot!() : plt
+    weights = weights === nothing ? lognorm(get_score.(traces)) : weights
+    plt = (plt === nothing) ? plot!() : plt
     for (tr, w) in zip(traces, weights)
         init_state = tr[:env_init]
         _, subst = satisfy(@julog(block(X)), init_state, mode=:all)
@@ -184,9 +184,9 @@ end
 function anim_traj(trajs, canvas=nothing, animation=nothing;
                    show=true, fps=30, kwargs...)
     if isa(trajs, Vector{State}) trajs = [trajs] end
-    canvas = canvas == nothing ?
+    canvas = canvas === nothing ?
         render(trajs[1][1]; show_blocks=false, kwargs...) : canvas
-    animation = animation == nothing ? Animation() : animation
+    animation = animation === nothing ? Animation() : animation
     trajs = [interpolate_locations(compute_locations.(traj, true))
              for traj in trajs]
     for t in 1:maximum(length.(trajs))
@@ -211,16 +211,16 @@ plot_canvas() = plot(size=(600,600), framestyle=:box, margin=4*Plots.mm)
 function plot_goal_bars!(goal_probs, goal_names=nothing,
                          goal_colors=nothing; plt=nothing)
     # Construct new plot if not provided
-    if (plt == nothing) plt = plot_canvas() end
+    if isnothing(plt) plt = plot_canvas() end
     # Extract goal names and probabilities
     if isa(goal_probs, AbstractDict)
         goal_probs = sort!(OrderedDict(goal_probs))
-        if goal_names == nothing goal_names = collect(keys(goal_probs)) end
+        if isnothing(goal_names) goal_names = collect(keys(goal_probs)) end
         goal_probs = collect(values(goal_probs))
-    elseif goal_names == nothing
+    elseif isnothing(goal_names)
         goal_names = collect(1:length(goal_probs))
     end
-    goal_colors = goal_colors != nothing ? goal_colors[1:length(goal_probs)] :
+    goal_colors = goal_colors !== nothing ? goal_colors[1:length(goal_probs)] :
         collect(cgrad(:plasma, length(goal_probs); categorical=true))
     # Plot bar chart
     plt = bar!(plt, goal_names, goal_probs; color=goal_colors, legend=false,
@@ -235,13 +235,13 @@ end
 function plot_goal_lines!(goal_probs, goal_names=nothing,
                           goal_colors=nothing; timesteps=nothing, plt=nothing)
     # Construct new plot if not provided
-    if (plt == nothing) plt = plot_canvas() end
+    if isnothing(plt) plt = plot_canvas() end
     # Set default goal names and timesteps
-    if (goal_names == nothing)
+    if isnothing(goal_names)
         goal_names = ["Goal $i" for i in 1:size(goal_probs, 1)] end
-    if (timesteps == nothing)
+    if isnothing(timesteps)
         timesteps = collect(1:size(goal_probs, 2)) end
-    goal_colors = goal_colors != nothing ? goal_colors[1:length(goal_probs)] :
+    goal_colors = goal_colors !== nothing ? goal_colors[1:length(goal_probs)] :
         collect(cgrad(:plasma, length(goal_probs); categorical=true))
     # Plot line graph, one series per goal
     plt = plot!(plt, timesteps, goal_probs'; linewidth=3,
@@ -256,7 +256,7 @@ end
 "Plot histogram of particle weights."
 function plot_particle_weights!(weights; plt=nothing)
     # Construct new plot if not provided
-    if (plt == nothing) plt = plot_canvas() end
+    if isnothing(plt) plt = plot_canvas() end
     # Plot histogram
     weights = exp.(weights)
     plt = histogram!(plt, weights; normalize=:probability, legend=false,
@@ -267,7 +267,7 @@ end
 "Plot histogram of partial plan lengths."
 function plot_plan_lengths!(traces, weights; plt=nothing)
     # Construct new plot if not provided
-    if (plt == nothing) plt = plot_canvas() end
+    if isnothing(plt) plt = plot_canvas() end
     # Get plan lengths from traces
     plan_lengths = map(traces) do tr
         world_states = get_retval(tr)
@@ -293,7 +293,7 @@ end
 "Callback function that renders each state."
 function render_cb(t::Int, state, traces, weights; canvas=nothing, kwargs...)
     # Render canvas if not provided
-    plt = canvas == nothing ? render(state; kwargs...) : deepcopy(canvas)
+    plt = canvas === nothing ? render(state; kwargs...) : deepcopy(canvas)
     render_blocks!(state, plt; kwargs...) # Render blocks
     render_traces!(traces, weights, plt; kwargs...) # Render likely goal states
     title!(plt, "t = $t")
@@ -338,11 +338,11 @@ function multiplot_cb(t::Int, state, traces, weights,
                       animation=nothing, show=true, kwargs...)
     subplots = [p(t, state, traces, weights; kwargs...) for p in plotters]
     margin = plotters == [render_cb] ? 2*Plots.mm : 10*Plots.mm
-    if layout == nothing
+    if isnothing(layout)
         layout = length(subplots) > 1 ? (length(subplots) ÷ 2, 2) : (1, 1) end
     plt = plot(subplots...; layout=layout, margin=margin,
                size=(layout[2], layout[1]) .* 600)
     if show display(plt) end # Display the plot in the GUI
-    if animation != nothing frame(animation) end # Save frame to animation
+    if !isnothing(animation) frame(animation) end # Save frame to animation
     return plt
 end

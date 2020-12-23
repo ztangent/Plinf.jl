@@ -10,7 +10,7 @@ function observe_params(args...; state=nothing, domain=nothing)
     entries = observe_params_entry.(args)
     params = Dict{Term,Tuple{Distribution, Tuple}}(entries...)
     # Ground parameters if state is provided
-    if state != nothing params = ground_obs_params(params, state, domain) end
+    if !isnothing(state) params = ground_obs_params(params, state, domain) end
     return params
 end
 
@@ -57,7 +57,7 @@ function observe_params(domain::Domain; state=nothing,
         params[term] = (normal, (func_noise,))
     end
     # Ground parameters if state is provided
-    if state != nothing params = ground_obs_params(params, state, domain) end
+    if !isnothing(state) params = ground_obs_params(params, state, domain) end
     return params
 end
 
@@ -127,7 +127,7 @@ function state_choicemap(state::State, domain::Union{Domain,Nothing},
         end
     end
     choices = choicemap([t => state[t] for t in ground_terms]...)
-    if addr != nothing
+    if !isnothing(addr)
         outer_choices = choicemap()
         set_submap!(outer_choices, addr, choices)
         choices = outer_choices

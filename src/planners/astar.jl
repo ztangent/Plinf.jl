@@ -47,7 +47,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
             if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
                 continue end
             # Compute path cost
-            act_cost = metric == nothing ? 1 :
+            act_cost = metric === nothing ? 1 :
                 next_state[domain, metric] - state[domain, metric]
             path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
@@ -123,7 +123,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
             if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
                 continue end
             # Compute path cost
-            act_cost = metric == nothing ? 1 :
+            act_cost = metric === nothing ? 1 :
                 next_state[domain, metric] - state[domain, metric]
             path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
@@ -166,9 +166,9 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
     est_cost = heuristic(domain, state, goal_spec)
     queue = OrderedDict{UInt,Float64}(state_hash => est_cost)
     # Initialize observation queue and descendants
-    obs_queue = [s == nothing ? nothing : hash(s) for s in obs_states]
-    last_idx = findlast(s -> s != nothing, obs_states)
-    obs_descs = last_idx == nothing ?
+    obs_queue = [s === nothing ? nothing : hash(s) for s in obs_states]
+    last_idx = findlast(s -> s !== nothing, obs_states)
+    obs_descs = last_idx === nothing ?
         Set{UInt}() : Set{UInt}([hash(obs_states[last_idx])])
     # Initialize node count
     count = 1
@@ -194,7 +194,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
             # Bias search towards descendants
             for s in intersect(obs_descs, keys(probs))
                 probs[s] += obs_bias * (exp(0) + probs[s]) end
-        elseif obs_queue[1] != nothing && obs_queue[1] in keys(probs)
+        elseif !isnothing(obs_queue[1]) && obs_queue[1] in keys(probs)
             # Bias search towards observed states
             obs_hash = obs_queue[1]
             nodes_left = max_nodes - count + 1
@@ -209,7 +209,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
         # Remove states / observations from respective queues
         delete!(queue, state_hash)
         if !isempty(obs_queue) &&
-            (obs_queue[1] == nothing || obs_queue[1] == state_hash)
+            (isnothing(obs_queue[1]) || obs_queue[1] == state_hash)
             popfirst!(obs_queue) end
         # Return plan if goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
@@ -227,7 +227,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
             if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
                 continue end
             # Compute path cost
-            act_cost = metric == nothing ? 1 :
+            act_cost = metric === nothing ? 1 :
                 next_state[domain, metric] - state[domain, metric]
             path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter

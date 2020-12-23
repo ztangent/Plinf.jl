@@ -15,7 +15,7 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
     # Compute time of divergence between hypothesized and observed states
     t_current = length(world_states)
     t_diverge = findfirst(hash.(env_states) .!= hash.(obs_states))
-    if (t_diverge == nothing) t_diverge = t_current + 1 end
+    if isnothing(t_diverge) t_diverge = t_current + 1 end
     # Decide whether to resample partial plans
     t_diff = t_current - t_diverge
     resample_prob = t_diff < 0 ? 0.05 : exp(1)/6 * t_diff * exp(-t_diff/5)

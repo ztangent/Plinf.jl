@@ -22,7 +22,7 @@ get_call(::FastDownwardPlanner)::GenerativeFunction = fast_downward_call
     @unpack search, heuristic, h_params, timeout, verbose = planner
     # Write temporary domain and problem files
     @unpack goals, metric = goal_spec
-    if metric != nothing metric = (-1, metric) end
+    if !isnothing(metric) metric = (-1, metric) end
     problem = Problem(state, Compound(:and, goals), metric; domain=domain.name)
     domain_path = save_domain(tempname(), domain)
     problem_path = save_problem(tempname(), problem)

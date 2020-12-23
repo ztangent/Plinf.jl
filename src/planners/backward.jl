@@ -52,10 +52,10 @@ get_call(::BackwardPlanner)::GenerativeFunction = bwd_call
             # Regress (reverse-execute) the action
             prev_state = regress(act, state, domain; check=false)
             # Add constraints to regression state
-            if (constraints != nothing) update!(prev_state, constraints) end
+            if !isnothing(constraints) update!(prev_state, constraints) end
             prev_hash = hash(prev_state)
             # Compute path cost
-            act_cost = metric == nothing ? 1 :
+            act_cost = metric === nothing ? 1 :
                 state[domain, metric] - prev_state[domain, metric]
             path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
