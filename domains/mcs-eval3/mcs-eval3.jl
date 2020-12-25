@@ -10,7 +10,7 @@ include("render.jl")
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "mcs-eval3")
 domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, "mcs-eval3-map1-goal1.pddl"))
+problem = load_problem(joinpath(path, "mcs-eval3-map1-large.pddl"))
 
 # Initialize state, set goal and goal colors
 state = initialize(problem)
@@ -39,10 +39,10 @@ goal_colors= [cgrad(:plasma)[1], cgrad(:plasma)[128]]
 @gen function goal_prior()
     GoalSpec(goals[{:goal} ~ categorical([0.5, 0.5])])
 end
-goal_strata = Dict((:goal_init => :goal) => goal_idxs)
+goal_strata = Dict((:goal_init => :goal) => [1, 2])
 
 # Assume either a planning agent or replanning agent as a model
-planner = ProbAStarPlanner(heuristic=GoalManhattan(), search_noise=0.5)
+planner = ProbAStarPlanner(heuristic=GoalManhattan(), search_noise=1.0)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 
@@ -52,10 +52,9 @@ plan, traj = astar(domain, state, goals[1])
 
 # Define observation noise model
 obs_params = observe_params(
-    (@julog(handsfree), 0.05),
-    (@julog(xpos), normal, 1.0), (@julog(ypos), normal, 1.0),
-    (@julog(forall(item(Obj), xitem(Obj))), normal, 1.0),
-    (@julog(forall(item(Obj), yitem(Obj))), normal, 1.0)
+    (@julog(xpos), normal, 2.0), (@julog(ypos), normal, 2.0),
+    (@julog(forall(item(Obj), xitem(Obj))), normal, 2.0),
+    (@julog(forall(item(Obj), yitem(Obj))), normal, 2.0)
 )
 obs_terms = collect(keys(obs_params))
 
@@ -93,7 +92,7 @@ callback = (t, s, trs, ws, _) ->
 
 # Set up rejuvenation moves
 # goal_rejuv! = pf -> pf_goal_move_accept!(pf, goals)
-# plan_rejuv! = pf -> pf_replan_move_accept!(pf)
+plan_rejuv! = pf -> pf_replan_move_accept!(pf)
 # mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goals; mix_prob=0.25)
 
 # Run a particle filter to perform online goal inference
@@ -120,7 +119,9 @@ function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
         p = n_heads / (n_heads + n_tails)
         prior_probs = [1-p, p]
 
+        # prior_probs = [1.0]
         @gen goal_prior() = GoalSpec(goals[{:goal} ~ categorical(prior_probs)])
+
         state = traj[1]
         start_pos = (state[:xpos], state[:ypos])
         world_init = WorldInit(agent_planner, goal_prior, state)
@@ -133,20 +134,22 @@ function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
         expected_grid = nothing
         plotters = [ # List of subplot callbacks:
             render_cb,
-            heatmap_cb,
+            # heatmap_cb,
             # goal_lines_cb,
-            # goal_bars_cb,
+            goal_bars_cb,
             # plan_lengths_cb,
             # particle_weights_cb,
         ]
         canvas = render(state; start=start_pos, show_objs=false)
         callback = (t, s, trs, ws, pf) -> begin
             lml = log_ml_estimate(pf)
-            obs_grid = zeros(Float64, s[:width], s[:height])
-            for obs in traj[1:t] obs_grid[obs[:xpos], obs[:ypos]] = 1 end
-            future_voe_grid = abs.(get_future_grid(trs, ws) .- expected_grid)
-            past_voe_grid = get_past_voe_grid(trs, ws)
-            expected_grid = get_future_grid(trs, ws, 1)
+            # obs_grid = zeros(Float64, s[:width], s[:height])
+            # for obs in traj[1:t] obs_grid[obs[:xpos], obs[:ypos]] = 1 end
+            # future_voe_grid = expected_grid === nothing ?
+            #     zeros(Float64, s[:width], s[:height]) :
+            #     abs.(get_future_grid(trs, ws) .- expected_grid)
+            # past_voe_grid = get_past_voe_grid(trs, ws)
+            # expected_grid = get_future_grid(trs, ws, 1)
             goal_probs_t = sort!(get_goal_probs(trs, ws, goal_idxs))
             push!(goal_probs, goal_probs_t |> values |> collect)
             multiplot_cb(t, s, trs, ws, plotters;
@@ -154,7 +157,7 @@ function hierarchical_goal_inference(plans_and_trajs, n_samples::Int,
                          start_pos=start_pos, start_dir=:down,
                          canvas=canvas, animation=anim, show=true,
                          goal_colors=goal_colors, goal_probs=goal_probs,
-                         goal_names=goal_names, hmap=future_voe_grid');
+                         goal_names=goal_names);
              print("t=$t\t")
              for (_, prob) in goal_probs_t @printf("%.3f\t", prob) end
              tv = total_variation(goal_probs[1], goal_probs[end])
@@ -224,11 +227,20 @@ function generate_preference_trajs(problem::Problem, n::Int,
     return plans_and_trajs
 end
 
+function add_obs_noise(traj)
+    for state in traj
+        state[:xpos] = state[:xpos] + rand([-1, 0, 0, 1])
+        state[:ypos] = state[:ypos] + rand([-1, 0, 0, 1])
+    end
+    return traj
+end
+
 # Detect violation of expectations for agent efficiency
 plans_and_trajs = generate_efficiency_trajs(problem, 7)
-test_plan = @julog Term[right, up, up, left, left, up, up,
-                        left, left, down, pickup(cylinder1)]
-test_traj = PDDL.simulate(domain, state, strange_plan)
+test_plan = @julog Term[right, right, up, up, up, up, left, left, left, left,
+                        up, up, up, up, left, left, left, left,
+                        down, down, pickup(cylinder1)]
+test_traj = PDDL.simulate(domain, state, test_plan)
 push!(plans_and_trajs, (test_plan, test_traj))
 n_samples = 50
 anim = hierarchical_goal_inference(plans_and_trajs, n_samples)

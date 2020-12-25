@@ -43,3 +43,10 @@ function load_ascii_problem(path::String)
     str = open(f->read(f, String), path)
     return ascii_to_pddl(str)
 end
+
+function enlarge_ascii_grid(grid_in::String, mult::Int=2)
+    rows = split(grid_in, "\n", keepempty=false)
+    enlarge_row = row -> join(char^mult for char in row)
+    rows = reduce(vcat, fill(enlarge_row(strip(r)), mult) for r in rows)
+    return join(rows, "\n")
+end
