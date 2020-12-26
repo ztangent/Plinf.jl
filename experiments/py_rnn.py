@@ -7,11 +7,11 @@ import matplotlib.pyplot as plt
 import os
 
 
-def train_and_test_lstm(output_directory, domain, train_probs, test_probs,
-                        goal_dim, x_train, x_test, train_goal_idx_pairs,
-                        test_goal_idx_pairs, test_optimality):
-    y_train = [pair[0] for pair in train_goal_idx_pairs]
-    y_test = [pair[0] for pair in test_goal_idx_pairs]
+def train_lstm(output_directory, domain, train_probs, test_probs,
+               goal_dim, x_train, x_test, train_goal_idx_pairs,
+               test_goal_idx_pairs, test_optimality):
+    y_train = [pair[1] for pair in train_goal_idx_pairs]
+    y_test = [pair[1] for pair in test_goal_idx_pairs]
 
     vec_rep_dim = len(x_train[0][0])
     # TODO: Change to a power of 2 instead
@@ -23,15 +23,29 @@ def train_and_test_lstm(output_directory, domain, train_probs, test_probs,
                        test_optimality)
 
 
+def test_lstm(model, test_dl, sorted_goal_idx_pairs_test):
+    all_y_preds = []
+    for (x, y, length) in test_dl:
+        x = x.float()
+        y_pred, all_y_pred, lengths = model(x, length)
+        for i, length in enumerate(lengths):
+            prob_idx, true_goal, obs_idx = sorted_goal_idx_pairs_test[i]
+            for t in range(lengths[i]):
+                probs = all_y_pred[i][t]
+                all_y_preds.append((prob_idx, obs_idx, true_goal, t, probs.tolist()))
+    return all_y_preds
+
+
 def train_model(model, x_train, x_test, y_train, y_test, directory, domain,
                 train_probs, test_probs, train_goal_idx_pairs,
-                test_goal_idx_pairs, test_optimality, batch_size=20,
-                epochs=100, lr=0.001):
+                test_goal_idx_pairs, test_optimality,
+                epochs=200, lr=0.001):
     rep_len = len(x_train[0][0])
     sorted_train_pairs = sorted(zip(x_train, y_train, train_goal_idx_pairs),
                                 key=lambda pair: len(pair[0]), reverse=True)
     sorted_y_train = [y for (x, y, pairs) in sorted_train_pairs]
     sorted_x_train = [x for (x, y, pairs) in sorted_train_pairs]
+    sorted_goal_idx_pairs_train = [pairs for (x, y, pairs) in sorted_train_pairs]
 
     sorted_test_pairs = sorted(zip(x_test, y_test, test_goal_idx_pairs),
                                key=lambda pair: len(pair[0]), reverse=True)
@@ -47,15 +61,23 @@ def train_model(model, x_train, x_test, y_train, y_test, directory, domain,
     x_test_padded = pad_sequence(sorted_x_test, x_test_lens, rep_len)
     x_test_tensor = torch.ShortTensor(x_test_padded)
 
+    train_batch_size = len(y_train)
     train_ds = GoalsDataset((x_train_tensor, x_train_lens), sorted_y_train)
-    train_dl = data.DataLoader(train_ds, batch_size=batch_size)
+    train_dl = data.DataLoader(train_ds, batch_size=train_batch_size)
 
+    test_batch_size = len(y_test)
     test_ds = GoalsDataset((x_test_tensor, x_test_lens), sorted_y_test)
-    test_dl = data.DataLoader(test_ds, batch_size=batch_size)
+    test_dl = data.DataLoader(test_ds, batch_size=test_batch_size)
 
     parameters = filter(lambda p: p.requires_grad, model.parameters())
     optimizer = torch.optim.Adam(parameters, lr=lr)
 
+    all_y_preds_train = []
+    all_y_preds_test = []
+    train_top1 = None
+    train_posterior = None
+    test_top1 = None
+    test_posterior = None
     for i in range(epochs):
         model.train()
         sum_loss = 0.0
@@ -69,17 +91,37 @@ def train_model(model, x_train, x_test, y_train, y_test, directory, domain,
             optimizer.step()
             sum_loss += loss.item()*y.shape[0]
             total += y.shape[0]
-        top1_correct_train, posterior_correct_train = prop_correct(model, train_dl)
-        top1_correct_test, posterior_correct_test = prop_correct(model, test_dl)
         if i % 10 == 0:
-            print("train loss %.3f, train Top-1 accuracy %.3f, train posterior\
-               accuracy %.3f, test Top-1 accuracy %.3f, test posterior\
-               accuracy %.3f" % (sum_loss/total, top1_correct_train,
-                                 posterior_correct_train, top1_correct_test,
-                                 posterior_correct_test))
-    plot_predictions(model, test_dl, directory, domain, train_probs,
-                     test_probs, sorted_goal_idx_pairs_test, test_optimality)
-    return model
+            for x, y, length in train_dl:
+                x = x.float()
+                y_pred, all_y_pred, lengths = model(x, length)
+                for j, length in enumerate(lengths):
+                    prob_idx, true_goal, obs_idx = sorted_goal_idx_pairs_train[j]
+                    for t in range(lengths[j]):
+                        probs = all_y_pred[j][t]
+                        all_y_preds_train.append((prob_idx, i, obs_idx, true_goal, t, probs.tolist()))
+            for x, y, length in test_dl:
+                x = x.float()
+                y_pred, all_y_pred, lengths = model(x, length)
+                for j, length in enumerate(lengths):
+                    prob_idx, true_goal, obs_idx = sorted_goal_idx_pairs_test[j]
+                    for t in range(lengths[j]):
+                        probs = all_y_pred[j][t]
+                        all_y_preds_test.append((prob_idx, i, obs_idx, true_goal, t, probs.tolist()))
+        # top1_correct_train, posterior_correct_train = prop_correct(model, train_dl)
+        # top1_correct_test, posterior_correct_test = prop_correct(model, test_dl)
+        if i == epochs - 1:
+            train_top1, train_posterior = prop_correct(model, train_dl)
+            test_top1, test_posterior = prop_correct(model, test_dl)
+        # if i % 10 == 0:
+        #     print("train loss %.3f, train Top-1 accuracy %.3f, train posterior\
+        #        accuracy %.3f, test Top-1 accuracy %.3f, test posterior\
+        #        accuracy %.3f" % (sum_loss/total, top1_correct_train,
+        #                          posterior_correct_train, top1_correct_test,
+        #                         posterior_correct_test))
+    #plot_predictions(model, test_dl, directory, domain, train_probs,
+    #                 test_probs, sorted_goal_idx_pairs_test, test_optimality)
+    return model, test_dl, sorted_goal_idx_pairs_test, all_y_preds_train, all_y_preds_test, train_top1, train_posterior, test_top1, test_posterior
 
 
 def pad_sequence(sorted_x, x_lens, rep_len):
