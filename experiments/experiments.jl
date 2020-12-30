@@ -5,6 +5,7 @@ import Dates
 pushfirst!(PyVector(pyimport("sys")."path"), pwd())
 
 py_rnn = pyimport("py_rnn")
+dkg_rnn = pyimport("dkg_py_rnn")
 
 "Path to all experiment files."
 EXPERIMENTS_PATH = joinpath("./experiments")
@@ -489,9 +490,33 @@ function load_data(path, domain_name, probs, data_type)
 end
 
 
+function load_DKG_data(path, domain_name, probs, data_type)
+    all_xs = []
+    all_goal_idx_pairs = []
+    for problem_idx in probs
+        obs_path = joinpath(path, "observations", data_type, domain_name)
+        domain, problem, goals = load_problem_files(path, domain_name, problem_idx)
+        init_state = initialize(problem)
+        _, obs_trajs, obs_fns = load_observations(obs_path, problem_idx,
+                                                  domain, init_state)
+        xs = [[gems_keys_doors_RNN_conversion(domain, state) for state in observation] for observation in obs_trajs]
+        all_xs = vcat(all_xs, xs)
+        goal_idx_pairs = get_idx_from_fn.(obs_fns)
+        goal_idx_pairs = [(problem_idx, p1, p2) for (p1, p2) in goal_idx_pairs]
+        #if goal_idx_pairs[1] isa Number
+        #    goal_idx_pairs = [(x, 0) for x in goal_idx_pairs]
+        #end
+        #goal_idx_pairs = [(problem_idx * poss_goals_per_prob + goal, idx) for (goal, idx) in goal_idx_pairs]
+        all_goal_idx_pairs = vcat(all_goal_idx_pairs, goal_idx_pairs)
+    end
+    return all_xs, all_goal_idx_pairs
+end
+
+
 # TODO: Clean this up
+# TODO: Combine all the functions for BW/DKG instead of separate functions
 # Assumes that each problem has the same number of possible goals
-function train_and_test_rnns(path, domain_name, test_probs, train_probs, total_num_poss_goals, train_optimality=nothing, test_optimality=nothing, figures_directory=nothing)
+function train_and_test_BW_rnns(path, domain_name, test_probs, train_probs, total_num_poss_goals, train_optimality=nothing, test_optimality=nothing, figures_directory=nothing)
     # Training
     train_df = DataFrame()
 
@@ -520,6 +545,93 @@ function train_and_test_rnns(path, domain_name, test_probs, train_probs, total_n
                                          total_num_poss_goals, train_xs, test_xs,
                                          train_goal_idx_pairs,
                                          test_goal_idx_pairs, test_optimality)
+    train_end = Dates.now()
+    t_end = Dates.value(train_end)
+    LSTMS[(domain_name, train_probs)] = trained
+    train_time = t_end - t_begin
+    println("Training time: $train_time")
+
+    for (prob_idx, i, obs_idx, goal, t, probs) in all_y_preds_train
+        train_df[!, "prob$(prob_idx)_train_epoch$(i)_goal$(goal)_obs$(obs_idx)_time$(t)"] = probs
+    end
+
+    for (prob_idx, i, obs_idx, goal, t, probs) in all_y_preds_test
+        train_df[!, "prob$(prob_idx)_test_epoch$(i)_goal$(goal)_obs$(obs_idx)_time$(t)"] = probs
+    end
+
+    train_df.train_time = train_time
+    train_df.train_top1 = train_top1
+    train_df.train_posterior = train_posterior
+
+    # Testing
+    test_df = DataFrame()
+    test_begin = Dates.now()
+    t_begin = Dates.value(test_begin)
+
+    all_y_preds = py_rnn.test_lstm(trained, test_dl, sorted_goal_idx_pairs_test)
+
+    test_end = Dates.now()
+    t_end = Dates.value(test_end)
+    test_time = t_end - t_begin
+
+    for (prob_idx, obs_idx, goal, t, probs) in all_y_preds
+        test_df[!, "prob$(prob_idx)_goal$(goal)_obs$(obs_idx)_time$(t)"] = probs
+    end
+
+    test_df.test_time = test_time
+    test_df.test_top1 = test_top1
+    test_df.test_posterior = test_posterior
+
+    # Saving results to files
+    train_probs_str = ""
+    for train_prob in train_probs
+        train_probs_str *= string(train_prob)
+    end
+
+    test_probs_str = ""
+    for test_prob in test_probs
+        test_probs_str *= string(test_prob)
+    end
+
+    df_train_fn = "$(domain_name)_train$(train_probs_str)_test$(test_probs_str)_train.csv"
+    df_train_path = joinpath(path, "results", domain_name, df_train_fn)
+    println("Writing training results to $df_train_fn...")
+    CSV.write(df_train_path, train_df)
+
+    df_test_fn = "$(domain_name)_train$(train_probs_str)_test$(test_probs_str)_test.csv"
+    df_test_path = joinpath(path, "results", domain_name, df_test_fn)
+    println("Writing testing results to $df_test_fn...")
+    CSV.write(df_test_path, test_df)
+end
+
+
+function train_and_test_DKG_rnns(path, domain_name, test_probs, train_probs, total_num_poss_goals, train_optimality=nothing, test_optimality=nothing, figures_directory=nothing)
+    # Training
+    train_df = DataFrame()
+
+    if train_optimality == nothing
+        opt_train_xs, opt_train_goal_idx_pairs = load_DKG_data(path, domain_name, train_probs, "training/optimal")
+        sub_train_xs, sub_train_goal_idx_pairs = load_DKG_data(path, domain_name, train_probs, "training/suboptimal")
+        train_xs = vcat(opt_train_xs, sub_train_xs)
+        train_goal_idx_pairs = vcat(opt_train_goal_idx_pairs, sub_train_goal_idx_pairs)
+    else
+        train_xs, train_goal_idx_pairs = load_DKG_data(path, domain_name, train_probs, "training/$(train_optimality)")
+    end
+
+    if test_optimality == nothing
+        opt_test_xs, opt_test_goal_idx_pairs = load_DKG_data(path, domain_name, test_probs, "optimal")
+        sub_test_xs, sub_test_goal_idx_pairs = load_DKG_data(path, domain_name, test_probs, "suboptimal")
+        test_xs = vcat(opt_test_xs, sub_test_xs)
+        test_goal_idx_pairs = vcat(opt_test_goal_idx_pairs, sub_test_goal_idx_pairs)
+    else
+        test_xs, test_goal_idx_pairs = load_DKG_data(path, domain_name, test_probs, test_optimality)
+    end
+
+    train_begin = Dates.now()
+    t_begin = Dates.value(train_begin)
+    trained, test_dl, sorted_goal_idx_pairs_test, all_y_preds_train, all_y_preds_test, train_top1, train_posterior, test_top1, test_posterior = dkg_rnn.train_lstm(total_num_poss_goals, train_xs, test_xs,
+                                         train_goal_idx_pairs,
+                                         test_goal_idx_pairs)
     train_end = Dates.now()
     t_end = Dates.value(train_end)
     LSTMS[(domain_name, train_probs)] = trained

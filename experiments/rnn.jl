@@ -127,35 +127,47 @@ function block_words_RNN_conversion(domain::Domain, state::State)
 end
 
 # TODO: generalize from just doors-keys-gems
+# TODO: generalize to variable number of gems
 "Convert from gems, keys, doors PDDL state representation to RNN input representation"
 function gems_keys_doors_RNN_conversion(domain::Domain, state::State)
     types = state.types
     facts = state.facts
     fluents = state.fluents
-    objects = [type.args[1].name for type in types if type.name != :direction]
+    objects = sort([type.args[1].name for type in types if type.name != :direction])
     width, height = fluents[:width], fluents[:height]
-    encoding = zeros(height, width)
+    gem_vals = Dict(:gem1 => 11, :gem2 => 13, :gem3 => 17)
+    encoding_array = ones(16, 16)
+    encoding_vector = zeros(10)
     for fact in facts
         if fact.name == :wall
-            val = 1
+            val = 3
             x, y = fact.args
         elseif fact.name == :door
-            val = 2
-            x, y = fact.args
-        elseif fact.name == :itemloc
-            continue
-        elseif fact.name == :doorloc
-            val = 3
+            val = 5
             x, y = fact.args
         elseif fact.name == :at
             item, x, y = fact.args
-            obj_idx = findfirst(isequal(item.name), objects)
-            val = 3 + obj_idx
+            if startswith(String(item.name), "key")
+                val = 7
+            else
+                val = gem_vals[item.name]
+            end
+        elseif fact.name == :has
+            items = fact.args
+            for item in items
+                obj_idx = findfirst(isequal(item.name), objects)
+                encoding_vector[obj_idx] = 1
+            end
+            continue
+        elseif fact.name == :doorloc || fact.name == :itemloc
+            continue
         end
         y, x = y.name, x.name
-        encoding[y, x] = val
+        encoding_array[height - y + 1, x] *= val
     end
-    return encoding[end:-1:1, :]
+    agent_x, agent_y = fluents[:xpos], fluents[:ypos]
+    encoding_array[height - agent_y + 1, agent_x] *= 2
+    return encoding_array, encoding_vector
 end
 
 "Inspired by https://jovian.ml/aakanksha-ns/lstm-multiclass-text-classification/."

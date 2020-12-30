@@ -91,7 +91,7 @@ def train_model(model, x_train, x_test, y_train, y_test, directory, domain,
             optimizer.step()
             sum_loss += loss.item()*y.shape[0]
             total += y.shape[0]
-        if i % 10 == 0:
+        if i % 50 == 0:
             for x, y, length in train_dl:
                 x = x.float()
                 y_pred, all_y_pred, lengths = model(x, length)
