@@ -169,17 +169,17 @@ class LSTM_conv_array_vector(nn.Module):
         linear_len = flattened_array_size + vector_size
         self.hidden_dim = flattened_array_size
         self.layer1 = nn.Sequential(
-            nn.Conv2d(1, 4, kernel_size=4, stride=1, padding=3),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2))
+            nn.Conv2d(1, 4, kernel_size=2, stride=2),
+            nn.ReLU())
+        #nn.MaxPool2d(kernel_size=2, stride=2))
         self.layer2 = nn.Sequential(
-            nn.Conv2d(4, 4, kernel_size=4, stride=1, padding=3),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2))
+            nn.Conv2d(4, 4, kernel_size=3, stride=1, padding=1),
+            nn.ReLU())
+        #nn.MaxPool2d(kernel_size=2, stride=2))
         self.layer3 = nn.Sequential(
-            nn.Conv2d(4, 4, kernel_size=2, stride=1, padding=1),
-            nn.ReLU(),
-            nn.MaxPool2d(kernel_size=2, stride=2))
+            nn.Conv2d(4, 4, kernel_size=2, stride=2),
+            nn.ReLU())
+        #nn.MaxPool2d(kernel_size=2, stride=2))
         self.drop_out = nn.Dropout()
         self.lstm = nn.LSTM(linear_len, flattened_array_size, batch_first=True)
         self.linear = nn.Linear(flattened_array_size, goal_count)
@@ -189,13 +189,14 @@ class LSTM_conv_array_vector(nn.Module):
         out = self.layer2(out)
         out = self.layer3(out)
         out = torch.flatten(out, start_dim=1)
+        return out
 
     def forward(self, x_mat, x_vec, s):
         out = torch.unbind(x_mat, dim=1)
         out = [self.CNN(torch.unsqueeze(x_i, 1)) for x_i in out]
         out = torch.stack(out, dim=1)
 
-        out = torch.cat((out, x_vec), axis=0)
+        out = torch.cat((out, x_vec), axis=2)
         out, (ht, ct) = self.lstm(out)
 
         # Get final timestep output for all samples
@@ -203,8 +204,8 @@ class LSTM_conv_array_vector(nn.Module):
         out_final = F.softmax(out_final_unnorm)
 
         # Get output from all timesteps for all samples
-        all_out, lengths = rnn.pad_packed_sequence(out, batch_first=True)
-        all_out_unnorm = self.linear(all_out)
+        #all_out, lengths = rnn.pad_packed_sequence(out, batch_first=True)
+        all_out_unnorm = self.linear(out)
         all_out = F.softmax(all_out_unnorm, dim=2)
 
-        return out_final, all_out, lengths
+        return out_final, all_out, s

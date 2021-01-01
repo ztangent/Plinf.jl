@@ -655,7 +655,7 @@ function train_and_test_DKG_rnns(path, domain_name, test_probs, train_probs, tot
     test_begin = Dates.now()
     t_begin = Dates.value(test_begin)
 
-    all_y_preds = py_rnn.test_lstm(trained, test_dl, sorted_goal_idx_pairs_test)
+    all_y_preds = dkg_rnn.test_lstm(trained, test_dl, sorted_goal_idx_pairs_test)
 
     test_end = Dates.now()
     t_end = Dates.value(test_end)
