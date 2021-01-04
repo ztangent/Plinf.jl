@@ -145,7 +145,7 @@ def prop_correct(model, dl):
         y_pred, all_y_pred, lengths = model(x, length)
         pred_prob, pred_idx = torch.max(y_pred, 1)
         top1_correct += (pred_idx == y).float().sum()
-        posterior_correct += (pred_prob > 0.99).float().sum()
+        posterior_correct += ((pred_prob > 0.99) & (pred_idx == y)).float().sum()
         total += y.shape[0]
     return top1_correct/total, posterior_correct/total
 

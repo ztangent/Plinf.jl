@@ -121,6 +121,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
         delete!(queue, state_hash)
         # Return plan if search budget is reached or goals are satisfied
         if count >= max_nodes || satisfy(goals, state, domain)[1]
+            @info "Node Count: $count"
             return reconstruct_plan(state_hash, state_dict, parents)
         end
         count += 1

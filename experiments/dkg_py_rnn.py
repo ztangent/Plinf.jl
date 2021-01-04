@@ -29,7 +29,7 @@ def test_lstm(model, test_dl, sorted_goal_idx_pairs_test):
 
 
 def train_model(model, x_train, x_test, y_train, y_test, train_goal_idx_pairs,
-                test_goal_idx_pairs, epochs=200, lr=0.001):
+                test_goal_idx_pairs, epochs=400, lr=0.001):
     sorted_train_pairs = sorted(zip(x_train, y_train, train_goal_idx_pairs),
                                 key=lambda pair: len(pair[0]), reverse=True)
     sorted_y_train = [y for (x, y, pairs) in sorted_train_pairs]
@@ -87,6 +87,13 @@ def train_model(model, x_train, x_test, y_train, y_test, train_goal_idx_pairs,
             sum_loss += loss.item()*y.shape[0]
             total += y.shape[0]
         if i % 50 == 0:
+            top1_correct_train, posterior_correct_train = prop_correct(model, train_dl)
+            top1_correct_test, posterior_correct_test = prop_correct(model, test_dl)
+            print("train loss %.3f, train Top-1 accuracy %.3f, train posterior\
+                    accuracy %.3f, test Top-1 accuracy %.3f, test posterior\
+                    accuracy %.3f" % (sum_loss/total, top1_correct_train,
+                                      posterior_correct_train, top1_correct_test,
+                                      posterior_correct_test))
             for x_mat, x_vec, y, length in train_dl:
                 x_mat, x_vec = x_mat.float(), x_vec.float()
                 y_pred, all_y_pred, lengths = model(x_mat, x_vec, length)
@@ -103,12 +110,12 @@ def train_model(model, x_train, x_test, y_train, y_test, train_goal_idx_pairs,
                     for t in range(lengths[j]):
                         probs = all_y_pred[j][t]
                         all_y_preds_test.append((prob_idx, i, obs_idx, true_goal, t, probs.tolist()))
-        # top1_correct_train, posterior_correct_train = prop_correct(model, train_dl)
-        # top1_correct_test, posterior_correct_test = prop_correct(model, test_dl)
         if i == epochs - 1:
             train_top1, train_posterior = prop_correct(model, train_dl)
             test_top1, test_posterior = prop_correct(model, test_dl)
         # if i % 10 == 0:
+        #     top1_correct_train, posterior_correct_train = prop_correct(model, train_dl)
+        #     top1_correct_test, posterior_correct_test = prop_correct(model, test_dl)
         #     print("train loss %.3f, train Top-1 accuracy %.3f, train posterior\
         #        accuracy %.3f, test Top-1 accuracy %.3f, test posterior\
         #        accuracy %.3f" % (sum_loss/total, top1_correct_train,
@@ -142,7 +149,7 @@ def prop_correct(model, dl):
         y_pred, all_y_pred, lengths = model(x_mat, x_vec, length)
         pred_prob, pred_idx = torch.max(y_pred, 1)
         top1_correct += (pred_idx == y).float().sum()
-        posterior_correct += (pred_prob > 0.99).float().sum()
+        posterior_correct += ((pred_prob > 0.99) & (pred_idx == y)).float().sum()
         total += y.shape[0]
     return top1_correct/total, posterior_correct/total
 
@@ -186,6 +193,8 @@ class LSTM_conv_array_vector(nn.Module):
 
     def CNN(self, x_mat):
         out = self.layer1(x_mat)
+        # if x_mat[0, 0, 1, 1] != 0:
+        #     print(out[0, :, ])
         out = self.layer2(out)
         out = self.layer3(out)
         out = torch.flatten(out, start_dim=1)

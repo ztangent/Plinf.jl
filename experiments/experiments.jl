@@ -311,7 +311,7 @@ function run_problem_experiments(path, domain_name, problem_idx,
 
    # Summarize and save results
    summary_df = analyze_problem_results(problem_dfs)
-   df_fn = "$(domain_name)_problem_$(problem_idx)_summary.csv"
+   df_fn = "$(domain_name)_problem_$(problem_idx)_summary_opt.csv"
    df_path = joinpath(path, "results", domain_name, df_fn)
    println("Writing summary results to $df_fn...")
    CSV.write(df_path, summary_df)
@@ -396,7 +396,7 @@ function analyze_problem_results(path, domain_name, problem_idx, save=false)
     dfs = load_problem_results(path, domain_name, problem_idx)
     summary_df = analyze_problem_results(dfs)
     if save
-        summary_fn = "$(domain_name)_problem_$(problem_idx)_summary.csv"
+        summary_fn = "$(domain_name)_problem_$(problem_idx)_summary_opt.csv"
         summary_path = joinpath(path, "results", domain_name, summary_fn)
         println("Writing summary results to $summary_fn...")
         CSV.write(summary_path, summary_df)
@@ -426,7 +426,7 @@ function run_domain_experiments(path, domain_name, obs_subdir="optimal")
 
     # Compute and save summary statistics
     summary_stats = analyze_domain_results(summary_df)
-    df_fn = "$(domain_name)_summary.csv"
+    df_fn = "$(domain_name)_summary_opt.csv"
     df_path = joinpath(path, "results", domain_name, df_fn)
     println("Writing domain summary results to $df_fn...")
     CSV.write(df_path, summary_stats)
@@ -456,7 +456,7 @@ function analyze_domain_results(path, domain_name, save=false)
     summary_df = reduce(vcat, analyze_problem_results.(domain_dfs))
     stats_df = describe(summary_df, :mean, :std, :min, :max, :median)
     if save
-        stats_fn = "$(domain_name)_summary.csv"
+        stats_fn = "$(domain_name)_summary_opt.csv"
         stats_path = joinpath(path, "results", domain_name, stats_fn)
         println("Writing domain summary results to $stats_fn...")
         CSV.write(stats_path, stats_df)
