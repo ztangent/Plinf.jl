@@ -19,7 +19,7 @@ def test_lstm(model, test_dl, sorted_goal_idx_pairs_test):
     all_y_preds = []
     for x_mat, x_vec, y, length in test_dl:
         x_mat, x_vec = x_mat.float(), x_vec.float()
-        y_pred, all_y_pred, lengths, cnn = model(x_mat, x_vec, length)
+        y_pred, all_y_pred, lengths = model(x_mat, x_vec, length)
         for i, length in enumerate(lengths):
             prob_idx, true_goal, obs_idx = sorted_goal_idx_pairs_test[i]
             #for t in range(x_mat.size()[1]):
@@ -30,7 +30,7 @@ def test_lstm(model, test_dl, sorted_goal_idx_pairs_test):
 
 
 def train_model(model, x_train, x_test, y_train, y_test, train_goal_idx_pairs,
-                test_goal_idx_pairs, epochs=400, lr=0.001):
+                test_goal_idx_pairs, epochs=1600, lr=0.001):
     sorted_train_pairs = sorted(zip(x_train, y_train, train_goal_idx_pairs),
                                 key=lambda pair: len(pair[0]), reverse=True)
     sorted_y_train = [y for (x, y, pairs) in sorted_train_pairs]
@@ -81,17 +81,26 @@ def train_model(model, x_train, x_test, y_train, y_test, train_goal_idx_pairs,
         total = 0
         for x_mat, x_vec, y, length in train_dl:
             x_mat, x_vec = x_mat.float(), x_vec.float()
-            y_pred, all_y_pred, lengths, cnn = model(x_mat, x_vec, length)
+            y_pred, all_y_pred, lengths = model(x_mat, x_vec, length)
             #print(abs(last_cnn-cnn))
             #print(torch.sum(abs(last_cnn-cnn)))
             #last_cnn = cnn
+            mask = torch.zeros_like(all_y_pred)
+            for j, l in enumerate(length):
+                for k in range(l):
+                    mask[j, k] = torch.ones_like(mask[j, k])
+            all_y_pred = mask * all_y_pred
             optimizer.zero_grad()
-            loss = F.cross_entropy(y_pred, y)
+            all_y_pred = all_y_pred.transpose(1, 2)
+            #loss = F.cross_entropy(y_pred, y)
+            y_repeated = y.unsqueeze(1).repeat(1, length[0])
+            loss = F.cross_entropy(all_y_pred, y_repeated)
+            loss = loss/torch.sum(length)
             loss.backward()
             optimizer.step()
             sum_loss += loss.item()*y.shape[0]
             total += y.shape[0]
-        if i % 50 == 0:
+        if i % 400 == 0:
             # top1_correct_train, posterior_correct_train = prop_correct(model, train_dl)
             # top1_correct_test, posterior_correct_test = prop_correct(model, test_dl)
             # print("train loss %.3f, train Top-1 accuracy %.3f, train posterior\
@@ -101,7 +110,7 @@ def train_model(model, x_train, x_test, y_train, y_test, train_goal_idx_pairs,
             #                           posterior_correct_test))
             for x_mat, x_vec, y, length in train_dl:
                 x_mat, x_vec = x_mat.float(), x_vec.float()
-                y_pred, all_y_pred, lengths, cnn = model(x_mat, x_vec, length)
+                y_pred, all_y_pred, lengths = model(x_mat, x_vec, length)
                 for j, length in enumerate(lengths):
                     prob_idx, true_goal, obs_idx = sorted_goal_idx_pairs_train[j]
                     for t in range(lengths[j]):
@@ -109,7 +118,7 @@ def train_model(model, x_train, x_test, y_train, y_test, train_goal_idx_pairs,
                         all_y_preds_train.append((prob_idx, i, obs_idx, true_goal, t, probs.tolist()))
             for x_mat, x_vec, y, length in test_dl:
                 x_mat, x_vec = x_mat.float(), x_vec.float()
-                y_pred, all_y_pred, lengths, cnn = model(x_mat, x_vec, length)
+                y_pred, all_y_pred, lengths = model(x_mat, x_vec, length)
                 for j, length in enumerate(lengths):
                     prob_idx, true_goal, obs_idx = sorted_goal_idx_pairs_test[j]
                     for t in range(lengths[j]):
@@ -151,7 +160,7 @@ def prop_correct(model, dl):
     total = 0
     for x_mat, x_vec, y, length in dl:
         x_mat, x_vec = x_mat.float(), x_vec.float()
-        y_pred, all_y_pred, lengths, cnn = model(x_mat, x_vec, length)
+        y_pred, all_y_pred, lengths = model(x_mat, x_vec, length)
         pred_prob, pred_idx = torch.max(y_pred, 1)
         top1_correct += (pred_idx == y).float().sum()
         posterior_correct += ((pred_prob > 0.99) & (pred_idx == y)).float().sum()
@@ -206,22 +215,16 @@ class LSTM_conv_array_vector(nn.Module):
         return out
 
     def forward(self, x_mat, x_vec, s):
-        x_mat = torch.unsqueeze(x_mat, 2)
-        packed = rnn.pack_padded_sequence(x_mat, s, batch_first=True)
-        out = [self.CNN(torch.unsqueeze(x_i, 0)) for x_i in packed.data]
-        new_packed = rnn.PackedSequence(out, packed.batch_sizes, packed.sorted_indices, packed.unsorted_indices)
-        #out = torch.unbind(x_mat, dim=1)
-        #out = [self.CNN(torch.unsqueeze(x_i, 1)) for x_i in out]
-        cnn = self.CNN(new_packed)
+        out = torch.unbind(x_mat, dim=1)
+        out = [self.CNN(torch.unsqueeze(x_i, 1)) for x_i in out]
         # for i in range(1, len(out)):
         #     print(i)
         #     print(torch.sum(abs(out[i] - out[i-1])))
-        #cnn = torch.stack(out, dim=1)
+        cnn = torch.stack(out, dim=1)
 
-        out = rnn.pad_packed_sequence(cnn, batch_first=True)
-        out = torch.cat((out, x_vec), axis=2)
+        out = torch.cat((cnn, x_vec), axis=2)
         packed = rnn.pack_padded_sequence(out, s, batch_first=True)
-        out, (ht, ct) = self.lstm(out)
+        out, (ht, ct) = self.lstm(packed)
 
         # Get final timestep output for all samples
         out_final_unnorm = self.linear(ht[0])
@@ -232,4 +235,4 @@ class LSTM_conv_array_vector(nn.Module):
         all_out_unnorm = self.linear(all_out)
         all_out = F.softmax(all_out_unnorm, dim=2)
 
-        return out_final, all_out, lengths, cnn
+        return out_final, all_out, lengths

@@ -136,9 +136,9 @@ function gems_keys_doors_RNN_conversion(domain::Domain, state::State)
     objects = sort([type.args[1].name for type in types if type.name != :direction])
     width, height = fluents[:width], fluents[:height]
     gem_vals = Dict(:gem1 => 11, :gem2 => 13, :gem3 => 17)
-    encoding_array = zeros(16, 16)
-    for i=1:height, j=1:width
-        encoding_array[i, j] = 1
+    encoding_array = ones(16, 16)
+    for i=height+1:16, j=width+1:16
+        encoding_array[i, j] = 3
     end
     encoding_vector = zeros(10)
     for fact in facts
@@ -164,6 +164,8 @@ function gems_keys_doors_RNN_conversion(domain::Domain, state::State)
             continue
         elseif fact.name == :doorloc || fact.name == :itemloc
             continue
+        else
+            print(fact)
         end
         y, x = y.name, x.name
         encoding_array[height - y + 1, x] *= val
