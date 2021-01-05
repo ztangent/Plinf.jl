@@ -51,19 +51,19 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
     return (t_resamp, t_current)
 end
 
-"Involution for the replanning move kernel."
-@involution function replan_move_involution(m_args, p_args, p_retval)
-    resample = @read_discrete_from_proposal(:resample)
-    @write_discrete_to_proposal(:resample, resample)
+"Trace transform for the replanning move kernel."
+@transform replan_move_involution (p_in, q_in) to (p_out, q_out) begin
+    resample = @read(q_in[:resample], :discrete)
+    @copy(q_in[:resample], q_out[:resample])
     if !resample return end
-    t_resamp, t_current = p_retval
-    @copy_proposal_to_proposal(:resample_idx, :resample_idx)
-    @copy_model_to_proposal(:timestep => t_resamp => :plan => :max_resource,
-                            :max_resource)
+    t_resamp, t_current = @read(q_in[], :discrete)
+    @copy(q_in[:resample_idx], q_out[:resample_idx])
+    @copy(p_in[:timestep => t_resamp => :plan => :max_resource],
+          q_out[:max_resource])
     for t in t_resamp:t_current
         addr = :timestep => t => :plan
-        @copy_proposal_to_model(addr, addr)
-        @copy_model_to_proposal(addr, addr)
+        @copy(q_in[addr], p_out[addr])
+        @copy(p_in[addr], q_out[addr])
     end
 end
 

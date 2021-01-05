@@ -93,7 +93,7 @@ end
                                  planner::Planner, domain::Domain,
                                  state::State, goal_spec::GoalSpec,
                                  obs_states::Vector{<:Union{State,Nothing}},
-                                 proposal_args::Vector{Union{Tuple,Nothing}})
+                                 proposal_args::Vector{<:Union{Tuple,Nothing}})
    step_propose = get_step_proposal(planner)
    plan_states = Vector{typeof(ps)}()
    for t in 1:(t2-t1+1)
