@@ -206,16 +206,22 @@ class LSTM_conv_array_vector(nn.Module):
         return out
 
     def forward(self, x_mat, x_vec, s):
-        out = torch.unbind(x_mat, dim=1)
-        out = [self.CNN(torch.unsqueeze(x_i, 1)) for x_i in out]
+        x_mat = torch.unsqueeze(x_mat, 2)
+        packed = rnn.pack_padded_sequence(x_mat, s, batch_first=True)
+        out = [self.CNN(torch.unsqueeze(x_i, 0)) for x_i in packed.data]
+        new_packed = rnn.PackedSequence(out, packed.batch_sizes, packed.sorted_indices, packed.unsorted_indices)
+        #out = torch.unbind(x_mat, dim=1)
+        #out = [self.CNN(torch.unsqueeze(x_i, 1)) for x_i in out]
+        cnn = self.CNN(new_packed)
         # for i in range(1, len(out)):
         #     print(i)
         #     print(torch.sum(abs(out[i] - out[i-1])))
-        cnn = torch.stack(out, dim=1)
+        #cnn = torch.stack(out, dim=1)
 
-        out = torch.cat((cnn, x_vec), axis=2)
+        out = rnn.pad_packed_sequence(cnn, batch_first=True)
+        out = torch.cat((out, x_vec), axis=2)
         packed = rnn.pack_padded_sequence(out, s, batch_first=True)
-        out, (ht, ct) = self.lstm(packed)
+        out, (ht, ct) = self.lstm(out)
 
         # Get final timestep output for all samples
         out_final_unnorm = self.linear(ht[0])
