@@ -71,13 +71,9 @@ planner = ProbAStarPlanner(heuristic=GemManhattan(), search_noise=0.1)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 
-# Construct a trajectory with backtracking to perform inference on
-plan1, traj = planner(domain, state, @julog(has(key2)))
-plan2, traj = planner(domain, traj[end], @julog(not(door(8, 5))))
-plan3, traj = planner(domain, traj[end], @julog(has(key1)))
-plan4, traj = planner(domain, traj[end], @julog(has(gem3)))
-plan = [plan1; plan2; plan3; plan4]
-traj = PDDL.simulate(domain, state, plan)
+# Configure agent model with goal prior and planner
+agent_init = AgentInit(agent_planner, goal_prior)
+agent_config = AgentConfig(domain=domain)
 
 # Define observation noise model
 obs_params = observe_params(
@@ -88,9 +84,18 @@ obs_params = observe_params(
 )
 obs_terms = collect(keys(obs_params))
 
-# Initialize world model with planner, goal prior, initial state, and obs params
-world_init = WorldInit(agent_planner, goal_prior, state)
-world_config = WorldConfig(domain, agent_planner, obs_params)
+# Configure world model with planner, goal prior, initial state, and obs params
+world_init = WorldInit(agent_init, state, state)
+world_config = WorldConfig(domain, agent_config, obs_params)
+
+# Construct a trajectory with backtracking to perform inference on
+plan1, traj = planner(domain, state, @julog(has(key2)))
+plan2, traj = planner(domain, traj[end], @julog(not(door(8, 5))))
+plan3, traj = planner(domain, traj[end], @julog(has(key1)))
+plan4, traj = planner(domain, traj[end], @julog(has(gem3)))
+plan = [plan1; plan2; plan3; plan4]
+traj = PDDL.simulate(domain, state, plan)
+anim = anim_traj(traj; gem_colors=gem_colors)
 
 #--- Offline Goal Inference ---#
 
@@ -132,17 +137,19 @@ plotters = [ # List of subplot callbacks:
     # particle_weights_cb,
 ]
 canvas = render(state; start=start_pos, show_objs=false)
-callback = (t, s, trs, ws) ->
-    (goal_probs_t = collect(values(sort!(get_goal_probs(trs, ws, goal_idxs))));
-     push!(goal_probs, goal_probs_t);
-     multiplot_cb(t, s, trs, ws, plotters;
-                  trace_future=true, plan=plan,
-                  start_pos=start_pos, start_dir=:down,
-                  canvas=canvas, animation=anim, show=true,
-                  keytimes=keytimes, keyframes=keyframes,
-                  gem_colors=gem_colors, goal_colors=goal_colors,
-                  goal_probs=goal_probs, goal_names=goal_names);
-     print("t=$t\t"); print_goal_probs(get_goal_probs(trs, ws, goal_idxs)))
+callback = (t, s, trs, ws) -> begin
+    goal_probs_t = collect(values(sort!(get_goal_probs(trs, ws, goal_idxs))))
+    push!(goal_probs, goal_probs_t)
+    multiplot_cb(t, s, trs, ws, plotters;
+                 trace_future=true, plan=plan,
+                 start_pos=start_pos, start_dir=:down,
+                 canvas=canvas, animation=anim, show=true,
+                 keytimes=keytimes, keyframes=keyframes,
+                 gem_colors=gem_colors, goal_colors=goal_colors,
+                 goal_probs=goal_probs, goal_names=goal_names);
+    print("t=$t\t")
+    print_goal_probs(get_goal_probs(trs, ws, goal_idxs))
+end
 
 # Set up rejuvenation moves
 goal_rejuv! = pf -> pf_goal_move_accept!(pf, goals)

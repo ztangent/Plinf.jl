@@ -36,6 +36,7 @@ anim = anim_traj(traj, plt)
 planner = ProbAStarPlanner(heuristic=manhattan, trace_states=true)
 plt = render(state; start=start_pos, goals=goal_pos)
 tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
+anim = anim_plan(tr, plt)
 
 # Visualize distribution over trajectories induced by planner
 trajs = [planner(domain, state, goal)[2] for i in 1:20]
@@ -71,7 +72,19 @@ manhattan = ManhattanHeuristic(@julog[xpos, ypos])
 planner = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
-rejuvenate = agent_planner == planner ? nothing : pf_replan_move_mh!
+rejuvenate = agent_planner == planner ? nothing : pf_replan_move_accept!
+
+# Configure agent model with goal prior and planner
+agent_init = AgentInit(agent_planner, goal_prior)
+agent_config = AgentConfig(domain=domain)
+
+# Assume Gaussian observation noise around agent's location
+obs_terms = @julog([xpos, ypos])
+obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
+
+# Configure world model with planner, goal prior, initial state, and obs params
+world_init = WorldInit(agent_init, state, state)
+world_config = WorldConfig(domain, agent_config, obs_params)
 
 # Sample a trajectory as the ground truth (no observation noise)
 likely_traj = false
@@ -90,14 +103,6 @@ end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(traj, plt; alpha=0.5)
 anim = anim_traj(traj, plt)
-
-# Assume Gaussian observation noise around agent's location
-obs_terms = @julog([xpos, ypos])
-obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
-
-# Initialize world model with planner, goal prior, initial state, and obs params
-world_init = WorldInit(agent_planner, goal_prior, state)
-world_config = WorldConfig(domain, agent_planner, obs_params)
 
 #--- Offline Goal Inference ---#
 
@@ -136,13 +141,14 @@ plotters = [ # List of subplot callbacks:
     # particle_weights_cb,
 ]
 canvas = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
-callback = (t, s, trs, ws) ->
-    (multiplot_cb(t, s, trs, ws, plotters;
-                  canvas=canvas, animation=anim, show=true,
-                  goal_colors=goal_colors, goal_probs=goal_probs,
-                  goal_names=goal_names);
-     print("t=$t\t");
-     print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set))))
+callback = (t, s, trs, ws) -> begin
+    multiplot_cb(t, s, trs, ws, plotters;
+                 canvas=canvas, animation=anim, show=true,
+                 goal_colors=goal_colors, goal_probs=goal_probs,
+                 goal_names=goal_names)
+    print("t=$t\t")
+    print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set)))
+end
 
 # Run a particle filter to perform online goal inference
 n_samples = 30

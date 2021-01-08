@@ -273,11 +273,11 @@ function render_traces!(traces, weights=nothing, plt=nothing;
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     pt_weights = Dict{Int,Dict{Tuple{Int,Int},Float64}}()
     for (tr, w) in zip(traces, weights)
-        goal_idx = tr[:goal_init => :goal]
+        goal_idx = tr[:init => :agent => :goal => :goal]
         goal_pt_weights = get!(pt_weights, goal_idx,
                                Dict{Tuple{Int,Int},Float64}())
         world_traj = get_retval(tr)
-        plan_traj = [ws.plan_state for ws in world_traj]
+        plan_traj = [ws.agent_state.plan_state for ws in world_traj]
         env_traj = extract_traj(plan_traj)
         if trace_future
             t_cur = length(world_traj)
@@ -332,7 +332,9 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
                    plan_color=:blue, plan_alpha=0.5, kwargs...)
     plt = deepcopy(canvas)
     animation = animation == nothing ? Animation() : animation
-    node_choices = OrderedDict(get_values_shallow(get_choices(trace)))
+    # Unpack choices and retval of trace
+    choices, (_, traj) = isa(trace, Trace) ? (get_choices(trace), tr[]) : trace
+    node_choices = OrderedDict(get_values_shallow(choices))
     sort!(filter!(p -> p[1][1] == :state, node_choices))
     # Render each node expanded in sequence
     for state in values(node_choices)
@@ -342,7 +344,6 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
         frame(animation, plt)
     end
     # Render final plan
-    plan, traj = get_retval(trace)
     plt = render!(traj, plt; alpha=plan_alpha,
                   color=plan_color, radius=node_radius*1.5)
     if show display(plt) end
@@ -360,21 +361,22 @@ function anim_replan(trace, canvas, animation=nothing;
     choices = get_submap(get_choices(trace), :timestep)
     step_submaps = sort!(OrderedDict(get_submaps_shallow(choices)))
     for (addr, submap) in step_submaps
-        # Get subtrace for this step
-        addr = :timestep => addr => :plan
-        step_trace = Gen.get_call(trace, addr).subtrace
+        # Get choices for this step
+        submap = get_submap(get_submap(submap, :agent), :plan)
+        subplan_addr = :timestep => addr => :agent => :plan => :subplan
         # Skip steps where no new plans were made
-        if !Gen.has_call(step_trace, :subplan) continue end
-        plan_trace = Gen.get_call(step_trace, :subplan).subtrace
+        if !has_value(submap, :max_resource) continue end
+        subplan_choices, (plan, traj) =
+            get_submap(submap, :subplan), trace[subplan_addr]
         # Render agent's position
-        _, _, state, _ = Gen.get_args(plan_trace)
-        plt = render_pos!(state, deepcopy(canvas); alpha=0.5, kwargs...)
+        plt = render_pos!(traj[1], deepcopy(canvas); alpha=0.5, kwargs...)
         # Render subtrace corresponding to base planner
-        animation = anim_plan(plan_trace, plt, animation; show=false, kwargs...)
+        animation = anim_plan((subplan_choices, (plan, traj)),
+                              plt, animation; show=false, kwargs...)
         # Animate trajectory over most recent plot
         plt = plot!()
-        plan, traj = get_retval(plan_trace)
-        animation = anim_traj(traj, plt, animation; show=false, kwargs...)
+        animation = anim_traj(traj, plt, animation;
+                              show=false, show_inventory=false, kwargs...)
     end
     if show display(gif(animation; fps=fps)) end
     return animation
@@ -448,7 +450,7 @@ function plot_plan_lengths!(traces, weights; plt=nothing)
     # Get plan lengths from traces
     plan_lengths = map(traces) do tr
         world_states = get_retval(tr)
-        plan_states = [ws.plan_state for ws in world_states]
+        plan_states = [ws.agent_state.plan_state for ws in world_states]
         if isa(plan_states[end], Plinf.ReplanState)
             _, rp = Plinf.get_last_planning_step(plan_states)
             return length(rp.part_plan)

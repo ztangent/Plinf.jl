@@ -11,6 +11,7 @@ include("goals.jl")
 include("heuristics/heuristics.jl")
 include("planners/planners.jl")
 include("observations.jl")
+include("agents.jl")
 include("worlds.jl")
 include("inference/inference.jl")
 

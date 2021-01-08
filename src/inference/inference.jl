@@ -10,7 +10,7 @@ function world_importance_sampler(
         world_init::WorldInit, world_config::WorldConfig,
         obs_traj::Vector{State}, obs_terms::Vector{<:Term}, n_samples::Int;
         use_proposal=true, strata=nothing, callback=nothing)
-    @unpack domain, planner = world_config
+    @unpack domain = world_config
     # Construct choicemaps from observed trajectory
     n_obs = length(obs_traj)
     obs_choices = traj_choicemaps(obs_traj, domain, obs_terms;
@@ -25,8 +25,11 @@ function world_importance_sampler(
     for i in 1:n_samples
         init_idx = mod(i-1, length(init_traces)) + 1
         world_state = get_retval(init_traces[init_idx])
-        init_choices = get_choices(init_traces[init_idx])
-        @unpack env_state, plan_state, goal_state = world_state
+        init_choices = choicemap()
+        set_submap!(init_choices, :init, get_choices(init_traces[init_idx]))
+        @unpack env_state, agent_state = world_state
+        @unpack goal_state, plan_state = agent_state
+        planner = init_traces[init_idx][:agent => :planner]
         # Set-up data-driven proposal associated with the planner
         prop_args = (1, n_obs, plan_state, planner, domain,
                      env_state, goal_state, obs_traj, fill(nothing, n_obs))
@@ -34,6 +37,7 @@ function world_importance_sampler(
         prop_choices, prop_weight, _ = use_proposal ?
             propose(propose_step_range, prop_args) : (choicemap(), 0.0, 0.0)
         constraints = merge(obs_choices, init_choices, prop_choices)
+        # display(prop_choices)
         # Sample from model given constraints
         model_args = (n_obs, world_init, world_config)
         traces[i], model_weight = generate(world_model, model_args, constraints)

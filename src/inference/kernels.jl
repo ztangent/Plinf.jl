@@ -6,12 +6,13 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
 @gen function replan_move_proposal(trace::Trace, use_obs::Bool=true)
     # Unpack trace
     _, _, world_config = Gen.get_args(trace)
-    @unpack domain, planner = world_config
-    goal_spec = trace[:goal_init]
+    @unpack domain = world_config
+    planner = trace[:init => :agent => :planner]
+    goal_spec = trace[:init => :agent => :goal]
     world_states = get_retval(trace)
     env_states = [ws.env_state for ws in world_states]
     obs_states = [ws.obs_state for ws in world_states]
-    plan_states = [ws.plan_state for ws in world_states]
+    plan_states = [ws.agent_state.plan_state for ws in world_states]
     # Compute time of divergence between hypothesized and observed states
     t_current = length(world_states)
     t_diverge = findfirst(hash.(env_states) .!= hash.(obs_states))
@@ -42,7 +43,7 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
     # Propose partial plans from t_resample to t_current
     proposal_args = [(max_resource,); fill((nothing,), t_current - t_resamp)]
     plan_state = t_resamp == 1 ?
-        initialize_state(planner, env_states[1]) : plan_states[t_resamp-1]
+        init_plan_state(planner) : plan_states[t_resamp-1]
     obs_states = use_obs ?
         obs_states[t_resamp:t_current] : fill(nothing, t_current-t_resamp+1)
     {*} ~ propose_step_range(t_resamp, t_current, plan_state,
@@ -58,10 +59,10 @@ end
     if !resample return end
     t_resamp, t_current = @read(q_in[], :discrete)
     @copy(q_in[:resample_idx], q_out[:resample_idx])
-    @copy(p_in[:timestep => t_resamp => :plan => :max_resource],
+    @copy(p_in[:timestep => t_resamp => :agent => :plan => :max_resource],
           q_out[:max_resource])
     for t in t_resamp:t_current
-        addr = :timestep => t => :plan
+        addr = :timestep => t => :agent => :plan
         @copy(q_in[addr], p_out[addr])
         @copy(p_in[addr], q_out[addr])
     end
@@ -89,7 +90,8 @@ pf_replan_move_reweight!(pf_state::ParticleFilterState; n_iters::Int=1) =
                                  beta::Real=0.1, goal_addr=:goal)
     # Unpack trace
     n_steps, world_init, world_config = Gen.get_args(trace)
-    @unpack domain, planner = world_config
+    @unpack domain = world_config
+    planner = trace[:init => :agent => :planner]
     @unpack heuristic = planner.planner
     world_states = get_retval(trace)
     cur_env_state = world_states[end].env_state
@@ -99,12 +101,13 @@ pf_replan_move_reweight!(pf_state::ParticleFilterState; n_iters::Int=1) =
     h_values = [heuristic(domain, cur_env_state, g) for g in goals]
     probs = softmax(-beta .* h_values)
     # Propose goals that are closer to the current state
-    new_goal_idx = @trace(categorical(probs), :goal_init => goal_addr)
+    new_goal_idx = @trace(categorical(probs),
+                          :init => :agent => :goal => goal_addr)
     new_goal = GoalSpec(goals[new_goal_idx])
-    if new_goal == world_states[1].goal_state
+    if new_goal == world_states[1].agent_state.goal_state
         return new_goal end # Don't replan if goal does not change
     # Replan from the start, given new goal
-    plan_state = initialize_state(planner, init_env_state)
+    plan_state = init_plan_state(planner)
     {*} ~ propose_step_range(1, n_steps, plan_state, planner, domain,
                              init_env_state, new_goal, obs_states,
                              fill(nothing, n_steps))

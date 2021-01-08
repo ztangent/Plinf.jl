@@ -10,6 +10,11 @@ abstract type AbstractPlanState end
 
 "Returns current action, given the step-wise planning state."
 get_action(ps::AbstractPlanState)::Term =
+    error("Not implemented")
+
+"Returns next environment state, given the step-wise planning state."
+get_next_state(ps::AbstractPlanState)::State =
+    error("Not implemented")
 
 "Extract plan from a sequence of planning states."
 extract_plan(plan_states::AbstractArray{<:AbstractPlanState}) =
@@ -36,8 +41,8 @@ extract_plan(plan_states::AbstractArray{PlanState}) = plan_states[end].plan
 extract_traj(plan_states::AbstractArray{PlanState}) = plan_states[end].traj
 
 "Intialize step-wise planning state."
-initialize_state(::Planner, env_state::State)::AbstractPlanState =
-    PlanState(0, Term[], State[env_state])
+init_plan_state(::Planner)::AbstractPlanState =
+    PlanState(0, Term[], State[])
 
 ## Step-wise planning calls ##
 
@@ -80,9 +85,9 @@ end
    step_call = get_step(planner)
    plan_states = Vector{typeof(ps)}()
    for t in 1:(t2-t1+1)
-       ps = @trace(step_call(t+t1-1, ps, planner, domain,
-                             obs_states[t], goal_spec),
-                   :timestep => t+t1-1 => :plan)
+       ps = @trace(step_call(t+t1-1, ps, planner, domain, state, goal_spec),
+                   :timestep => t+t1-1 => :agent => :plan)
+       state = PDDL.transition(domain, state, get_action(ps))
        push!(plan_states, ps)
    end
    return plan_states
@@ -97,9 +102,10 @@ end
    step_propose = get_step_proposal(planner)
    plan_states = Vector{typeof(ps)}()
    for t in 1:(t2-t1+1)
-       ps = @trace(step_propose(t+t1-1, ps, planner, domain, obs_states[t],
+       ps = @trace(step_propose(t+t1-1, ps, planner, domain, state,
                                 goal_spec, obs_states[t:end], proposal_args[t]),
-                   :timestep => t+t1-1 => :plan)
+                   :timestep => t+t1-1 => :agent => :plan)
+       state = PDDL.transition(domain, state, get_action(ps))
        push!(plan_states, ps)
    end
    return plan_states

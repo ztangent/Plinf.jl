@@ -168,11 +168,11 @@ function render_traces!(traces, weights=nothing, plt=nothing;
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     plt = (plt == nothing) ? plot!() : plt
     for (tr, w) in zip(traces, weights)
-        init_state = tr[:env_init]
+        init_state = tr[:init => :env]
         _, subst = satisfy(@julog(block(X)), init_state, mode=:all)
         block_consts = [s[Var(:X)] for s in subst]
         block_terms = Term[@julog(block(:b)) for b in block_consts]
-        goal_state = State([tr[:goal_init].goals; block_terms])
+        goal_state = State([tr[:init => :agent => :goal].goals; block_terms])
         plt = render_blocks!(goal_state, plt; alpha=exp(w)*max_alpha)
     end
     return plt
@@ -271,7 +271,7 @@ function plot_plan_lengths!(traces, weights; plt=nothing)
     # Get plan lengths from traces
     plan_lengths = map(traces) do tr
         world_states = get_retval(tr)
-        plan_states = [ws.plan_state for ws in world_states]
+        plan_states = [ws.agent_state.plan_state for ws in world_states]
         if isa(plan_states[end], Plinf.ReplanState)
             _, rp = Plinf.get_last_planning_step(plan_states)
             return length(rp.part_plan)

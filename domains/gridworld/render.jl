@@ -116,9 +116,9 @@ function render_traces!(traces, weights=nothing, plt=nothing;
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     for (tr, w) in zip(traces, weights)
         world_traj = get_retval(tr)
-        plan_traj = [ws.plan_state for ws in world_traj]
+        plan_traj = [ws.agent_state.plan_state for ws in world_traj]
         env_traj = extract_traj(plan_traj)
-        color = goal_colors[tr[:goal_init => :goal]]
+        color = goal_colors[tr[:init => :agent => :goal => :goal]]
         render!(env_traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
     end
 end
@@ -180,15 +180,11 @@ function anim_replan(trace, canvas, animation=nothing;
     step_submaps = sort!(OrderedDict(get_submaps_shallow(choices)))
     for (addr, submap) in step_submaps
         # Get choices for this step
-        submap = get_submap(submap, :plan)
-        subplan_addr = :timestep => addr => :plan => :subplan
+        submap = get_submap(get_submap(submap, :agent), :plan)
+        subplan_addr = :timestep => addr => :agent => :plan => :subplan
         # Skip steps where no new plans were made
         if !has_value(submap, :max_resource) continue end
-        if isa(trace, Gen.DynamicDSLTrace)
-            plan_trace = Gen.get_call(trace, subplan_addr).subtrace
-        else
-            plan_trace = get_submap(submap, :subplan), trace[subplan_addr]
-        end
+        plan_trace = get_submap(submap, :subplan), trace[subplan_addr]
         # Render agent's position
         plan, traj = trace[subplan_addr]
         plt = render_pos!(traj[1], deepcopy(canvas); alpha=0.5, kwargs...)
@@ -271,7 +267,7 @@ function plot_plan_lengths!(traces, weights; plt=nothing)
     # Get plan lengths from traces
     plan_lengths = map(traces) do tr
         world_states = get_retval(tr)
-        plan_states = [ws.plan_state for ws in world_states]
+        plan_states = [ws.agent_state.plan_state for ws in world_states]
         if isa(plan_states[end], Plinf.ReplanState)
             _, rp = Plinf.get_last_planning_step(plan_states)
             return length(rp.part_plan)

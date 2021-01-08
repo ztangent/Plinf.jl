@@ -63,8 +63,8 @@ get_step(::Replanner)::GenerativeFunction = replan_step
 
 get_step_proposal(::Replanner)::GenerativeFunction = replan_propose_step
 
-initialize_state(::Replanner, env_state::State)::AbstractPlanState =
-    ReplanState(0, Term[], [env_state], false)
+init_plan_state(::Replanner)::AbstractPlanState =
+    ReplanState(0, Term[], [], false)
 
 get_action(rp::ReplanState)::Term =
     rp.rel_step == 0 ? Const(PDDL.no_op.name) : rp.part_plan[rp.rel_step]
@@ -75,12 +75,12 @@ get_action(rp::ReplanState)::Term =
     @unpack planner, persistence = replanner
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
-    state = rp.part_traj[rel_step] # Get expected current state
+    expected_state = rp.rel_step == 0 ? nothing : rp.part_traj[rel_step]
     if plan_done || satisfy(goal_spec.goals, state, domain)[1]
         # Return no-op if plan is done
         part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
         return ReplanState(1, part_plan, part_traj, true)
-    elseif rel_step < length(rp.part_traj)
+    elseif rel_step < length(rp.part_traj) && state == expected_state
         # Step forward if the end of the planned trajectory is not reached
         return ReplanState(rel_step, rp.part_plan, rp.part_traj, plan_done)
     end
@@ -109,12 +109,12 @@ end
     max_resource = proposal_args == nothing ? nothing : proposal_args[1]
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
-    state = rp.part_traj[rel_step] # Get expected current state
+    expected_state = rp.rel_step == 0 ? nothing : rp.part_traj[rel_step]
     if plan_done || satisfy(goal_spec.goals, state, domain)[1]
         # Return no-op if plan is done
         part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
         return ReplanState(1, part_plan, part_traj, true)
-    elseif rel_step < length(rp.part_traj)
+    elseif rel_step < length(rp.part_traj) && state == expected_state
         # Step forward if the end of the planned trajectory is not reached
         return ReplanState(rel_step, rp.part_plan, rp.part_traj, plan_done)
     end
@@ -148,7 +148,7 @@ end
         t = length(rp_states)
         rp = @trace(replan_step(t, rp_states[end], replanner,
                                 domain, state, goal_spec),
-                    :timestep => t => :plan)
+                    :timestep => t => :agent => :plan)
         push!(rp_states, rp)
         # Compute next state (assuming environment determinism)
         state = rp.part_traj[min(rp.rel_step + 1, length(rp.part_traj))]
