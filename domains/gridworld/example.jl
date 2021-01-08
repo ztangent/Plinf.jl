@@ -65,7 +65,7 @@ goal_names = [string(g) for g in goal_set]
 @gen function goal_prior()
     GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
 end
-goal_strata = Dict((:goal_init => :goal) => collect(1:length(goals)))
+goal_strata = Dict((:init=>:agent=>:goal=>:goal) => collect(1:length(goals)))
 
 # Assume either a planning agent or replanning agent as a model
 manhattan = ManhattanHeuristic(@julog[xpos, ypos])
@@ -75,8 +75,9 @@ agent_planner = replanner # planner
 rejuvenate = agent_planner == planner ? nothing : pf_replan_move_accept!
 
 # Configure agent model with goal prior and planner
+act_noise = 0.05 # Assume a small amount of action noise
 agent_init = AgentInit(agent_planner, goal_prior)
-agent_config = AgentConfig(domain=domain)
+agent_config = AgentConfig(domain, act_noise=act_noise)
 
 # Assume Gaussian observation noise around agent's location
 obs_terms = @julog([xpos, ypos])
@@ -150,11 +151,16 @@ callback = (t, s, trs, ws) -> begin
     print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set)))
 end
 
+# Set up action proposal to handle potential action noise
+act_proposal = act_noise > 0 ? forward_act_proposal : nothing
+act_proposal_args = (act_noise,)
+
 # Run a particle filter to perform online goal inference
-n_samples = 30
+n_samples = 60
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          rejuvenate=rejuvenate, callback=callback,
-                          strata=goal_strata)
+                          rejuvenate=nothing, callback=callback,
+                          strata=goal_strata, act_proposal=act_proposal,
+                          act_proposal_args=act_proposal_args)
 # Show animation of goal inference
 gif(anim; fps=3)

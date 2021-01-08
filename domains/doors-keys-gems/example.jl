@@ -64,7 +64,7 @@ goal_names = [repr(t[1]) for t in goals]
 @gen function goal_prior()
     GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
 end
-goal_strata = Dict((:goal_init => :goal) => goal_idxs)
+goal_strata = Dict((:init => :agent => :goal => :goal) => goal_idxs)
 
 # Assume either a planning agent or replanning agent as a model
 planner = ProbAStarPlanner(heuristic=GemManhattan(), search_noise=0.1)
@@ -72,8 +72,9 @@ replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 
 # Configure agent model with goal prior and planner
+act_noise = 0.05 # Assume a small amount of action noise
 agent_init = AgentInit(agent_planner, goal_prior)
-agent_config = AgentConfig(domain=domain)
+agent_config = AgentConfig(domain, act_noise=0.05)
 
 # Define observation noise model
 obs_params = observe_params(
@@ -131,7 +132,7 @@ keyframes = [] # Buffer of keyframes to plot as a storyboard
 goal_probs = [] # Buffer of goal probabilities over time
 plotters = [ # List of subplot callbacks:
     render_cb,
-    # goal_lines_cb,
+    goal_lines_cb,
     # goal_bars_cb,
     # plan_lengths_cb,
     # particle_weights_cb,
@@ -156,12 +157,18 @@ goal_rejuv! = pf -> pf_goal_move_accept!(pf, goals)
 plan_rejuv! = pf -> pf_replan_move_accept!(pf)
 mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goals; mix_prob=0.25)
 
+# Set up action proposal to handle potential action noise
+act_proposal = act_noise > 0 ? forward_act_proposal : nothing
+act_proposal_args = (act_noise,)
+
 # Run a particle filter to perform online goal inference
-n_samples = 30
+n_samples = 60
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=mixed_rejuv!,
-                          callback=callback, strata=goal_strata)
+                          resample=true, rejuvenate=nothing,
+                          callback=callback, strata=goal_strata,
+                          act_proposal=act_proposal,
+                          act_proposal_args=act_proposal_args)
 # Show animation of goal inference
 gif(anim; fps=2)
 

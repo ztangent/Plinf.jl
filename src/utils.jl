@@ -1,4 +1,4 @@
-export labeled_cat, labeled_unif, flip
+export labeled_cat, labeled_unif, flip, delta
 
 "Unzips an array of tuples to a tuple of arrays."
 unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
@@ -28,6 +28,9 @@ dist_type(d::Distribution{T}) where {T} = T
 
 "Boolean corruption noise."
 @dist flip(val::Bool, prob::Float64) = bernoulli((1-val)*prob + val*(1-prob))
+
+"Delta distribution at a specific value."
+@dist delta(val) = [val][uniform_discrete(1, 1)]
 
 "Sample functions passed as args to a static generative function."
 @gen function sample_fn(fn, args::Tuple=())

@@ -28,26 +28,13 @@ AgentInit(planner::Planner, goal_init) =
     act_args::Tuple = ()
 end
 
-"Goal transition function for static goals."
-@gen static_goal_step(t, goal_state) =
-    goal_state
-
-"Deterministic action selection from current plan."
-@gen planned_act_step(t, agent_state, env_state, domain) =
-    get_action(agent_state.plan_state)
-
-"ϵ-noisy action selection from current plan."
-@gen function noisy_act_step(t, agent_state, env_state, domain, eps)
-    intended = get_action(agent_state.plan_state)
-    actions = available(env_state, domain)
-    weights = [act == intended ? (1. - eps) / eps : 1. for act in actions]
-    probs = weights ./ sum(weights)
-    act = @trace(labeled_cat(actions, probs), :act)
-end
-
-"Accessor for goal states."
-get_goal(goal_state)::GoalSpec = error("Not implemented.")
-get_goal(goal_state::GoalSpec)::GoalSpec = goal_state
+AgentConfig(domain::Domain; act_noise=0.0, kwargs...) =
+    if act_noise == 0
+        AgentConfig(domain=domain, act_step=planned_act_step, kwargs...)
+    else
+        AgentConfig(domain=domain, act_step=noisy_act_step,
+                    act_args=(act_noise,), kwargs...)
+    end
 
 "Intialize agent_state by sampling from the initializers"
 @gen function init_agent_model(init::AgentInit)

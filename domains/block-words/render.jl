@@ -168,6 +168,7 @@ function render_traces!(traces, weights=nothing, plt=nothing;
     weights = weights == nothing ? lognorm(get_score.(traces)) : weights
     plt = (plt == nothing) ? plot!() : plt
     for (tr, w) in zip(traces, weights)
+        if exp(w) < 0.01 continue end
         init_state = tr[:init => :env]
         _, subst = satisfy(@julog(block(X)), init_state, mode=:all)
         block_consts = [s[Var(:X)] for s in subst]

@@ -29,3 +29,11 @@ Base.hash(gs::GoalSpec, h::UInt) =
     hash(gs.constraints, hash(gs.metric, hash(Set(gs.goals), h)))
 Base.:(==)(gs1::GoalSpec, gs2::GoalSpec) = Set(gs1.goals) == Set(gs2.goals) &&
     gs1.metric == gs2.metric && Set(gs1.constraints) == Set(gs2.constraints)
+
+"Goal transition function for static goals."
+@gen static_goal_step(t, goal_state) =
+    goal_state
+
+"Accessor for goal states."
+get_goal(goal_state)::GoalSpec = error("Not implemented.")
+get_goal(goal_state::GoalSpec)::GoalSpec = goal_state
