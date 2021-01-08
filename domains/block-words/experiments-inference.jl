@@ -9,7 +9,7 @@ include("experiment-scenarios.jl")
 #--- Initial Setup ---#
 
 # Specify problem name
-category = "4"
+category = "0"
 subcategory = "4"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
@@ -62,7 +62,7 @@ agent_planner = replanner # planner
 # anim = anim_traj(traj)
 
 # Define observation noise model
-obs_params = observe_params(domain, pred_noise=0.25; state=state)
+obs_params = observe_params(domain, pred_noise=0.05; state=state)
 obs_terms = collect(keys(obs_params))
 
 # Initialize world model with planner, goal prior, initial state, and obs params
@@ -72,7 +72,7 @@ world_config = WorldConfig(domain, agent_planner, obs_params)
 #--- Offline Goal Inference ---#
 
 # Run importance sampling to infer the likely goal
-n_samples = 20
+n_samples = 100
 traces, weights, lml_est =
     world_importance_sampler(world_init, world_config,
                              traj, obs_terms, n_samples;
@@ -115,7 +115,7 @@ callback = (t, s, trs, ws) ->
      )
 
 # Run a particle filter to perform online goal inference
-n_samples = 50
+n_samples = 500
 # Set up rejuvenation moves
 goal_rejuv! = pf -> pf_goal_move_accept!(pf, goal_words)
 plan_rejuv! = pf -> pf_replan_move_accept!(pf)
@@ -123,7 +123,7 @@ mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goal_words; mix_prob=0.25)
 
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=plan_rejuv!,
+                          resample=true, rejuvenate=nothing,
                           strata=goal_strata, callback=callback)
 # Show animation of goal inference
 #gif(anim, joinpath(path, "sips-results", experiment*".gif"), fps=1)
