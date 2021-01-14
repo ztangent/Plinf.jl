@@ -77,7 +77,7 @@ obs_terms = collect(keys(obs_params))
 world_init = WorldInit(agent_init, state, state)
 world_config = WorldConfig(domain, agent_config, obs_params)
 
-likely_traj = true
+likely_traj = false
 if likely_traj
     # Sample a trajectory as the ground truth (no observation noise)
     goal = goal_prior()
@@ -141,10 +141,10 @@ act_proposal = act_noise > 0 ? forward_act_proposal : nothing
 act_proposal_args = (act_noise,)
 
 # Run a particle filter to perform online goal inference
-n_samples = 20
+n_samples = 50
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=false, rejuvenate=nothing,
+                          resample=false, rejuvenate=pf_replan_move_accept!,
                           strata=goal_strata, callback=callback,
                           act_proposal=act_proposal,
                           act_proposal_args=act_proposal_args)

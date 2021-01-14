@@ -81,13 +81,16 @@ end
 "Sample planning steps for timesteps in `t1:t2`."
 @gen function sample_step_range(t1::Int, t2::Int, ps::AbstractPlanState,
                                 planner::Planner, domain::Domain,
-                                state::State, goal_spec::GoalSpec)
+                                env_states::Vector{<:Union{State,Nothing}},
+                                goal_spec::GoalSpec)
    step_call = get_step(planner)
    plan_states = Vector{typeof(ps)}()
+   state = nothing
    for t in 1:(t2-t1+1)
+       state = (t == 1 || env_states[t] !== nothing) ? env_states[t] :
+           transition(domain, state, get_action(ps))
        ps = @trace(step_call(t+t1-1, ps, planner, domain, state, goal_spec),
                    :timestep => t+t1-1 => :agent => :plan)
-       state = PDDL.transition(domain, state, get_action(ps))
        push!(plan_states, ps)
    end
    return plan_states
@@ -96,17 +99,19 @@ end
 "Propose planning steps for timesteps in `t1:t2`."
 @gen function propose_step_range(t1::Int, t2::Int, ps::AbstractPlanState,
                                  planner::Planner, domain::Domain,
-                                 state::State, goal_spec::GoalSpec,
+                                 env_states::Vector{<:Union{State,Nothing}},
+                                 goal_spec::GoalSpec,
                                  obs_states::Vector{<:Union{State,Nothing}},
                                  proposal_args::Vector{<:Union{Tuple,Nothing}})
    step_propose = get_step_proposal(planner)
    plan_states = Vector{typeof(ps)}()
+   state = nothing
    for t in 1:(t2-t1+1)
+       state = (t == 1 || env_states[t] !== nothing) ? env_states[t] :
+           transition(domain, state, get_action(ps))
        ps = @trace(step_propose(t+t1-1, ps, planner, domain, state,
                                 goal_spec, obs_states[t:end], proposal_args[t]),
                    :timestep => t+t1-1 => :agent => :plan)
-       state = PDDL.transition(domain, state, get_action(ps))
-       push!(plan_states, ps)
    end
    return plan_states
 end

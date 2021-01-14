@@ -2,10 +2,13 @@ export forward_act_proposal
 
 "Deterministic action selection from current plan."
 @gen planned_act_step(t, agent_state, env_state, domain) =
-    @trace(delta(get_action(agent_state.plan_state)), :act)
+    @trace(labeled_unif([get_action(agent_state.plan_state)]), :act)
 
 "ϵ-noisy action selection from current plan."
 @gen function noisy_act_step(t, agent_state, env_state, domain, eps)
+    if t == 1 # TODO: Re-index to avoid this hack
+        return @trace(labeled_unif([Const(PDDL.no_op.name)]), :act)
+    end
     intended = get_action(agent_state.plan_state)
     actions = pushfirst!(available(env_state, domain), Const(PDDL.no_op.name))
     weights = [act == intended ? (1. - eps) / eps : 1. for act in actions]
@@ -34,7 +37,7 @@ end
 
 "Proposes an action among those available that matches the observed state."
 @gen function forward_act_proposal(domain, agent_state, env_state,
-                                   next_obs_state, eps)
+                                   next_obs_state, eps=0.0)
     guess = get_action(agent_state.plan_state)
     actions = pushfirst!(available(env_state, domain), Const(PDDL.no_op.name))
     for act in actions

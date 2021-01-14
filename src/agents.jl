@@ -57,3 +57,43 @@ end
                                   goal_spec, plan_args...), :plan)
     return AgentState(planner, goal_state, plan_state)
 end
+
+"Propose agent steps for timesteps in `t1:t2`."
+@gen function agent_propose_range(t1::Int, t2::Int, agent_state::AgentState,
+                                  env_state::State, config::AgentConfig,
+                                  obs_states::Vector{<:Union{State,Nothing}})
+   @unpack domain, goal_step, goal_args, act_step, act_args = config
+   @unpack planner, goal_state, plan_state = agent_state
+   step_propose = get_step_proposal(planner)
+   agent_states = Vector{AgentState}()
+   for t in 1:(t2-t1+1)
+       # Potentially sample a new goal
+       goal_state = @trace(goal_step(t, goal_state, goal_args...),
+                           :timestep => t+t1-1 => :agent => :goal)
+       goal_spec = get_goal(goal_state)
+       # Propose new planning step
+       plan_state = @trace(step_propose(t+t1-1, plan_state, planner, domain,
+                                        env_state, goal_spec,
+                                        obs_states[t:end], nothing),
+                           :timestep => t+t1-1 => :agent => :plan)
+       # Construct agent state
+       agent_state = AgentState(planner, goal_state, plan_state)
+       push!(agent_states, agent_state)
+       # Propose next action
+       if t < (t2-t1+1) && (length(obs_states) < t+1 || obs_states[t+1] === nothing)
+           action = @trace(act_step(t, agent_state, env_state,
+                                    domain, act_args...),
+                           :timestep => t+t1 => :act)
+       elseif t < (t2-t1+1)
+           action = @trace(forward_act_proposal(domain, agent_state, env_state,
+                                                obs_states[t+1], act_args...),
+                           :timestep => t+t1 => :act)
+       end
+       # Transition to next environment state
+       if t < (t2-t1+1)
+           env_state = @trace(determ_env_step(t, env_state, action, domain),
+                              :timestep => t+t1 => :env)
+       end
+   end
+   return agent_states
+end

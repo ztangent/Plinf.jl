@@ -46,8 +46,9 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
         init_plan_state(planner) : plan_states[t_resamp-1]
     obs_states = use_obs ?
         obs_states[t_resamp:t_current] : fill(nothing, t_current-t_resamp+1)
+    env_states = env_states[t_resamp:t_current]
     {*} ~ propose_step_range(t_resamp, t_current, plan_state,
-                             planner, domain, env_states[t_resamp], goal_spec,
+                             planner, domain, env_states, goal_spec,
                              obs_states, proposal_args)
     return (t_resamp, t_current)
 end
@@ -94,11 +95,10 @@ pf_replan_move_reweight!(pf_state::ParticleFilterState; n_iters::Int=1) =
     planner = trace[:init => :agent => :planner]
     @unpack heuristic = planner.planner
     world_states = get_retval(trace)
-    cur_env_state = world_states[end].env_state
-    init_env_state = world_states[1].env_state
+    env_states = [ws.env_state for ws in world_states]
     obs_states = [ws.obs_state for ws in world_states]
-    # Compute heuristic distance to each goal
-    h_values = [heuristic(domain, cur_env_state, g) for g in goals]
+    # Compute heuristic distance from current state to each goal
+    h_values = [heuristic(domain, env_states[end], g) for g in goals]
     probs = softmax(-beta .* h_values)
     # Propose goals that are closer to the current state
     new_goal_idx = @trace(categorical(probs),
@@ -109,7 +109,7 @@ pf_replan_move_reweight!(pf_state::ParticleFilterState; n_iters::Int=1) =
     # Replan from the start, given new goal
     plan_state = init_plan_state(planner)
     {*} ~ propose_step_range(1, n_steps, plan_state, planner, domain,
-                             init_env_state, new_goal, obs_states,
+                             env_states, new_goal, obs_states,
                              fill(nothing, n_steps))
     return new_goal
 end
