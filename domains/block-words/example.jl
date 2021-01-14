@@ -18,14 +18,14 @@ goal = problem.goal
 #--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(heuristic=HAdd())
+planner = AStarPlanner(heuristic=FFHeuristic())
 plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 anim = anim_traj(traj)
 
 # Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=HAdd(), search_noise=1)
+planner = ProbAStarPlanner(heuristic=FFHeuristic(), search_noise=1)
 plt = render(state)
 tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
 # anim = anim_plan(tr, plt)
@@ -59,7 +59,7 @@ end
 goal_strata = Dict((:goal_init => :goal) => goal_words)
 
 # Assume either a planning agent or replanning agent as a model
-heuristic = precompute(HAdd(), domain)
+heuristic = precompute(FFHeuristic(), domain)
 planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
@@ -144,7 +144,7 @@ act_proposal_args = (act_noise,)
 n_samples = 50
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=false, rejuvenate=pf_replan_move_accept!,
+                          resample=true, rejuvenate=pf_replan_move_accept!,
                           strata=goal_strata, callback=callback,
                           act_proposal=act_proposal,
                           act_proposal_args=act_proposal_args)
