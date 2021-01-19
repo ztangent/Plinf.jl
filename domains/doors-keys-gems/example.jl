@@ -74,7 +74,7 @@ agent_planner = replanner # planner
 # Configure agent model with goal prior and planner
 act_noise = 0.05 # Assume a small amount of action noise
 agent_init = AgentInit(agent_planner, goal_prior)
-agent_config = AgentConfig(domain, act_noise=0.05)
+agent_config = AgentConfig(domain, agent_planner, act_noise=0.05)
 
 # Define observation noise model
 obs_params = observe_params(
@@ -162,10 +162,10 @@ act_proposal = act_noise > 0 ? forward_act_proposal : nothing
 act_proposal_args = (act_noise,)
 
 # Run a particle filter to perform online goal inference
-n_samples = 60
+n_samples = 30
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=nothing,
+                          resample=true, rejuvenate=mixed_rejuv!,
                           callback=callback, strata=goal_strata,
                           act_proposal=act_proposal,
                           act_proposal_args=act_proposal_args)

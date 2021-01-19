@@ -67,7 +67,7 @@ agent_planner = replanner # planner
 # Configure agent model with goal prior and planner
 act_noise = 0.05 # Assume a small amount of action noise
 agent_init = AgentInit(agent_planner, goal_prior)
-agent_config = AgentConfig(domain, act_noise=0.05)
+agent_config = AgentConfig(domain, agent_planner, act_noise=0.05)
 
 # Define observation noise model
 obs_params = observe_params(domain, pred_noise=0.05; state=state)

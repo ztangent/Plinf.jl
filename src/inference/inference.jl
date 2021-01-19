@@ -17,8 +17,9 @@ function world_importance_sampler(
                                   as_choicemap=true)
     # Initialize traces of world model
     init_traces, _ = strata == nothing ?
-        unzip(generate(init_world_model, (world_init,)) for i in 1:n_samples) :
-        enumerate_traces(init_world_model, (world_init,), strata)
+        unzip(generate(init_world_model, (world_init, world_config))
+              for i in 1:n_samples) :
+        enumerate_traces(init_world_model, (world_init, world_config), strata)
     # Compute importance sample for each initial trace
     traces = Vector{Trace}(undef, n_samples)
     weights = Vector{Float64}(undef, n_samples)
@@ -29,8 +30,7 @@ function world_importance_sampler(
         set_submap!(init_choices, :init, get_choices(init_traces[init_idx]))
         @unpack agent_config = world_config
         env_state = init_traces[init_idx][:env]
-        agent_state = init_traces[init_idx][:agent]
-        planner = init_traces[init_idx][:agent => :planner]
+        agent_state, _ = init_traces[init_idx][:agent]
         # Set-up data-driven proposal associated with the planner
         prop_args = (1, n_obs, agent_state, env_state,
                      agent_config, obs_traj)

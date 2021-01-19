@@ -26,7 +26,7 @@ end
         agent_state = trace[:timestep => t => :agent]
         env_state = trace[:timestep => t => :env]
     else
-        agent_state = trace[:init => :agent]
+        agent_state, _ = trace[:init => :agent]
         env_state = trace[:init => :env]
     end
     # Call proposal

@@ -77,7 +77,7 @@ rejuvenate = agent_planner == planner ? nothing : pf_replan_move_accept!
 # Configure agent model with goal prior and planner
 act_noise = 0.05 # Assume a small amount of action noise
 agent_init = AgentInit(agent_planner, goal_prior)
-agent_config = AgentConfig(domain, act_noise=act_noise)
+agent_config = AgentConfig(domain, agent_planner, act_noise=act_noise)
 
 # Assume Gaussian observation noise around agent's location
 obs_terms = @julog([xpos, ypos])
