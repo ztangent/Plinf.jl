@@ -4,20 +4,22 @@ using DataFrames
 
 include("render.jl")
 include("utils.jl")
-include("experiment-scenarios.jl")
+include("./new-scenarios/experiment-scenarios.jl")
 
 #--- Initial Setup ---#
 
 # Specify problem name
 category = "2"
-subcategory = "1"
-experiment = "experiment-" * category * "-" * subcategory
-problem_name =  experiment * ".pddl"
+subcategory = "3"
+# experiment = "experiment-" * category * "-" * subcategory
+# problem_name =  experiment * ".pddl"
+experiment = "scenario-" * category * "-" * subcategory
+problem_name = experiment * ".pddl"
 
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, problem_name))
+problem = load_problem(joinpath(path, "new-scenarios", problem_name))
 
 # Initialize state
 state = initialize(problem)
@@ -68,19 +70,20 @@ obs_terms = collect(keys(obs_params))
 world_init = WorldInit(agent_init, state, state)
 world_config = WorldConfig(domain, agent_config, obs_params)
 
-likely_traj = true
-if likely_traj
-    # Sample a trajectory as the ground truth (no observation noise)
-    goal = goal_prior()
-    plan, traj = planner(domain, state, goal)
-    traj = traj[1:min(length(traj), 7)]
-else
-    # Use trajectory that comes from a different planner
-    plan = @pddl("(pick-up o)","(stack o w)","(unstack r p)","(stack r o)",
-                 "(unstack d a)","(put-down d)","(unstack a c)","(put-down a)",
-                 "(pick-up c)", "(stack c r)")
-    traj = PDDL.simulate(domain, state, plan)
-end
+# likely_traj = true
+# if likely_traj
+#     # Sample a trajectory as the ground truth (no observation noise)
+#     goal = goal_prior()
+#     plan, traj = planner(domain, state, goal)
+#     traj = traj[1:min(length(traj), 7)]
+# else
+#     # Use trajectory that comes from a different planner
+#     plan = @pddl("(pick-up o)","(stack o w)","(unstack r p)","(stack r o)",
+#                  "(unstack d a)","(put-down d)","(unstack a c)","(put-down a)",
+#                  "(pick-up c)", "(stack c r)")
+#     traj = PDDL.simulate(domain, state, plan)
+# end
+
 anim = anim_traj(traj)
 
 
@@ -153,6 +156,6 @@ traces, weights =
 
 # Show animation of goal inference
 #gif(anim, joinpath(path, "sips-results", experiment*".gif"), fps=1)
-print(goal_probs)
+
 df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
 CSV.write( joinpath(path, "sips-results", experiment*".csv"), df)
