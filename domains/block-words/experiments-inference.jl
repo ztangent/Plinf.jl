@@ -68,7 +68,7 @@ obs_terms = collect(keys(obs_params))
 world_init = WorldInit(agent_init, state, state)
 world_config = WorldConfig(domain, agent_config, obs_params)
 
-likely_traj = false
+likely_traj = true
 if likely_traj
     # Sample a trajectory as the ground truth (no observation noise)
     goal = goal_prior()
@@ -126,6 +126,7 @@ callback = (t, s, trs, ws) -> begin
                  canvas=canvas, animation=anim, show=true,
                  goal_probs=goal_probs, goal_names=goal_words);
     print("t=$t\t");
+    push!(goal_probs, return_goal_probs(get_goal_probs(trs, ws, goal_words)));
     print_goal_probs(get_goal_probs(trs, ws, goal_words))
 end
 # callback = (t, s, trs, ws) ->
@@ -152,6 +153,6 @@ traces, weights =
 
 # Show animation of goal inference
 #gif(anim, joinpath(path, "sips-results", experiment*".gif"), fps=1)
-
+print(goal_probs)
 df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
 CSV.write( joinpath(path, "sips-results", experiment*".csv"), df)
