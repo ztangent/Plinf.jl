@@ -9,8 +9,8 @@ include("experiment-scenarios.jl")
 #--- Initial Setup ---#
 
 # Specify problem name
-category = "2"
-subcategory = "1"
+category = "3"
+subcategory = "4"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
@@ -68,19 +68,19 @@ obs_terms = collect(keys(obs_params))
 world_init = WorldInit(agent_init, state, state)
 world_config = WorldConfig(domain, agent_config, obs_params)
 
-likely_traj = true
-if likely_traj
-    # Sample a trajectory as the ground truth (no observation noise)
-    goal = goal_prior()
-    plan, traj = planner(domain, state, goal)
-    traj = traj[1:min(length(traj), 7)]
-else
-    # Use trajectory that comes from a different planner
-    plan = @pddl("(pick-up o)","(stack o w)","(unstack r p)","(stack r o)",
-                 "(unstack d a)","(put-down d)","(unstack a c)","(put-down a)",
-                 "(pick-up c)", "(stack c r)")
-    traj = PDDL.simulate(domain, state, plan)
-end
+# likely_traj = true
+# if likely_traj
+#     # Sample a trajectory as the ground truth (no observation noise)
+#     goal = goal_prior()
+#     plan, traj = planner(domain, state, goal)
+#     traj = traj[1:min(length(traj), 7)]
+# else
+#     # Use trajectory that comes from a different planner
+#     plan = @pddl("(pick-up o)","(stack o w)","(unstack r p)","(stack r o)",
+#                  "(unstack d a)","(put-down d)","(unstack a c)","(put-down a)",
+#                  "(pick-up c)", "(stack c r)")
+#     traj = PDDL.simulate(domain, state, plan)
+# end
 anim = anim_traj(traj)
 
 
@@ -144,6 +144,12 @@ act_proposal_args = (act_noise,)
 
 # Run a particle filter to perform online goal inference
 n_samples = 500
+
+# Set up rejuvenation moves
+goal_rejuv! = pf -> pf_goal_move_accept!(pf, goal_words)
+plan_rejuv! = pf -> pf_replan_move_accept!(pf)
+mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goal_words; mix_prob=0.25)
+
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
                           resample=true, rejuvenate=pf_replan_move_accept!,
