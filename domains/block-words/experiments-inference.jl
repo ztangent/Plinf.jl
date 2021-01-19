@@ -147,6 +147,12 @@ act_proposal_args = (act_noise,)
 
 # Run a particle filter to perform online goal inference
 n_samples = 500
+
+# Set up rejuvenation moves
+goal_rejuv! = pf -> pf_goal_move_accept!(pf, goal_words)
+plan_rejuv! = pf -> pf_replan_move_accept!(pf)
+mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goal_words; mix_prob=0.25)
+
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
                           resample=true, rejuvenate=pf_replan_move_accept!,
