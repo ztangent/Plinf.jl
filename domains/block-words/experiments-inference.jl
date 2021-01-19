@@ -9,8 +9,8 @@ include("experiment-scenarios.jl")
 #--- Initial Setup ---#
 
 # Specify problem name
-category = "0"
-subcategory = "4"
+category = "2"
+subcategory = "1"
 experiment = "experiment-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
@@ -50,33 +50,48 @@ end
 goal_strata = Dict((:goal_init => :goal) => goal_words)
 
 # Assume either a planning agent or replanning agent as a model
-heuristic = precompute(HAdd(), domain)
-planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.75)
+heuristic = precompute(FFHeuristic(), domain)
+planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
 
-# # Sample a trajectory as the ground truth (no observation noise)
-# goal = goal_prior()
-# plan, traj = replanner(domain, state, goal)
-# traj = traj[1:min(length(traj), 7)]
-# anim = anim_traj(traj)
+# Configure agent model with goal prior and planner
+act_noise = 0.05 # Assume a small amount of action noise
+agent_init = AgentInit(agent_planner, goal_prior)
+agent_config = AgentConfig(domain, agent_planner, act_noise=0.05)
 
 # Define observation noise model
 obs_params = observe_params(domain, pred_noise=0.05; state=state)
 obs_terms = collect(keys(obs_params))
 
-# Initialize world model with planner, goal prior, initial state, and obs params
-world_init = WorldInit(agent_planner, goal_prior, state)
-world_config = WorldConfig(domain, agent_planner, obs_params)
+# Configure world model with planner, goal prior, initial state, and obs params
+world_init = WorldInit(agent_init, state, state)
+world_config = WorldConfig(domain, agent_config, obs_params)
+
+likely_traj = false
+if likely_traj
+    # Sample a trajectory as the ground truth (no observation noise)
+    goal = goal_prior()
+    plan, traj = planner(domain, state, goal)
+    traj = traj[1:min(length(traj), 7)]
+else
+    # Use trajectory that comes from a different planner
+    plan = @pddl("(pick-up o)","(stack o w)","(unstack r p)","(stack r o)",
+                 "(unstack d a)","(put-down d)","(unstack a c)","(put-down a)",
+                 "(pick-up c)", "(stack c r)")
+    traj = PDDL.simulate(domain, state, plan)
+end
+anim = anim_traj(traj)
+
 
 #--- Offline Goal Inference ---#
 
 # Run importance sampling to infer the likely goal
-n_samples = 100
+n_samples = 20
 traces, weights, lml_est =
     world_importance_sampler(world_init, world_config,
                              traj, obs_terms, n_samples;
-                             use_proposal=true, strata=goal_strata)
+                             use_proposal=true, strata=goal_strata);
 
 # Render distribution over goal states
 plt = render(traj[end])
@@ -92,6 +107,7 @@ end
 # Plot bar chart of goal probabilities
 plot_goal_bars!(goal_probs, goal_words)
 
+
 #--- Online Goal Inference ---#
 
 # Set up visualization and logging callbacks for online goal inference
@@ -105,26 +121,35 @@ plotters = [ # List of subplot callbacks:
     # particle_weights_cb,
 ]
 canvas = render(state; show_blocks=false)
-callback = (t, s, trs, ws) ->
-    (multiplot_cb(t, s, trs, ws, plotters;
-                  canvas=canvas, animation=anim, show=true,
-                  goal_probs=goal_probs, goal_names=goal_words);
-     print("t=$t\t");
-     push!(goal_probs, return_goal_probs(get_goal_probs(trs, ws, goal_words)));
-     print_goal_probs(get_goal_probs(trs, ws, goal_words))
-     )
+callback = (t, s, trs, ws) -> begin
+    multiplot_cb(t, s, trs, ws, plotters;
+                 canvas=canvas, animation=anim, show=true,
+                 goal_probs=goal_probs, goal_names=goal_words);
+    print("t=$t\t");
+    print_goal_probs(get_goal_probs(trs, ws, goal_words))
+end
+# callback = (t, s, trs, ws) ->
+#     (multiplot_cb(t, s, trs, ws, plotters;
+#                   canvas=canvas, animation=anim, show=true,
+#                   goal_probs=goal_probs, goal_names=goal_words);
+#      print("t=$t\t");
+#      push!(goal_probs, return_goal_probs(get_goal_probs(trs, ws, goal_words)));
+#      print_goal_probs(get_goal_probs(trs, ws, goal_words))
+#      )
+
+# Set up action proposal to handle potential action noise
+act_proposal = act_noise > 0 ? forward_act_proposal : nothing
+act_proposal_args = (act_noise,)
 
 # Run a particle filter to perform online goal inference
 n_samples = 500
-# Set up rejuvenation moves
-goal_rejuv! = pf -> pf_goal_move_accept!(pf, goal_words)
-plan_rejuv! = pf -> pf_replan_move_accept!(pf)
-mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goal_words; mix_prob=0.25)
-
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=nothing,
-                          strata=goal_strata, callback=callback)
+                          resample=true, rejuvenate=pf_replan_move_accept!,
+                          strata=goal_strata, callback=callback,
+                          act_proposal=act_proposal,
+                          act_proposal_args=act_proposal_args)
+
 # Show animation of goal inference
 #gif(anim, joinpath(path, "sips-results", experiment*".gif"), fps=1)
 
