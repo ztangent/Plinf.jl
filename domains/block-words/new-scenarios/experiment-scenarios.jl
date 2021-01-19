@@ -16,7 +16,7 @@ goal_space_dict["1-1"] = ["power", "cower", "crow", "core", "pore"]
 action_dict["1-2"] = ["(unstack p a)", "(put-down p)", "(unstack a r)",
                         "(stack a d)", "(pick-up w)",
                         "(stack w a)"]
-goal_space_dict["1-2"] = ["wad", "reap", "war", "wade", "draw"]
+goal_space_dict["1-2"] = ["ear", "reap", "pear", "wade", "draw"]
 
 action_dict["1-3"] = ["(unstack a r)", "(stack a w)", "(pick-up r)",
                 "(stack r a)", "(unstack d e)", "(stack d r)"]
@@ -31,18 +31,18 @@ goal_space_dict["1-4"] = ["raw", "paw", "draw", "war", "wear"]
 action_dict["2-1"] = ["(unstack a d)", "(stack a p)", "(unstack a p)",
                         "(stack a r)", "(unstack w e)", "(put-down w)", "(pick-up e)",
                         "(stack e a)", "(pick-up p)", "(stack p e)"]
-goal_space_dict["2-1"] = ["wad", "reap", "war", "wade", "draw"]
+goal_space_dict["2-1"] = ["ear", "reap", "pear", "wade", "draw"]
 
 action_dict["2-2"] = ["(pick-up a)", "(stack a r)", "(unstack e d)",
                         "(stack e w)", "(unstack e w)", "(stack e a)"]
-goal_space_dict["2-2"] = ["wad", "reap", "war", "wade", "draw"]
+goal_space_dict["2-2"] = ["ear", "reap", "pear", "wade", "draw"]
 
 action_dict["2-3"] = ["(unstack c e)", "(put-down c)", "(pick-up w)",
                         "(stack w e)", "(unstack o p)", "(stack o p)",
                         "(unstack w e)", "(put-down w)", "(pick-up r)",
                         "(stack r e)", "(unstack o p)", "(stack o r)",
                         "(pick-up c)","(stack c o)"]
-goal_space_dict["2-3"] = ["wad", "reap", "war", "wade", "draw"]
+goal_space_dict["2-3"] = ["power", "cower", "crow", "core", "pore"]
 
 action_dict["2-4"] = ["(unstack d a)", "(put-down d)", "(unstack a e)",
                 "(stack a w)", "(pick-up p)", "(stack p a)", "(pick-up d)",
