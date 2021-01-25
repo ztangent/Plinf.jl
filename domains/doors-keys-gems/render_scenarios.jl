@@ -6,7 +6,7 @@ include("generate.jl")
 include("utils.jl")
 
 # Specify problem number
-problem_idx = "13"
+problem_idx = "12"
 problem_name = "problem-" * problem_idx * ".pddl"
 
 # Load domain and problem
@@ -25,10 +25,6 @@ start_pos = (init_state[:xpos], init_state[:ypos])
 
 gifs_path = mkpath(joinpath(path, "gifs"))
 pics_path = mkpath(joinpath(path, "timesteps"))
-
-obs_path = joinpath(path, "plans")
-_, obs_trajs, obs_fns = load_observations(obs_path, parse(Int64, problem_idx),
-                                              domain, init_state)
 
 "Load all observed trajectories for a given problem (i.e. initial state)."
 function load_observations(obs_path::String, problem_idx::Int,
@@ -55,6 +51,9 @@ function load_observations(obs_path::String, problem_idx::Int,
     return obs_plans, obs_trajs, plan_fns
 end
 
+obs_path = joinpath(path, "plans")
+_, obs_trajs, obs_fns = load_observations(obs_path, parse(Int64, problem_idx),
+                                              domain, init_state)
 
 
 for (idx, (traj, fn)) in enumerate(zip(obs_trajs, obs_fns))
@@ -68,11 +67,25 @@ for (idx, (traj, fn)) in enumerate(zip(obs_trajs, obs_fns))
     temp_states = State[]
     png(render(init_state, start=start_pos, gem_colors=gem_colors, show_pos=true),
             joinpath(pics_path, problem_idx, string(idx), string(png_timestep)))
+
+    traj_len = size(traj)[1]
+    step = 6
+    for i in 4:7
+        if traj_len % i > 2
+            step = i
+        end
+        if traj_len % i == 0
+            step = i
+        end
+    end
+    print("Length:", traj_len)
+    print("Timestep:", step)
+    print()
     for t in traj
         start_pos = (t[:xpos], t[:ypos])
         png_timestep += 1
         push!(temp_states, t)
-        if png_timestep % 6 == 0
+        if png_timestep % step == 0
             gif(anim_traj(temp_states, gem_colors=gem_colors),
                 joinpath(pics_path, problem_idx, string(idx), string(gif_timestep) * ".gif"), fps=3, loop=-1)
             gif_timestep += 1
