@@ -38,11 +38,11 @@ action_dict["2-2"] = ["(pick-up a)", "(stack a r)", "(unstack e d)",
 goal_space_dict["2-2"] = ["ear", "reap", "pear", "wade", "draw"]
 
 action_dict["2-3"] = ["(unstack c e)", "(put-down c)", "(pick-up w)",
-                        "(stack w e)", "(unstack o p)", "(stack o p)",
-                        "(unstack w e)", "(put-down w)", "(pick-up r)",
-                        "(stack r e)", "(unstack o p)", "(stack o r)",
-                        "(pick-up c)","(stack c o)"]
+                        "(stack w e)", "(unstack w e)", "(put-down w)",
+                        "(pick-up r)", "(stack r e)", "(unstack o p)",
+                        "(stack o r)", "(pick-up c)","(stack c o)"]
 goal_space_dict["2-3"] = ["power", "cower", "crow", "core", "pore"]
+
 
 action_dict["2-4"] = ["(unstack d a)", "(put-down d)", "(unstack a e)",
                 "(stack a w)", "(pick-up p)", "(stack p a)", "(pick-up d)",
