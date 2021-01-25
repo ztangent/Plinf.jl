@@ -45,9 +45,9 @@ goal_space_dict["2-3"] = ["power", "cower", "crow", "core", "pore"]
 
 
 action_dict["2-4"] = ["(unstack d a)", "(put-down d)", "(unstack a e)",
-                "(stack a w)", "(pick-up p)", "(stack p a)", "(pick-up d)",
-                "(put-down d)", "(unstack p a)", "(put-down p)","(pick-up r)",
-                "(stack r a)", "(pick-up d)","(stack d r)"]
+                "(stack a w)", "(pick-up p)", "(stack p a)", "(unstack p a)",
+                "(put-down p)","(pick-up r)", "(stack r a)", "(pick-up d)",
+                "(stack d r)"]
 goal_space_dict["2-4"] = ["raw", "paw", "draw", "war", "wear"]
 
 #Category 3: plans mistakes

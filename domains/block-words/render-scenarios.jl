@@ -69,7 +69,7 @@ function execute_plan(state, domain, actions)
         push!(temp_states, state)
 
         if png_timestep % 2 == 0
-            gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=40, loop=-1)
+            gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=30, loop=-1)
             gif_timestep += 1
             temp_states = State[]
             push!(temp_states, state)
@@ -88,4 +88,4 @@ open(json_file, "w") do f
     JSON.print(f, json_data)
 end
 
-gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=30, loop=-1)
+gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=30)
