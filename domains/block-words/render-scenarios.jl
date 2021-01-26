@@ -15,12 +15,12 @@ using Julog, PDDL, Gen, Printf, JSON
 using Plinf
 include("render.jl")
 include("utils.jl")
-include("experiment-scenarios.jl")
+include("new-scenarios/experiment-scenarios.jl")
 
 # Specify problem name
-category = "4"
-subcategory = "4"
-experiment = "experiment-" * category * "-" * subcategory
+category = "2"
+subcategory = "3"
+experiment = "scenario-" * category * "-" * subcategory
 problem_name =  experiment * ".pddl"
 
 actions = get_action(category * "-" * subcategory)
@@ -29,9 +29,9 @@ goal_space = get_goal_space(category * "-" * subcategory)
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, problem_name))
+problem = load_problem(joinpath(path, "new-scenarios", problem_name))
 
-save_image_path = joinpath(path, "experiments-frames", category, subcategory)
+save_image_path = joinpath(path, "new-frames", category, subcategory)
 
 # Initialize problem and visualize initial state
 state = initialize(problem)
@@ -69,7 +69,7 @@ function execute_plan(state, domain, actions)
         push!(temp_states, state)
 
         if png_timestep % 2 == 0
-            gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=20, loop=-1)
+            gif(anim_traj(temp_states), joinpath(save_image_path, string(gif_timestep) * ".gif"), fps=30, loop=-1)
             gif_timestep += 1
             temp_states = State[]
             push!(temp_states, state)
@@ -88,4 +88,4 @@ open(json_file, "w") do f
     JSON.print(f, json_data)
 end
 
-gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=20, loop=-1)
+gif(anim, joinpath(save_image_path, experiment * ".gif"), fps=30)
