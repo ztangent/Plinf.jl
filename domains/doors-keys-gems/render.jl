@@ -35,7 +35,7 @@ function make_circle(x::Real, y::Real, r::Real)
     return Shape(xs, ys)
 end
 
-"Make a circle as a Plots.jl shape."
+"Make a triangle as a Plots.jl shape."
 function make_triangle(x::Real, y::Real, r::Real, dir::Symbol)
     trimap = Dict(:up => :utriangle, :down => :dtriangle,
                   :right => :rtriangle, :left => :ltriangle)
@@ -196,9 +196,9 @@ function render!(state::State, plt=nothing; start=nothing, plan=nothing,
     cmap = cgrad([RGBA(1,1,1,0), RGBA(0,0,0,1)])
     heatmap!(plt, array, aspect_ratio=1, color=cmap, colorbar_entry=false)
     # Plot start position
-    if isa(start, Tuple{Int,Int})
-        annotate!(start[1], start[2], Plots.text("start", 16, :red, :center))
-    end
+    # if isa(start, Tuple{Int,Int})
+    #     annotate!(start[1], start[2], Plots.text("start", 16, :red, :center))
+    # end
     # Plot objects
     if show_objs render_objects!(state, plt; gem_colors=gem_colors) end
     # Plot trace of plan

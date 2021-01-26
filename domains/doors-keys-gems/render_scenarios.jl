@@ -6,7 +6,7 @@ include("generate.jl")
 include("utils.jl")
 
 # Specify problem number
-problem_idx = "12"
+problem_idx = "13"
 problem_name = "problem-" * problem_idx * ".pddl"
 
 # Load domain and problem
@@ -48,6 +48,7 @@ function load_observations(obs_path::String, problem_idx::Int,
     obs_plans = [parse_pddl.(readlines(joinpath(obs_path, fn)))
                  for fn in plan_fns]
     obs_trajs = [PDDL.simulate(domain, init_state, p) for p in obs_plans]
+
     return obs_plans, obs_trajs, plan_fns
 end
 
@@ -65,12 +66,12 @@ for (idx, (traj, fn)) in enumerate(zip(obs_trajs, obs_fns))
     png_timestep = 0
     gif_timestep = 0
     temp_states = State[]
-    png(render(init_state, start=start_pos, gem_colors=gem_colors, show_pos=true),
+    png(render(init_state, start=start_pos, gem_colors=gem_colors, show_pos=true, show_inventory=true),
             joinpath(pics_path, problem_idx, string(idx), string(png_timestep)))
 
     traj_len = size(traj)[1]
-    step = 6
-    for i in 4:7
+    step = 3
+    for i in 4:6
         if traj_len % i > 2
             step = i
         end
@@ -100,6 +101,6 @@ for (idx, (traj, fn)) in enumerate(zip(obs_trajs, obs_fns))
 
     anim = anim_traj(traj, gem_colors=gem_colors)
     file_name =  problem_idx * "_" * string(goal)[end-1] * "_" * string(idx) * ".gif"
-    gif(anim, joinpath(gifs_path, file_name), fps=5)
+    gif(anim, joinpath(gifs_path, file_name), fps=3)
 
 end

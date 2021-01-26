@@ -20,7 +20,7 @@
     (= (xdiff right) 1) (= (ydiff right) 0)
     (= (xdiff left) -1) (= (ydiff left) 0)
     (= width 8) (= height 8)
-    (= xpos 4) (= ypos 7)
+    (= xpos 3) (= ypos 7)
     (wall 1 2) (wall 2 2) (wall 3 2)
     (wall 5 1) (wall 5 2) (wall 5 3) (wall 5 4)
     (wall 7 2) (wall 7 3) (wall 7 4) (wall 7 5) (wall 7 6)
