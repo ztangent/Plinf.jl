@@ -4,6 +4,12 @@ export forward_act_proposal
 @gen planned_act_step(t, agent_state, env_state, domain) =
     @trace(labeled_unif([get_action(agent_state.plan_state)]), :act)
 
+"Boltzmann action selection from precomputed policy."
+@gen function boltzmann_act_step(t, agent_state, env_state, domain)
+    @unpack actions, probs = agent_state.plan_state
+    @trace(labeled_cat(actions, probs), :act)
+end
+
 "ϵ-noisy action selection from current plan."
 @gen function noisy_act_step(t, agent_state, env_state, domain, eps)
     if t == 1 # TODO: Re-index to avoid this hack
