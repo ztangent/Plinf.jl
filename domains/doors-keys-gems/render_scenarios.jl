@@ -6,7 +6,7 @@ include("generate.jl")
 include("utils.jl")
 
 # Specify problem number
-problem_idx = "13"
+problem_idx = "8"
 problem_name = "problem-" * problem_idx * ".pddl"
 
 # Load domain and problem
@@ -20,6 +20,7 @@ gem_terms = @julog [gem1, gem2, gem3]
 gem_colors = Dict(zip(gem_terms, goal_colors))
 
 init_state = initialize(problem)
+render(init_state)
 start_pos = (init_state[:xpos], init_state[:ypos])
 #plt = render(init_state; start=start_pos, gem_colors=gem_colors, show_objs=true)
 
@@ -52,9 +53,10 @@ function load_observations(obs_path::String, problem_idx::Int,
     return obs_plans, obs_trajs, plan_fns
 end
 
-obs_path = joinpath(path, "plans")
+obs_path = joinpath(path, "ppp")
 _, obs_trajs, obs_fns = load_observations(obs_path, parse(Int64, problem_idx),
                                               domain, init_state)
+
 
 
 for (idx, (traj, fn)) in enumerate(zip(obs_trajs, obs_fns))
@@ -66,41 +68,41 @@ for (idx, (traj, fn)) in enumerate(zip(obs_trajs, obs_fns))
     png_timestep = 0
     gif_timestep = 0
     temp_states = State[]
-    png(render(init_state, start=start_pos, gem_colors=gem_colors, show_pos=true, show_inventory=true),
-            joinpath(pics_path, problem_idx, string(idx), string(png_timestep)))
+    # png(render(init_state, start=start_pos, gem_colors=gem_colors, show_pos=true, show_inventory=true),
+    #         joinpath(pics_path, problem_idx, string(idx), string(png_timestep)))
 
-    traj_len = size(traj)[1]
-    step = 3
-    for i in 4:6
-        if traj_len % i > 2
-            step = i
-        end
-        if traj_len % i == 0
-            step = i
-        end
-    end
-    print("Length:", traj_len)
-    print("Timestep:", step)
-    print()
-    for t in traj
-        start_pos = (t[:xpos], t[:ypos])
-        png_timestep += 1
-        push!(temp_states, t)
-        if png_timestep % step == 0
-            gif(anim_traj(temp_states, gem_colors=gem_colors),
-                joinpath(pics_path, problem_idx, string(idx), string(gif_timestep) * ".gif"), fps=3, loop=-1)
-            gif_timestep += 1
-            temp_states = State[]
-            push!(temp_states, t)
-        end
-    end
-    if size(temp_states)[1] > 1
-        gif(anim_traj(temp_states, gem_colors=gem_colors),
-            joinpath(pics_path, problem_idx, string(idx), string(gif_timestep) * ".gif"), fps=3, loop=-1)
-    end
-
-    anim = anim_traj(traj, gem_colors=gem_colors)
-    file_name =  problem_idx * "_" * string(goal)[end-1] * "_" * string(idx) * ".gif"
-    gif(anim, joinpath(gifs_path, file_name), fps=3)
+    # traj_len = size(traj)[1]
+    # step = 3
+    # for i in 4:6
+    #     if traj_len % i > 2
+    #         step = i
+    #     end
+    #     if traj_len % i == 0
+    #         step = i
+    #     end
+    # end
+    # print("Length:", traj_len)
+    # print("Timestep:", step)
+    # print()
+    # for t in traj
+    #     start_pos = (t[:xpos], t[:ypos])
+    #     png_timestep += 1
+    #     push!(temp_states, t)
+    #     if png_timestep % step == 0
+    #         gif(anim_traj(temp_states, gem_colors=gem_colors),
+    #             joinpath(pics_path, problem_idx, string(idx), string(gif_timestep) * ".gif"), fps=3, loop=-1)
+    #         gif_timestep += 1
+    #         temp_states = State[]
+    #         push!(temp_states, t)
+    #     end
+    # end
+    # if size(temp_states)[1] > 1
+    #     gif(anim_traj(temp_states, gem_colors=gem_colors),
+    #         joinpath(pics_path, problem_idx, string(idx), string(gif_timestep) * ".gif"), fps=3, loop=-1)
+    # end
+    #
+    # anim = anim_traj(traj, gem_colors=gem_colors)
+    # file_name =  problem_idx * "_" * string(goal)[end-1] * "_" * string(idx) * ".gif"
+    # gif(anim, joinpath(gifs_path, file_name), fps=3)
 
 end
