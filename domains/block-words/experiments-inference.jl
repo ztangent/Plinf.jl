@@ -237,7 +237,7 @@ function run_sph_inference(traj::Vector{State}, goals, domain::Domain;
 
     # Compute costs of optimal plans from initial state to each goal
     state = traj[1]
-    heuristic = precompute(FFHeuristic(), domain)
+    heuristic = precompute(FFHeuristic(), domain) # Change to GemMazeDist for DKG
     planner = AStarPlanner(heuristic=heuristic, max_nodes=1000)
 
     # Iterate over timesteps
