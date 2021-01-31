@@ -165,3 +165,105 @@ traces, weights =
 
 df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
 CSV.write( joinpath(path, "sips-results", experiment*".csv"), df)
+
+#-- Bayesian IRL inference --#
+
+function generate_init_states(state::State, domain::Domain, k=5)
+    ff = precompute(FFHeuristic(), domain)
+    prob_astar = ProbAStarPlanner(heuristic=ff, search_noise=0.1)
+    replanner = Replanner(planner=prob_astar, persistence=(2, 0.95))
+    optimal_trajs =
+        reduce(vcat, (prob_astar(domain, state, g)[2] for g in goals))
+    suboptimal_trajs =
+        reduce(vcat, (replanner(domain, state, g)[2]
+                      for g in goals for i in 1:k))
+    return [optimal_trajs; suboptimal_trajs]
+end
+
+function run_birl_inference(state::State, plan::Vector{<:Term},
+                            goals, domain::Domain;
+                            act_noise::Real=0.1, verbose::Bool=true)
+    # Generate set of initial states to sample from
+    init_states = [generate_init_states(state, domain);
+                   PDDL.simulate(domain, state, plan)]
+    # Solve MDP for each goal via real-time dynamic programming
+    h = precompute(FFHeuristic(), domain) # Change to GemMazeDist for DKG
+    planners =  [RTDPlanner(heuristic=h, act_noise=act_noise, rollout_len=5,
+                            n_rollouts=length(init_states)*10) for g in goals]
+    for (planner, goal) in zip(planners, goals)
+        if verbose println("Solving for $goal...") end
+        Plinf.solve!(planner, domain, init_states, GoalSpec(goal))
+    end
+    # Iterate across plan and compute goal probabilities
+    goal_probs = fill(1.0/length(goals), length(goals))
+    all_goal_probs = [goal_probs]
+    if verbose println("Goal probs.:") end
+    for act in plan
+        # For each goal, compute likelihood of act given current state
+        step_probs = map(zip(planners, goals)) do (planner, goal)
+            goal_spec = GoalSpec(goal)
+            qs = get!(planner.qvals, hash(state),
+                      Plinf.default_qvals(planner, domain, state, goal_spec))
+            act_probs = Plinf.softmax(values(qs) ./ planner.act_noise)
+            act_probs = Dict(zip(keys(qs), act_probs))
+            return act_probs[act]
+        end
+        # Compute filtering distribution over goals
+        goal_probs = goal_probs .* step_probs
+        goal_probs ./= sum(goal_probs)
+        if verbose
+            for prob in goal_probs @printf("%.3f\t", prob) end
+            print("\n")
+        end
+        # Advance to next state
+        state = transition(domain, state, act)
+        push!(all_goal_probs, goal_probs)
+    end
+    return all_goal_probs
+end
+
+plan = parse_pddl.(actions)
+goal_probs = run_birl_inference(state, plan, goals, domain, act_noise=1.0)
+
+#-- Shortest path heuristic inference --#
+
+"Run goal inference via shortest-path heuristic."
+function run_sph_inference(traj::Vector{State}, goals, domain::Domain;
+                           beta::Real=1, verbose::Bool=true)
+    # Construct new dataframe for this trajectory
+    n_goals = length(goals)
+    goals = [GoalSpec(g) for g in goals]
+    all_goal_probs = [] # Buffer of all goal probabilities over time
+
+    # Compute costs of optimal plans from initial state to each goal
+    state = traj[1]
+    heuristic = precompute(FFHeuristic(), domain)
+    planner = AStarPlanner(heuristic=heuristic, max_nodes=1000)
+
+    # Iterate over timesteps
+    if verbose println("Goal probs.:") end
+    for (t, state) in enumerate(traj)
+        weights = ones(n_goals)
+        costs = ones(n_goals)
+        for (i, g) in enumerate(goals)
+            if t == 1 break end
+            # Compute plan cost to each goal
+            part_plan, part_traj = planner(domain, state, g)
+            costs[i] = part_plan == nothing ? Inf : length(part_plan)
+            # Compute heuristic likelihood weight of the plan as cost ratio
+            weights[i] = exp(-beta * costs[i])
+        end
+        # Normalize weights to get posterior
+        if iszero(weights) weights = ones(n_goals) end # Handle failed plans
+        goal_probs = weights ./ sum(weights)
+        if verbose
+            for prob in goal_probs @printf("%.3f\t", prob) end
+            print("\n")
+        end
+        push!(all_goal_probs, goal_probs)
+    end
+
+    return all_goal_probs
+end
+
+goal_probs = run_sph_inference(traj, goals, domain)
