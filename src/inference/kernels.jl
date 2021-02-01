@@ -8,7 +8,6 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
     _, _, world_config = Gen.get_args(trace)
     @unpack domain = world_config
     planner = trace[:init => :agent => :planner]
-    goal_spec = trace[:init => :agent => :goal]
     world_states = get_retval(trace)
     env_states = [ws.env_state for ws in world_states]
     obs_states = [ws.obs_state for ws in world_states]
@@ -42,6 +41,7 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
     end
     # Propose partial plans from t_resample to t_current
     proposal_args = [(max_resource,); fill((nothing,), t_current - t_resamp)]
+    goal_spec = get_goal(trace[:timestep => t_resamp => :agent => :goal])
     plan_state = t_resamp == 1 ?
         init_plan_state(planner) : plan_states[t_resamp-1]
     obs_states = use_obs ?
