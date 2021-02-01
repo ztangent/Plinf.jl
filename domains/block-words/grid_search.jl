@@ -4,6 +4,7 @@ using DataFrames
 using Statistics
 using JSON
 using UnPack
+using Random
 
 include("render.jl")
 include("utils.jl")
@@ -74,6 +75,29 @@ struct NoisyGoal
     cur_goal::GoalSpec
 end
 
+"Uniform distribution over permutations (shuffles) of an array."
+struct RandomShuffle{T <: AbstractArray} <: Gen.Distribution{T}
+    v::T # Original array to be shuffled
+end
+(d::RandomShuffle)() = Gen.random(d)
+@inline Gen.random(d::RandomShuffle) = shuffle(d.v)
+function Gen.logpdf(d::RandomShuffle{T}, xs::T) where {T}
+    if size(xs) != size(d.v) return -Inf end
+    v_counts = countmap(d.v)
+    score = sum(logfactorial.(values(v_counts))) - logfactorial(length(d.v))
+    for x in xs
+        x in keys(v_counts) || return -Inf
+        v_counts[x] -= 1
+    end
+    return all(values(v_counts) .== 0) ? score : -Inf
+end
+Gen.logpdf_grad(::RandomShuffle, x) =
+    (nothing,)
+Gen.has_output_grad(::RandomShuffle) =
+    false
+Gen.has_argument_grads(::RandomShuffle) =
+    (nothing,)
+
 # Goal noise implementation
 function terms_to_word(terms::Vector{Term})
     # assumes :on terms are ordered top to bottom in terms
@@ -90,7 +114,7 @@ function terms_to_word(terms::Vector{Term})
     return word
 end
 
-function permute_goal(goalspec::GoalSpec)
+@gen function corrupt_goal(goalspec::GoalSpec)
     # returns new corrupted goalspec
     goal_word = collect(terms_to_word(goalspec.goals))
     corrupted_goal = @trace(RandomShuffle(goal_word)(), :permutation)
@@ -119,7 +143,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
         # Corrupt the current goal with some parameter noise
         if @trace(bernoulli(goal_noise), :corrupt)
             if cur_goal == init_goal
-                cur_goal = permute_goal(init_goal)
+                cur_goal = corrupt_goal(init_goal)
             else
                 cur_goal = init_goal
             end
@@ -141,7 +165,8 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
 
     # Configure agent model with goal prior and planner
     agent_init = AgentInit(agent_planner, goal_prior)
-    agent_config = AgentConfig(domain, agent_planner, act_noise=params["action_noise"])
+    agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(params["action_noise"],), act_step=Plinf.noisy_act_step,
+                           goal_step=goal_step, goal_args=(0.1,))
 
     # Define observation noise model
     obs_params = observe_params(domain, pred_noise=params["pred_noise"]; state=state)
