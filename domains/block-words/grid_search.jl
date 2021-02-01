@@ -13,13 +13,15 @@ model = "ap"
 search_noise = [0.05, 0.1, 0.3, 0.5, 0.7]
 action_noise = [0.01, 0.05, 0.1, 0.2, 0.5, 0.7]
 pred_noise = [0.1]
-grid_list = Iterators.product(search_noise, action_noise, pred_noise)
+n_samples = [300]
+grid_list = Iterators.product(search_noise, action_noise, pred_noise, n_samples)
 grid_dict = []
 for item in grid_list
     current_dict = Dict()
     current_dict["search_noise"] = item[1]
     current_dict["action_noise"] = item[2]
     current_dict["pred_noise"] = item[3]
+    current_dict["n_samples"] = item[4]
     push!(grid_dict, current_dict)
 end
 corrolation = []
@@ -163,16 +165,13 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
     act_proposal = act_noise > 0 ? forward_act_proposal : nothing
     act_proposal_args = (params["action_noise"],)
 
-    # Run a particle filter to perform online goal inference
-    n_samples = 500
-
     # Set up rejuvenation moves
     goal_rejuv! = pf -> pf_goal_move_accept!(pf, goal_words)
     plan_rejuv! = pf -> pf_replan_move_accept!(pf)
     mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goal_words; mix_prob=0.25)
 
     traces, weights =
-        world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
+        world_particle_filter(world_init, world_config, traj, obs_terms, params["n_samples"];
                               resample=true, rejuvenate=pf_replan_move_accept!,
                               strata=goal_strata, callback=callback,
                               act_proposal=act_proposal,
