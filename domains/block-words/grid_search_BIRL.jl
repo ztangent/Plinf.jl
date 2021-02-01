@@ -10,7 +10,7 @@ include("./new-scenarios/experiment-scenarios.jl")
 
 #--- Generate Search Grid ---#
 model = "birl"
-action_noise = [0.01, 0.05, 0.1, 0.2, 0.5, 0.7]
+action_noise = [0.125, 0.25, 0.5, 1, 2, 4]
 grid_list = Iterators.product(action_noise)
 grid_dict = []
 for item in grid_list

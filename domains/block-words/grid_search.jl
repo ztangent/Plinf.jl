@@ -4,25 +4,34 @@ using DataFrames
 using Statistics
 using JSON
 using UnPack
+using Random
 
 include("render.jl")
 include("utils.jl")
 include("./new-scenarios/experiment-scenarios.jl")
 
 #--- Generate Search Grid ---#
-model_name = "ap"
-search_noise = [0.05, 0.1, 0.3, 0.5, 0.7]
-action_noise = [0.01, 0.05, 0.1, 0.2, 0.5, 0.7]
+model_name = "apg"
+search_noise = [0.02, 0.1, 0.5]
+action_noise = [0.025, 0.05, 0.1, 0.2]
+goal_noise = [0.1, 0.2, 0.3]
+r = [2, 3, 4]
+q = [0.8, 0.9, 0.95]
 pred_noise = [0.1]
-n_samples = [300]
-grid_list = Iterators.product(search_noise, action_noise, pred_noise, n_samples)
+rejuvenation = ["plan"]
+n_samples = [500]
+grid_list = Iterators.product(search_noise, action_noise, goal_noise, r, q, rejuvenation, pred_noise, n_samples)
 grid_dict = []
 for item in grid_list
     current_dict = Dict()
     current_dict["search_noise"] = item[1]
     current_dict["action_noise"] = item[2]
-    current_dict["pred_noise"] = item[3]
-    current_dict["n_samples"] = item[4]
+    current_dict["goal_noise"] = item[3]
+    current_dict["r"] = item[4]
+    current_dict["q"] = item[5]
+    current_dict["rejuvenation"] = item[6]
+    current_dict["pred_noise"] = item[7]
+    current_dict["n_samples"] = item[8]
     push!(grid_dict, current_dict)
 end
 
@@ -74,6 +83,29 @@ struct NoisyGoal
     cur_goal::GoalSpec
 end
 
+"Uniform distribution over permutations (shuffles) of an array."
+struct RandomShuffle{T <: AbstractArray} <: Gen.Distribution{T}
+    v::T # Original array to be shuffled
+end
+(d::RandomShuffle)() = Gen.random(d)
+@inline Gen.random(d::RandomShuffle) = shuffle(d.v)
+function Gen.logpdf(d::RandomShuffle{T}, xs::T) where {T}
+    if size(xs) != size(d.v) return -Inf end
+    v_counts = countmap(d.v)
+    score = sum(logfactorial.(values(v_counts))) - logfactorial(length(d.v))
+    for x in xs
+        x in keys(v_counts) || return -Inf
+        v_counts[x] -= 1
+    end
+    return all(values(v_counts) .== 0) ? score : -Inf
+end
+Gen.logpdf_grad(::RandomShuffle, x) =
+    (nothing,)
+Gen.has_output_grad(::RandomShuffle) =
+    false
+Gen.has_argument_grads(::RandomShuffle) =
+    (nothing,)
+
 # Goal noise implementation
 function terms_to_word(terms::Vector{Term})
     # assumes :on terms are ordered top to bottom in terms
@@ -90,13 +122,11 @@ function terms_to_word(terms::Vector{Term})
     return word
 end
 
-function permute_goal(goalspec::GoalSpec)
+@gen function corrupt_goal(goalspec::GoalSpec)
     # returns new corrupted goalspec
     goal_word = collect(terms_to_word(goalspec.goals))
     corrupted_goal = @trace(RandomShuffle(goal_word)(), :permutation)
-    for c in goal_word
-        corrupted_goal = corrupted_goal * string(c)
-    end
+    corrupted_goal = String(corrupted_goal)
     # print(corrupted_goal)
     return GoalSpec(word_to_terms(string(corrupted_goal)))
 end
@@ -119,7 +149,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
         # Corrupt the current goal with some parameter noise
         if @trace(bernoulli(goal_noise), :corrupt)
             if cur_goal == init_goal
-                cur_goal = permute_goal(init_goal)
+                cur_goal = corrupt_goal(init_goal)
             else
                 cur_goal = init_goal
             end
@@ -136,12 +166,13 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
     # Assume either a planning agent or replanning agent as a model
     heuristic = precompute(FFHeuristic(), domain)
     planner = ProbAStarPlanner(heuristic=heuristic, search_noise=params["search_noise"])
-    replanner = Replanner(planner=planner, persistence=(2, 0.95))
+    replanner = Replanner(planner=planner, persistence=(params["r"], params["q"]))
     agent_planner = replanner # planner
 
     # Configure agent model with goal prior and planner
     agent_init = AgentInit(agent_planner, goal_prior)
-    agent_config = AgentConfig(domain, agent_planner, act_noise=params["action_noise"])
+    agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(params["action_noise"],), act_step=Plinf.noisy_act_step,
+                           goal_step=goal_step, goal_args=(params["goal_noise"],))
 
     # Define observation noise model
     obs_params = observe_params(domain, pred_noise=params["pred_noise"]; state=state)
@@ -172,7 +203,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
 
     traces, weights =
         world_particle_filter(world_init, world_config, traj, obs_terms, params["n_samples"];
-                              resample=true, rejuvenate=pf_replan_move_accept!,
+                              resample=true, rejuvenate=nothing,
                               strata=goal_strata, callback=callback,
                               act_proposal=act_proposal,
                               act_proposal_args=act_proposal_args)
@@ -180,7 +211,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
     # Show animation of goal inference
     #gif(anim, joinpath(path, "sips-results", experiment*".gif"), fps=1)
 
-    df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
+    # df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
     # CSV.write(joinpath(path, "sips-results", experiment*".csv"), df)
     return goal_probs
 end
