@@ -19,13 +19,13 @@ for item in grid_list
     current_dict["beta"] = item[1]
     push!(grid_dict, current_dict)
 end
-corrolation = []
 
 #--- Initial Setup ---#
 
 # Specify problem
-category = "1"
-subcategory = "1"
+category = "4"
+subcategory = "4"
+corrolation = []
 experiment = "scenario-" * category * "-" * subcategory
 problem_name = experiment * ".pddl"
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")

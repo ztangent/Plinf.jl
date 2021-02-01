@@ -18,13 +18,14 @@ for item in grid_list
     current_dict["action_noise"] = item[1]
     push!(grid_dict, current_dict)
 end
-corrolation = []
+
 
 #--- Initial Setup ---#
 
 # Specify problem
 category = "1"
-subcategory = "2"
+subcategory = "1"
+corrolation = []
 experiment = "scenario-" * category * "-" * subcategory
 problem_name = experiment * ".pddl"
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
