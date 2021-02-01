@@ -12,7 +12,7 @@ include("./new-scenarios/experiment-scenarios.jl")
 model = "ap"
 search_noise = [0.05, 0.1, 0.3, 0.5, 0.7]
 action_noise = [0.01, 0.05, 0.1, 0.2, 0.5, 0.7]
-pred_noise = [0.01]
+pred_noise = [0.1]
 grid_list = Iterators.product(search_noise, action_noise, pred_noise)
 grid_dict = []
 for item in grid_list
@@ -142,7 +142,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
     agent_config = AgentConfig(domain, agent_planner, act_noise=params["action_noise"])
 
     # Define observation noise model
-    obs_params = observe_params(domain, pred_noise=0.05; state=state)
+    obs_params = observe_params(domain, pred_noise=params["pred_noise"]; state=state)
     obs_terms = collect(keys(obs_params))
 
     # Configure world model with planner, goal prior, initial state, and obs params
