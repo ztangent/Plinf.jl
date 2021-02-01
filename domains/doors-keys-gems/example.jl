@@ -28,7 +28,7 @@ plan, traj = planner(domain, state, goal)
 println("== Plan ==")
 display(plan)
 plt = render(state; start=start_pos, plan=plan, gem_colors=gem_colors)
-anim = anim_traj(traj; gem_colors=gem_colors)
+anim = anim_traj(traj; gem_colors=gem_colors, plan=plan)
 @assert satisfy(goal, traj[end], domain)[1] == true
 
 # Visualize full horizon probabilistic A* search
@@ -96,7 +96,16 @@ plan3, traj = planner(domain, traj[end], @julog(has(key1)))
 plan4, traj = planner(domain, traj[end], @julog(has(gem3)))
 plan = [plan1; plan2; plan3; plan4]
 traj = PDDL.simulate(domain, state, plan)
-anim = anim_traj(traj; gem_colors=gem_colors)
+
+# Visualize trajectory
+frames = []
+anim = anim_traj(traj; gem_colors=gem_colors, plan=plan, frames=frames)
+times = [4, 9, 17, 21]
+storyboard = plot_storyboard(frames[times], nothing, times;
+                             titles=["Initially ambiguous goal",
+                                     "Red eliminated upon key pickup",
+                                     "Yellow most likely upon unlock",
+                                     "Switch to blue upon backtracking"])
 
 #--- Offline Goal Inference ---#
 
