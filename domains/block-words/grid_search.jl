@@ -12,13 +12,13 @@ include("./new-scenarios/experiment-scenarios.jl")
 
 #--- Generate Search Grid ---#
 model_name = "apg"
-search_noise = [0.02, 0.1, 0.5]
-action_noise = [0.025, 0.05, 0.1, 0.2]
-goal_noise = [0.1, 0.2, 0.3]
-r = [2, 3, 4]
-q = [0.8, 0.9, 0.95]
+search_noise = [0.02, 0.5]
+action_noise = [0.05, 0.1, 0.2]
+goal_noise = [0.1, 0.2]
+r = [2, 4]
+q = [0.9, 0.95]
 pred_noise = [0.1]
-rejuvenation = ["plan"]
+rejuvenation = ["None"]
 n_samples = [500]
 grid_list = Iterators.product(search_noise, action_noise, goal_noise, r, q, rejuvenation, pred_noise, n_samples)
 grid_dict = []
@@ -35,6 +35,7 @@ for item in grid_list
     push!(grid_dict, current_dict)
 end
 
+grid_dict
 
 #--- Initial Setup ---#
 
@@ -203,7 +204,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
 
     traces, weights =
         world_particle_filter(world_init, world_config, traj, obs_terms, params["n_samples"];
-                              resample=true, rejuvenate=pf_replan_move_accept!,
+                              resample=true, rejuvenate=nothing,
                               strata=goal_strata, callback=callback,
                               act_proposal=act_proposal,
                               act_proposal_args=act_proposal_args)
