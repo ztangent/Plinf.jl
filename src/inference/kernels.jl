@@ -42,6 +42,7 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
     end
     # Propose partial plans from t_resample to t_current
     proposal_args = [(max_resource,); fill((nothing,), t_current - t_resamp)]
+    goal_spec = get_goal(trace[:timestep => t_resamp => :agent => :goal])
     plan_state = t_resamp == 1 ?
         init_plan_state(planner) : plan_states[t_resamp-1]
     obs_states = use_obs ?

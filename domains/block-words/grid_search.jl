@@ -203,7 +203,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
 
     traces, weights =
         world_particle_filter(world_init, world_config, traj, obs_terms, params["n_samples"];
-                              resample=true, rejuvenate=nothing,
+                              resample=true, rejuvenate=pf_replan_move_accept!,
                               strata=goal_strata, callback=callback,
                               act_proposal=act_proposal,
                               act_proposal_args=act_proposal_args)
