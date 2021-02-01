@@ -77,6 +77,7 @@ obs_terms = collect(keys(obs_params))
 world_init = WorldInit(agent_init, state, state)
 world_config = WorldConfig(domain, agent_config, obs_params)
 
+# Construct observed trajectory
 likely_traj = false
 if likely_traj
     # Sample a trajectory as the ground truth (no observation noise)
@@ -90,7 +91,16 @@ else
                  "(pick-up c)", "(stack c r)")
     traj = PDDL.simulate(domain, state, plan)
 end
+
+# Visualize trajectory
 anim = anim_traj(traj)
+times = [1, 3, 5, 7]
+frames = [render(traj[t]) for t in times]
+storyboard = plot_storyboard(frames, nothing, times,
+                             titles=["Initial state",
+                                     "'r' is placed on table",
+                                     "'e' is stacked on 'r'",
+                                     "'w' is stacked on 'e'"])
 
 #--- Offline Goal Inference ---#
 

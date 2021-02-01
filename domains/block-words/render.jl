@@ -154,6 +154,7 @@ function render!(state::State, plt=nothing;
     # Resize limits
     xlims!(plt, 0, width)
     ylims!(plt, 0, height)
+    plot!(plt, aspect_ratio=1)
     return plt
 end
 
@@ -345,5 +346,49 @@ function multiplot_cb(t::Int, state, traces, weights,
                size=(layout[2], layout[1]) .* 600)
     if show display(plt) end # Display the plot in the GUI
     if animation != nothing frame(animation) end # Save frame to animation
+    return plt
+end
+
+## Storyboard plotters ##
+
+"Plot storyboard of frames showing goal inferences over time."
+function plot_storyboard(frames::Vector{<:Plots.Plot}, goal_probs=nothing, times=Int[];
+                         titles=[], labels=["(i)", "(ii)", "(iii)", "(iv)"],
+                         time_lims=nothing, legend=false,
+                         goal_names=nothing, goal_colors=cgrad(:plasma)[1:3:30])
+    frames = [deepcopy(plt) for plt in frames]
+    n_frames = length(frames)
+    # Add titles and times to each frame to each frame
+    for i in 1:n_frames
+        if i <= length(titles)
+            lbl, ttl = labels[i], titles[i]
+            title!(frames[i], "$lbl $ttl"; titlefontsize=20)
+            plot!(frames[i]; top_margin=10*Plots.mm)
+        end
+        if i <= length(times)
+            xlabel!(frames[i], "t = $(times[i])"; labelfontsize=20)
+        end
+    end
+    # Plot keyframes in sequence
+    plt = plot(frames...; layout=(1, n_frames), size=(n_frames*600, 650),
+               bottom_margin=5*Plots.mm, aspect_ratio=1)
+    if goal_probs == nothing return plt end
+    # Plot line graph of goal probabilities below frames
+    if isa(goal_probs, Vector) goal_probs = reduce(hcat, goal_probs) end
+    l_plt = plot_goal_lines!(goal_probs, goal_names, goal_colors)
+    plot!(l_plt; legend=legend, legendfontsize=12, legendtitlefontsize=16,
+          left_margin=20*Plots.mm, right_margin=20*Plots.mm,
+          bottom_margin=5*Plots.mm)
+    if time_lims == nothing
+        xlims!(l_plt, 1, size(goal_probs)[2])
+    else
+        xlims!(l_plt, time_lims[1], time_lims[2])
+    end
+    xlabel!(l_plt, "")
+    annotate!(l_plt, l_plt[1][:xaxis][:lims][2], -0.1, Plots.text("Time"))
+    vline!(l_plt, times; ls=:dash, lw=2, color=:black, label="")
+    for (t, lbl) in zip(times, labels) annotate!(t, -0.075, Plots.text(lbl)) end
+    layout = grid(2, 1, heights=[0.75, 0.25])
+    plt = plot(plt, l_plt; layout=layout, size=(n_frames*600, 900))
     return plt
 end
