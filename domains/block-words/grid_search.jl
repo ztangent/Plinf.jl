@@ -9,7 +9,7 @@ include("utils.jl")
 include("./new-scenarios/experiment-scenarios.jl")
 
 #--- Generate Search Grid ---#
-model = "ap"
+model_name = "ap"
 search_noise = [0.05, 0.1, 0.3, 0.5, 0.7]
 action_noise = [0.01, 0.05, 0.1, 0.2, 0.5, 0.7]
 pred_noise = [0.1]
@@ -69,63 +69,7 @@ traj = execute_plan(state, domain, actions)
 function goal_inference(params, domain, problem, goal_words, goals, state, traj)
     #### Goal Inference Setup ####
 
-    # Goal noise
-    #
-    # # Define custom goal specification type
-    # struct MyGoalSpec
-    #     init_goal::GoalSpec
-    #     cur_goal::GoalSpec
-    # end
-    #
-    # function terms_to_word(terms::Vector{Term})
-    #     # assumes :on terms are ordered top to bottom in terms
-    #     word = ""
-    #     for term in terms
-    #         # first letter
-    #         if (term.name == :clear)
-    #             word = string(terms[1].args[1]) * word
-    #         # other letters
-    #     elseif (term.name == :on)
-    #             word = word * string(term.args[2])
-    #         end
-    #     end
-    #     return word
-    # end
-    #
-    # function permute_goal(goalspec::GoalSpec)
-    #     # performs one random swap of adjacent letters of the goal word
-    #     # returns new corrupted goalspec
-    #     goal_word = collect(terms_to_word(goalspec.goals))
-    #     swap_idx = rand(2:length(goal_word))
-    #     temp = goal_word[swap_idx]
-    #     goal_word[swap_idx] = goal_word[swap_idx-1]
-    #     goal_word[swap_idx-1]  = temp
-    #     corrupted_goal = ""
-    #     for c in goal_word
-    #         corrupted_goal = corrupted_goal * string(c)
-    #     end
-    #     # print(corrupted_goal)
-    #     return GoalSpec(word_to_terms(string(corrupted_goal)))
-    # end
-    #
-    # # Define getter that returns current goal
-    # get_goal(goal_spec::MyGoalSpec) = goal_spec.cur_goal
-    # # Define uniform prior over possible goals
-    # @gen function goal_prior()
-    #     goal_spec = GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
-    #     return MyGoalSpec(goal_spec, goal_spec)
-    # end
-    #
-    # # Define custom noisy goal transition
-    # @gen function goal_step(t, goal_spec::MyGoalSpec, goal_noise::Real)
-    #     @unpack init_goal, cur_goal = goal_spec
-    #     # Corrupt the current goal
-    #     cur_goal = permute_goal(init_goal)
-    #     return MyGoalSpec(init_goal, cur_goal)
-    # end
-    # # Configure agent to use the custom goal step
-    # agent_config = AgentConfig(domain, agent_planner, act_noise=0.05,
-    #                            goal_step=goal_step, goal_args=(0.1,))
+    # Goal noise implementation
 
     # Define uniform prior over possible goals
     @gen function goal_prior()
@@ -162,7 +106,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
         # print_goal_probs(get_goal_probs(trs, ws, goal_words))
     end
 
-    act_proposal = act_noise > 0 ? forward_act_proposal : nothing
+    act_proposal = params["action_noise"] > 0 ? forward_act_proposal : nothing
     act_proposal_args = (params["action_noise"],)
 
     # Set up rejuvenation moves
