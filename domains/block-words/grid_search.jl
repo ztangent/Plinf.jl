@@ -3,6 +3,7 @@ using Plinf, CSV
 using DataFrames
 using Statistics
 using JSON
+using UnPack
 
 include("render.jl")
 include("utils.jl")
@@ -67,15 +68,69 @@ traj = execute_plan(state, domain, actions)
 
 #--- Goal Inference ---#
 
+# Define custom goal specification type
+struct NoisyGoal
+    init_goal::GoalSpec
+    cur_goal::GoalSpec
+end
+
+# Goal noise implementation
+function terms_to_word(terms::Vector{Term})
+    # assumes :on terms are ordered top to bottom in terms
+    word = ""
+    for term in terms
+        # first letter
+        if (term.name == :clear)
+            word = string(terms[1].args[1]) * word
+        # other letters
+    elseif (term.name == :on)
+            word = word * string(term.args[2])
+        end
+    end
+    return word
+end
+
+function permute_goal(goalspec::GoalSpec)
+    # returns new corrupted goalspec
+    goal_word = collect(terms_to_word(goalspec.goals))
+    corrupted_goal = @trace(RandomShuffle(goal_word)(), :permutation)
+    for c in goal_word
+        corrupted_goal = corrupted_goal * string(c)
+    end
+    # print(corrupted_goal)
+    return GoalSpec(word_to_terms(string(corrupted_goal)))
+end
+
+# Define getter that returns current goal
+Plinf.get_goal(goal_spec::NoisyGoal) = goal_spec.cur_goal
+
 function goal_inference(params, domain, problem, goal_words, goals, state, traj)
     #### Goal Inference Setup ####
 
-    # Goal noise implementation
-
     # Define uniform prior over possible goals
     @gen function goal_prior()
-        GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
+        goal_spec = GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
+        return NoisyGoal(goal_spec, goal_spec)
     end
+
+    # Define custom noisy goal transition
+    @gen function goal_step(t, goal_spec::NoisyGoal, goal_noise::Real)
+        @unpack init_goal, cur_goal = goal_spec
+        # Corrupt the current goal with some parameter noise
+        if @trace(bernoulli(goal_noise), :corrupt)
+            if cur_goal == init_goal
+                cur_goal = permute_goal(init_goal)
+            else
+                cur_goal = init_goal
+            end
+        end
+        return NoisyGoal(init_goal, cur_goal)
+    end
+
+    # Define uniform prior over possible goals
+    # @gen function goal_prior()
+    #     GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
+    # end
     goal_strata = Dict((:goal_init => :goal) => goal_words)
 
     # Assume either a planning agent or replanning agent as a model

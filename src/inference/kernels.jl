@@ -8,7 +8,7 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
     _, _, world_config = Gen.get_args(trace)
     @unpack domain = world_config
     planner = trace[:init => :agent => :planner]
-    goal_spec = trace[:init => :agent => :goal]
+    goal_spec = get_goal(trace[:init => :agent => :goal])
     world_states = get_retval(trace)
     env_states = [ws.env_state for ws in world_states]
     obs_states = [ws.obs_state for ws in world_states]
