@@ -30,7 +30,7 @@ function Plinf.compute(heuristic::GemMazeDist,
     for t in find_matches(@julog(door(X, Y)), state)
         relaxed_state[t] = false
     end
-    relaxed_plan = relaxed_planner(domain, relaxed_state, goal_spec)[1]
+    relaxed_plan = maze_planner(domain, relaxed_state, goal_spec)[1]
     return length(relaxed_plan)
 end
 
