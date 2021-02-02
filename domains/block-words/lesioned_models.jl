@@ -165,8 +165,8 @@ end
 
 
 #--- Model Setup ---#
-model_name = "pg" #ap #ag #pg
-scenarios = ["4_2", "4_3", "4_4"]
+model_name = "ag" #ap #ag #pg
+scenarios = ["4_1", "4_2", "4_3", "4_4"]
 
 #--- Problem Setup ---#
 
