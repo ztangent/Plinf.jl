@@ -24,24 +24,23 @@ for item in grid_list
     push!(grid_dict, current_dict)
 end
 
-# omit 1st judgement point
 judgement_points =
-[[7,14,20],
-[9,14,17],
-[9,17,24],
-[7,14,23,32],
-[6,11,21],
-[6,11],
-[5,8,13],
-[9,12,31,44],
-[7,22,37],
-[14,24,29],
-[7,13,20],
-[6,11,47],
-[8,14,18],
-[4,8],
-[5,8],
-[7,12,18]
+[[1,7,14,20],
+[1,9,14,17],
+[1,9,17,24],
+[1,7,14,23,32],
+[1,6,11,21],
+[1,6,11],
+[1,5,8,13],
+[1,9,12,31,44],
+[1,7,22,37],
+[1,14,24,29],
+[1,7,13,20],
+[1,6,11,47],
+[1,8,14,18],
+[1,4,8],
+[1,5,8],
+[1,7,12,18]
 ]
 
 
@@ -177,8 +176,7 @@ for (i, params) in enumerate(grid_dict)
             push!(only_judgement_model, j)
         end
     end
-    # skip first human datapoint
-    push!(correlation, cor(only_judgement_model, human_data[4:end]))
+    push!(correlation, cor(only_judgement_model, human_data))
     print("Parameters Set " * string(i) * " / " * string(total) * " done \n")
 end
 
