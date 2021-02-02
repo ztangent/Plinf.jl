@@ -90,7 +90,7 @@ function execute_plan(state, domain, actions)
 end
 
 traj = execute_plan(state, domain, actions)
-print(size(traj))
+# print(size(traj))
 
 
 
@@ -110,8 +110,8 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
     goal_strata = Dict((:init => :agent => :goal => :goal) => goal_idxs)
 
     # Assume either a planning agent or replanning agent as a model
-    planner = ProbAStarPlanner(heuristic=GemManhattan(), search_noise=0.1)
-    # planner = ProbAStarPlanner(heuristic=GemMazeDist(), search_noise=0.1)
+    # planner = ProbAStarPlanner(heuristic=GemManhattan(), search_noise=0.1)
+    planner = ProbAStarPlanner(heuristic=GemMazeDist(), search_noise=0.1)
     # TODO: change to maze dist heuristic!!
     replanner = Replanner(planner=planner, persistence=(2, 0.95))
     agent_planner = replanner # planner
@@ -168,7 +168,7 @@ for (i, params) in enumerate(grid_dict)
     total = size(grid_dict)[1]
     goal_probs = goal_inference(params, domain, problem, goal_words, goals, state, traj)
     flattened_array = collect(Iterators.flatten(goal_probs[1:end]))
-    println(flattened_array)
+    # println(flattened_array)
     # only correlate model predictions at judgement points
     only_judgement_model = []
     for i in judgement_points[stimulus_idx]
