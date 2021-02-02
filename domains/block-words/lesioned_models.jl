@@ -119,7 +119,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj,
         agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(action_noise,), act_step=Plinf.noisy_act_step,
                             goal_step=goal_step, goal_args=(params["goal_noise"],))
     else
-        agent_config = AgentConfig(domain, agent_planner, act_noise=0.05)
+        agent_config = AgentConfig(domain, agent_planner, act_noise=action_noise)
     end
     # Define observation noise model
     obs_params = observe_params(domain, pred_noise=params["pred_noise"]; state=state)

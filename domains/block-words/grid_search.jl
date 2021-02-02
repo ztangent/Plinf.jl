@@ -38,8 +38,9 @@ end
 grid_dict
 
 #--- Initial Setup ---#
-for scenario in ["1_2", "1_3", "1_4", "2_1", "2_2", "2_3", "2_4", "3_1", "3_2", "3_3", "3_4"]
+for scenario in ["1_2", "1_3", "1_4", "2_1", "2_2", "2_3", "2_4"]
     # Specify problem
+    print("Scenario: " * scenario * " \n")
     category = split(scenario, "_")[1]
     subcategory = split(scenario, "_")[2]
     corrolation = []
