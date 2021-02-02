@@ -117,10 +117,11 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj,
     agent_init = AgentInit(agent_planner, goal_prior)
     if isgoal
         if isaction
-            agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(),
-                                    act_step=Plinf.planned_act_step, goal_step=goal_step,
+            agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(action_noise, ),
+                                    act_step=Plinf.noisy_act_step, goal_step=goal_step,
                                     goal_args=(params["goal_noise"],))
         else
+            print("OOOOPS")
             agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(),
                                     act_step=Plinf.planned_act_step, goal_step=goal_step,
                                     goal_args=(params["goal_noise"],))
@@ -172,8 +173,8 @@ end
 
 
 #--- Model Setup ---#
-model_name = "pg" #ap #ag #pg
-scenarios = ["2_1"]
+model_name = "ag" #ap #ag #pg
+scenarios = ["1_1"]
 
 #--- Problem Setup ---#
 
