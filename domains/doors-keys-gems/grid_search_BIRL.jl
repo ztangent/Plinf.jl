@@ -39,7 +39,7 @@ domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "new-scenarios", problem_name))
 file_name = category * "_" * subcategory * ".dat"
 actions = readlines(joinpath(path, "new-scenarios", "actions" ,file_name))
-goals = @julog [gem1, gem2, gem3]
+goals = @julog  [has(gem1), has(gem2), has(gem3)] 
 
 goal_colors = [colorant"#D41159", colorant"#FFC20A", colorant"#1A85FF"]
 gem_terms = @julog [gem1, gem2, gem3]
@@ -53,8 +53,8 @@ goal = [problem.goal]
 
 #-- Bayesian IRL inference --#
 
-function generate_init_states(state::State, domain::Domain, k=5)
-    ff = precompute(FFHeuristic(), domain)
+function generate_init_states(state::State, domain::Domain, goals, k=5)
+    ff = precompute(GemMazeDist(), domain)
     prob_astar = ProbAStarPlanner(heuristic=ff, search_noise=0.1)
     replanner = Replanner(planner=prob_astar, persistence=(2, 0.95))
     optimal_trajs =
@@ -65,14 +65,15 @@ function generate_init_states(state::State, domain::Domain, k=5)
     return [optimal_trajs; suboptimal_trajs]
 end
 
+
 function run_birl_inference(state::State, plan::Vector{<:Term},
                             goals, domain::Domain;
                             act_noise::Real=0.1, verbose::Bool=true)
     # Generate set of initial states to sample from
-    init_states = [generate_init_states(state, domain);
+    init_states = [generate_init_states(state, domain, goals);
                    PDDL.simulate(domain, state, plan)]
     # Solve MDP for each goal via real-time dynamic programming
-    h = precompute(FFHeuristic(), domain) # Change to GemMazeDist for DKG
+    h = precompute(GemMazeDist(), domain) # Change to GemMazeDist for DKG
     planners =  [RTDPlanner(heuristic=h, act_noise=act_noise, rollout_len=5,
                             n_rollouts=length(init_states)*10) for g in goals]
     for (planner, goal) in zip(planners, goals)
@@ -110,7 +111,7 @@ end
 for (i, params) in enumerate(grid_dict)
     plan = parse_pddl.(actions)
     total = size(grid_dict)[1]
-    goal_probs = run_birl_inference(state, plan, goals, domain, act_noise=params["action_noise"])
+    goal_probs = run_birl_inference(state, plan, goals, domain, act_noise=params["action_noise"], verbose=true)
     flattened_array = collect(Iterators.flatten(goal_probs[1:2:end]))
     push!(corrolation, cor(flattened_array, human_data))
     print("Parameters Set " * string(i) * " / " * string(total) * " done \n")
