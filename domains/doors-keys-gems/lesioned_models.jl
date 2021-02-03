@@ -44,19 +44,31 @@ function goal_inference(params, domain, problem, goals, state, traj, isplan, isa
     end
     goal_strata = Dict((:init => :agent => :goal => :goal) => goal_idxs)
 
-    if isplan:
-    # Assume either a planning agent or replanning agent as a model
-    # planner = ProbAStarPlanner(heuristic=GemManhattan(), search_noise=0.1)
-    planner = ProbAStarPlanner(heuristic=GemMazeDist(), search_noise=0.1)
-    # TODO: change to maze dist heuristic!!
-    replanner = Replanner(planner=planner, persistence=(2, 0.95))
-    agent_planner = replanner # planner
-
+    if isplan
+        # Assume either a planning agent or replanning agent as a model
+        # planner = ProbAStarPlanner(heuristic=GemManhattan(), search_noise=0.1)
+        planner = ProbAStarPlanner(heuristic=GemMazeDist(), search_noise=params["search_noise"])
+        # TODO: change to maze dist heuristic!!
+        replanner = Replanner(planner=planner, persistence=(params["r"], params["q"]))
+        agent_planner = replanner # planner
+    else
+        planner = AStarPlanner(heuristic=GemMazeDist())
+        replanner = Replanner(planner=planner)
+        agent_planner = replanner # planner
+    end
 
     # Configure agent model with goal prior and planner
-    act_noise = 0.05 # Assume a small amount of action noise
-    agent_init = AgentInit(agent_planner, goal_prior)
-    agent_config = AgentConfig(domain, agent_planner, act_noise=0.05)
+    if isaction
+        act_noise = params["action_noise"] # Assume a small amount of action noise
+        agent_init = AgentInit(agent_planner, goal_prior)
+        agent_config = AgentConfig(domain, agent_planner, act_noise=act_noise)
+    else
+        act_noise = 0
+        agent_init = AgentInit(agent_planner, goal_prior)
+        agent_config = AgentConfig(domain, agent_planner,  act_args=(),
+                                act_step=Plinf.planned_act_step)
+    end
+
 
     # Define observation noise model
     obs_params = observe_params(
@@ -100,29 +112,10 @@ function goal_inference(params, domain, problem, goals, state, traj, isplan, isa
     return goal_probs
 end
 
-for (i, params) in enumerate(grid_dict)
-    total = size(grid_dict)[1]
-    goal_probs = goal_inference(params, domain, problem, goals, state, traj)
-    flattened_array = collect(Iterators.flatten(goal_probs[1:end]))
-    # println(flattened_array)
-    # only correlate model predictions at judgement points
-    only_judgement_model = []
-    for i in judgement_points[stimulus_idx]
-        idx = (i) * 3
-        for j in flattened_array[idx-2:idx]
-            push!(only_judgement_model, j)
-        end
-    end
-    push!(correlation, cor(only_judgement_model, human_data))
-    print("Parameters Set " * string(i) * " / " * string(total) * " done \n")
-end
 
 #--- Model Setup ---#
 model_name = "a" #a #p
-scenarios = ["1_1", "1_2", "1_3", "1_4",
-            "2_1", "2_2", "2_3", "2_4",
-            "3_1", "3_2", "3_3", "3_4"]
-            #"4_1", "4_2", "4_3","4_4"]
+scenarios = ["1_1", "1_2", "1_3"]
 
 for scenario in scenarios
     #--- Problem Setup ---#
@@ -132,7 +125,6 @@ for scenario in scenarios
     stimulus_idx = ((parse(Int64,category)-1) * 4) +  parse(Int64,subcategory)
     correlation = []
     experiment = "scenario-" * category * "-" * subcategory
-    println("Starting Search for " * experiment)
     problem_name = experiment * ".pddl"
     path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
 
@@ -188,8 +180,6 @@ for scenario in scenarios
                                     isplan, isaction)
         df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
         CSV.write(joinpath(path, model_name, category * "_" * subcategory, string(i)*".csv"), df)
-
-
 
     end
 

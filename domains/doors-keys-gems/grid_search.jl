@@ -51,7 +51,7 @@ judgement_points =
 
 
 #--- Initial Setup ---#
-for category in ["1","2","3","4"]
+for category in ["1"]
     for subcategory in ["1","2","3","4"]
         # Specify problem
         # category = "2"
