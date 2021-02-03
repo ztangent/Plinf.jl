@@ -114,8 +114,8 @@ end
 
 
 #--- Model Setup ---#
-model_name = "a" #a #p
-scenarios = ["1_2", "1_3"]
+model_name = "p" #a #p
+scenarios = ["1_1", "1_2", "1_3"]
 
 for scenario in scenarios
     #--- Problem Setup ---#
