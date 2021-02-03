@@ -118,15 +118,15 @@ for category in ["1","2","3","4"]
 
             # Assume either a planning agent or replanning agent as a model
             # planner = ProbAStarPlanner(heuristic=GemManhattan(), search_noise=0.1)
-            planner = ProbAStarPlanner(heuristic=GemMazeDist(), search_noise=0.1)
+            planner = ProbAStarPlanner(heuristic=GemMazeDist(), search_noise=params["search_noise"])
             # TODO: change to maze dist heuristic!!
-            replanner = Replanner(planner=planner, persistence=(2, 0.95))
+            replanner = Replanner(planner=planner, persistence=(params["r"], params["q"]))
             agent_planner = replanner # planner
 
             # Configure agent model with goal prior and planner
-            act_noise = 0.05 # Assume a small amount of action noise
+            act_noise = params["action_noise"] # Assume a small amount of action noise
             agent_init = AgentInit(agent_planner, goal_prior)
-            agent_config = AgentConfig(domain, agent_planner, act_noise=0.05)
+            agent_config = AgentConfig(domain, agent_planner, act_noise=act_noise)
 
             # Define observation noise model
             obs_params = observe_params(
@@ -198,15 +198,17 @@ for category in ["1","2","3","4"]
         open(json_file, "w") do f
             JSON.print(f, json_data)
         end
+
+        number_of_trials = 10
+        for i in 1:number_of_trials
+            best_params["n_samples"] = 500
+            goal_probs = goal_inference(best_params, domain, problem, goals, state, traj)
+            df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
+            CSV.write(joinpath(path, model_name, category * "_" * subcategory, string(i)*".csv"), df)
+        end
+
     end
 end
 
 
 #--- Generate Results ---#
-number_of_trials = 10
-for i in 1:number_of_trials
-    best_params["n_samples"] = 500
-    goal_probs = goal_inference(best_params, domain, problem, goals, state, traj)
-    df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
-    CSV.write(joinpath(path, model_name, category * "_" * subcategory, string(i)*".csv"), df)
-end
