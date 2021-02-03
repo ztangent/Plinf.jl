@@ -116,8 +116,15 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj,
     # Configure agent model with goal prior and planner
     agent_init = AgentInit(agent_planner, goal_prior)
     if isgoal
-        agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(action_noise,), act_step=Plinf.noisy_act_step,
-                            goal_step=goal_step, goal_args=(params["goal_noise"],))
+        if isaction
+            agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(action_noise, ),
+                                    act_step=Plinf.noisy_act_step, goal_step=goal_step,
+                                    goal_args=(params["goal_noise"],))
+        else
+            agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(),
+                                    act_step=Plinf.planned_act_step, goal_step=goal_step,
+                                    goal_args=(params["goal_noise"],))
+        end
     else
         agent_config = AgentConfig(domain, agent_planner, act_noise=action_noise)
     end
@@ -166,7 +173,7 @@ end
 
 #--- Model Setup ---#
 model_name = "ag" #ap #ag #pg
-scenarios = ["4_1", "4_2", "4_3", "4_4"]
+scenarios = ["1_1"]
 
 #--- Problem Setup ---#
 
