@@ -65,7 +65,7 @@ function goal_inference(params, domain, problem, goals, state, traj, isplan, isa
     else
         act_noise = 0
         agent_init = AgentInit(agent_planner, goal_prior)
-        agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(),
+        agent_config = AgentConfig(domain, agent_planner,  act_args=(),
                                 act_step=Plinf.planned_act_step)
     end
 
@@ -115,7 +115,7 @@ end
 
 #--- Model Setup ---#
 model_name = "a" #a #p
-scenarios = ["1_2", "1_3"]
+scenarios = ["1_1", "1_2", "1_3"]
 
 for scenario in scenarios
     #--- Problem Setup ---#
