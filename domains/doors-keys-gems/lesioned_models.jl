@@ -167,7 +167,7 @@ for scenario in scenarios
             string_dict=JSON.parse(string_dict)  # parse and transform data
             best_params=JSON.parse(string_dict)
         end
-        best_params["n_samples"] = 500
+        best_params["n_samples"] = 150
         if model_name == "a"
             isplan = false
             isaction = true
