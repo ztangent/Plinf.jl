@@ -121,7 +121,6 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj,
                                     act_step=Plinf.noisy_act_step, goal_step=goal_step,
                                     goal_args=(params["goal_noise"],))
         else
-            print("OOOOPS")
             agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(),
                                     act_step=Plinf.planned_act_step, goal_step=goal_step,
                                     goal_args=(params["goal_noise"],))
