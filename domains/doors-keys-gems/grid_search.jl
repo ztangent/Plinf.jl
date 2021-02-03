@@ -52,7 +52,7 @@ judgement_points =
 
 #--- Initial Setup ---#
 for category in ["2"]
-    for subcategory in ["1","2","3","4"]
+    for subcategory in ["2","3","4"]
         # Specify problem
         # category = "2"
         # subcategory = "1"
@@ -183,7 +183,10 @@ for category in ["2"]
                     push!(only_judgement_model, j)
                 end
             end
+
             push!(correlation, cor(only_judgement_model, human_data))
+            println(params)
+            print(correlation)
             print("Parameters Set " * string(i) * " / " * string(total) * " done \n")
         end
 
