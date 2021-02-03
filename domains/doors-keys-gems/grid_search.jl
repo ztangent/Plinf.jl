@@ -51,7 +51,7 @@ judgement_points =
 
 
 #--- Initial Setup ---#
-for category in ["1","2","3","4"]
+for category in ["2"]
     for subcategory in ["1","2","3","4"]
         # Specify problem
         # category = "2"
@@ -201,7 +201,7 @@ for category in ["1","2","3","4"]
 
         number_of_trials = 10
         for i in 1:number_of_trials
-            best_params["n_samples"] = 500
+            # best_params["n_samples"] = 500
             goal_probs = goal_inference(best_params, domain, problem, goals, state, traj)
             df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
             CSV.write(joinpath(path, model_name, category * "_" * subcategory, string(i)*".csv"), df)
