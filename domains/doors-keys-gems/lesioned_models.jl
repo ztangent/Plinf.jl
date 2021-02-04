@@ -53,7 +53,7 @@ function goal_inference(params, domain, problem, goals, state, traj, isplan, isa
         agent_planner = replanner # planner
     else
         planner = AStarPlanner(heuristic=GemMazeDist())
-        replanner = Replanner(planner=planner)
+        replanner = Replanner(planner=planner, persistence=(10, 0.999))
         agent_planner = replanner # planner
     end
 
@@ -105,7 +105,7 @@ function goal_inference(params, domain, problem, goals, state, traj, isplan, isa
     # Run a particle filter to perform online goal inference
     traces, weights =
         world_particle_filter(world_init, world_config, traj, obs_terms,  params["n_samples"];
-                              resample=true, rejuvenate=mixed_rejuv!, strata=goal_strata,
+                              resample=true, rejuvenate=nothing, strata=goal_strata,
                               callback=callback,
                               act_proposal=act_proposal,
                               act_proposal_args=act_proposal_args)
@@ -114,8 +114,8 @@ end
 
 
 #--- Model Setup ---#
-model_name = "p" #a #p
-scenarios = ["1_4"]
+model_name = "a" #a #p
+scenarios = ["1_1", "1_2", "1_3", "1_4"]
 
 for scenario in scenarios
     #--- Problem Setup ---#
