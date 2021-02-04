@@ -115,7 +115,7 @@ end
 
 #--- Model Setup ---#
 model_name = "a" #a #p
-scenarios = ["1_1", "1_2", "1_3", "1_4"]
+scenarios = ["2_1"]
 
 for scenario in scenarios
     #--- Problem Setup ---#
@@ -160,7 +160,7 @@ for scenario in scenarios
 
     #--- Generate Results ---#
     number_of_trials = 10
-    for i in 1:number_of_trials
+    for i in 1:6
         best_params = Dict()
         open(joinpath(path, "ap", "best_params", experiment * ".json"), "r") do f
             string_dict = read(f,String) # file information to string
