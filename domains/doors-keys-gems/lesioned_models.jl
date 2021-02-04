@@ -53,7 +53,7 @@ function goal_inference(params, domain, problem, goals, state, traj, isplan, isa
         agent_planner = replanner # planner
     else
         planner = AStarPlanner(heuristic=GemMazeDist())
-        replanner = Replanner(planner=planner)
+        replanner = Replanner(planner=planner, persistence=(10, 0.999))
         agent_planner = replanner # planner
     end
 
@@ -65,7 +65,7 @@ function goal_inference(params, domain, problem, goals, state, traj, isplan, isa
     else
         act_noise = 0
         agent_init = AgentInit(agent_planner, goal_prior)
-        agent_config = AgentConfig(domain, agent_planner,  act_args=(),
+        agent_config = AgentConfig(domain=domain, planner=agent_planner,  act_args=(),
                                 act_step=Plinf.planned_act_step)
     end
 
@@ -105,7 +105,7 @@ function goal_inference(params, domain, problem, goals, state, traj, isplan, isa
     # Run a particle filter to perform online goal inference
     traces, weights =
         world_particle_filter(world_init, world_config, traj, obs_terms,  params["n_samples"];
-                              resample=true, rejuvenate=mixed_rejuv!, strata=goal_strata,
+                              resample=true, rejuvenate=nothing, strata=goal_strata,
                               callback=callback,
                               act_proposal=act_proposal,
                               act_proposal_args=act_proposal_args)
@@ -115,7 +115,7 @@ end
 
 #--- Model Setup ---#
 model_name = "a" #a #p
-scenarios = ["1_1", "1_2", "1_3"]
+scenarios = ["2_1"]
 
 for scenario in scenarios
     #--- Problem Setup ---#
@@ -160,7 +160,7 @@ for scenario in scenarios
 
     #--- Generate Results ---#
     number_of_trials = 10
-    for i in 1:number_of_trials
+    for i in 1:6
         best_params = Dict()
         open(joinpath(path, "ap", "best_params", experiment * ".json"), "r") do f
             string_dict = read(f,String) # file information to string

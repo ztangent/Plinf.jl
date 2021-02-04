@@ -109,7 +109,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj,
     else
         heuristic = precompute(FFHeuristic(), domain)
         planner = AStarPlanner(heuristic=heuristic)
-        replanner = Replanner(planner=planner) ##todo: add persistence
+        replanner = Replanner(planner=planner, persistence=(10,0.999)) ##todo: add persistence
         agent_planner = replanner # planner
     end
 
@@ -173,10 +173,10 @@ end
 
 #--- Model Setup ---#
 model_name = "ag" #ap #ag #pg
-scenarios = ["1_1", "1_2", "1_3", "1_4",
-            "2_1", "2_2", "2_3", "2_4",
-            "3_1", "3_2", "3_3", "3_4"]
-            #"4_1", "4_2", "4_3","4_4"]
+scenarios = #["1_1", "1_2", "1_3", "1_4",
+            #"2_1", "2_2", "2_3", "2_4",
+            #["3_1", "3_2", "3_3", "3_4"]
+            ["4_1", "4_2", "4_3","4_4"]
 
 #--- Problem Setup ---#
 
