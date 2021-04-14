@@ -1,7 +1,7 @@
 name = "Plinf"
 uuid = "3f517155-95b4-4010-b517-e038c017d66c"
 authors = ["Xuan <tanqazx@gmail.com>"]
-version = "0.1.0"
+version = "0.1.1"
 
 [deps]
 BenchmarkTools = "6e4b80f9-dd63-53aa-95a3-0cdb28fa8baf"
