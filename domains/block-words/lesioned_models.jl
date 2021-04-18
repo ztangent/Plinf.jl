@@ -5,11 +5,12 @@ using Statistics
 using JSON
 using UnPack
 using Random
+using Glob
 
 include("render.jl")
 include("utils.jl")
 include("./new-scenarios/experiment-scenarios.jl")
-
+path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 #--- Goal Inference ---#
 
 # Define custom goal specification type
@@ -173,29 +174,28 @@ end
 
 #--- Model Setup ---#
 model_name = "ag" #ap #ag #pg
-scenarios = #["1_1", "1_2", "1_3", "1_4",
-            #"2_1", "2_2", "2_3", "2_4",
-            #["3_1", "3_2", "3_3", "3_4"]
-            ["4_1", "4_2", "4_3","4_4"]
+category = "1" # "2" "3" "4"
+files = glob("best_params_*.json", joinpath(path, "results", "apg", "search_results"))
+file = files[1]
+open(file, "r") do f
+    string_dict = read(f,String) # file information to string
+    string_dict=JSON.parse(string_dict)  # parse and transform data
+    best_params=JSON.parse(string_dict)
+end
 
 #--- Problem Setup ---#
-
-for scenario in scenarios
+for scenario in 1:4
+    scenario = string(scenario)
     print("Scenario: " * scenario * " \n")
     # Specify problem
-    category = split(scenario, "_")[1]
-    subcategory = split(scenario, "_")[2]
-    corrolation = []
-    experiment = "scenario-" * category * "-" * subcategory
+    experiment = "scenario-" * category * "-" * scenario
     problem_name = experiment * ".pddl"
-    path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
-
 
     # Load domain, problem, actions, and goal space
     domain = load_domain(joinpath(path, "domain.pddl"))
     problem = load_problem(joinpath(path, "new-scenarios", problem_name))
-    actions = get_action(category * "-" * subcategory)
-    goal_words = get_goal_space(category * "-" * subcategory)
+    actions = get_action(category * "-" * scenario)
+    goal_words = get_goal_space(category * "-" * scenario)
     goals = word_to_terms.(goal_words)
 
     # Initialize state
@@ -215,17 +215,9 @@ for scenario in scenarios
     end
     traj = execute_plan(state, domain, actions)
 
-
     #--- Generate Results ---#
     number_of_trials = 10
     for i in 1:number_of_trials
-        print("Trial: " * string(i) * " \n")
-        best_params = Dict()
-        open(joinpath(path, "apg", "best_params", experiment * ".json"), "r") do f
-            string_dict = read(f,String) # file information to string
-            string_dict=JSON.parse(string_dict)  # parse and transform data
-            best_params=JSON.parse(string_dict)
-        end
         best_params["n_samples"] = 500
         if model_name == "ap"
             isgoal = false
@@ -243,6 +235,6 @@ for scenario in scenarios
         goal_probs = goal_inference(best_params, domain, problem, goal_words, goals,
                                     state, traj, isgoal, isplan, isaction)
         df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
-        CSV.write(joinpath(path, model_name, category * "_" * subcategory, string(i)*".csv"), df)
+        CSV.write(joinpath(path, "results", model_name, category * "_" * scenario, string(i)*".csv"), df)
     end
 end
