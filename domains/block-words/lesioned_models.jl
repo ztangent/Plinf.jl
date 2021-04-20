@@ -5,7 +5,6 @@ using Statistics
 using JSON
 using UnPack
 using Random
-using Glob
 
 include("render.jl")
 include("utils.jl")
@@ -174,9 +173,7 @@ end
 
 #--- Model Setup ---#
 model_name = "ag" #ap #ag #pg
-category = "1" # "2" "3" "4"
-files = glob("best_params_*.json", joinpath(path, "results", "apg", "search_results"))
-file = files[1]
+file =  joinpath(path, "results", "apg", "search_results", "best_params_20.json")
 open(file, "r") do f
     string_dict = read(f,String) # file information to string
     string_dict=JSON.parse(string_dict)  # parse and transform data
@@ -184,57 +181,60 @@ open(file, "r") do f
 end
 
 #--- Problem Setup ---#
-for scenario in 1:4
-    scenario = string(scenario)
-    print("Scenario: " * scenario * " \n")
-    # Specify problem
-    experiment = "scenario-" * category * "-" * scenario
-    problem_name = experiment * ".pddl"
+for category in 1:4
+    category = string(category)
+    for scenario in 1:4
+        scenario = string(scenario)
+        mkpath(joinpath(path, "results", model_name, category * "_" * scenario))
+        # Specify problem
+        experiment = "scenario-" * category * "-" * scenario
+        problem_name = experiment * ".pddl"
 
-    # Load domain, problem, actions, and goal space
-    domain = load_domain(joinpath(path, "domain.pddl"))
-    problem = load_problem(joinpath(path, "new-scenarios", problem_name))
-    actions = get_action(category * "-" * scenario)
-    goal_words = get_goal_space(category * "-" * scenario)
-    goals = word_to_terms.(goal_words)
+        # Load domain, problem, actions, and goal space
+        domain = load_domain(joinpath(path, "domain.pddl"))
+        problem = load_problem(joinpath(path, "new-scenarios", problem_name))
+        actions = get_action(category * "-" * scenario)
+        goal_words = get_goal_space(category * "-" * scenario)
+        goals = word_to_terms.(goal_words)
 
-    # Initialize state
-    state = initialize(problem)
-    goal = problem.goal
+        # Initialize state
+        state = initialize(problem)
+        goal = problem.goal
 
-    # Execute list of actions and generate intermediate states
-    function execute_plan(state, domain, actions)
-        states = State[]
-        push!(states, state)
-        for action in actions
-            action = parse_pddl(action)
-            state = execute(action, state, domain)
+        # Execute list of actions and generate intermediate states
+        function execute_plan(state, domain, actions)
+            states = State[]
             push!(states, state)
+            for action in actions
+                action = parse_pddl(action)
+                state = execute(action, state, domain)
+                push!(states, state)
+            end
+            return states
         end
-        return states
-    end
-    traj = execute_plan(state, domain, actions)
+        traj = execute_plan(state, domain, actions)
 
-    #--- Generate Results ---#
-    number_of_trials = 10
-    for i in 1:number_of_trials
-        best_params["n_samples"] = 500
-        if model_name == "ap"
-            isgoal = false
-            isplan = true
-            isaction = true
-        elseif model_name == "ag"
-            isgoal = true
-            isplan = false
-            isaction = true
-        elseif model_name == "pg"
-            isgoal = true
-            isplan = true
-            isaction = false
+        #--- Generate Results ---#
+        number_of_trials = 10
+        for i in 1:number_of_trials
+            best_params["n_samples"] = 500
+            if model_name == "ap"
+                isgoal = false
+                isplan = true
+                isaction = true
+            elseif model_name == "ag"
+                isgoal = true
+                isplan = false
+                isaction = true
+            elseif model_name == "pg"
+                isgoal = true
+                isplan = true
+                isaction = false
+            end
+            goal_probs = goal_inference(best_params, domain, problem, goal_words, goals,
+                                        state, traj, isgoal, isplan, isaction)
+            df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
+            CSV.write(joinpath(path, "results", model_name, category * "_" * scenario, string(i)*".csv"), df)
         end
-        goal_probs = goal_inference(best_params, domain, problem, goal_words, goals,
-                                    state, traj, isgoal, isplan, isaction)
-        df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
-        CSV.write(joinpath(path, "results", model_name, category * "_" * scenario, string(i)*".csv"), df)
     end
 end

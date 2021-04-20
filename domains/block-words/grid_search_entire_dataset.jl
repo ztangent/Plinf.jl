@@ -294,9 +294,9 @@ end
 best_params["n_samples"] = 500
 number_of_trials = 10
 
-for category in 2:4
+for category in [1]
     category = string(category)
-    for scenario in 1:4
+    for scenario in 2:4
         scenario = string(scenario)
         mkpath(joinpath(path, "results", model_name, category * "_" * scenario))
         #--- Initial Setup ---#
