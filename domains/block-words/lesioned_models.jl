@@ -172,14 +172,18 @@ end
 
 
 #--- Model Setup ---#
-model_name = "ag" #ap #ag #pg
+model_name = "pg" #ap #ag #pg
 file =  joinpath(path, "results", "apg", "search_results", "best_params_20.json")
-open(file, "r") do f
-    string_dict = read(f,String) # file information to string
-    string_dict=JSON.parse(string_dict)  # parse and transform data
-    best_params=JSON.parse(string_dict)
-end
 
+function read_file()
+    open(file, "r") do f
+        string_dict = read(f,String) # file information to string
+        string_dict=JSON.parse(string_dict)  # parse and transform data
+        best_params=JSON.parse(string_dict)
+        return string_dict, best_params
+    end
+end
+string_dict, best_params = read_file()
 #--- Problem Setup ---#
 for category in 1:4
     category = string(category)
