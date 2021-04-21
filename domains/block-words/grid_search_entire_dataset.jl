@@ -11,8 +11,8 @@ include("utils.jl")
 include("./new-scenarios/experiment-scenarios.jl")
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 domain = load_domain(joinpath(path, "domain.pddl"))
-#--- Generate Search Grid ---#
 
+#--- Generate Search Grid ---#
 model_name = "apg"
 search_noise = [0.02, 0.5]
 action_noise = [0.05, 0.1, 0.2]
@@ -21,7 +21,7 @@ r = [2, 4]
 q = [0.9, 0.95]
 pred_noise = [0.1]
 rejuvenation = ["None"]
-n_samples = [100]
+n_samples = [300]
 grid_list = Iterators.product(search_noise, action_noise, goal_noise, r, q, rejuvenation, pred_noise, n_samples)
 grid_dict = []
 for item in grid_list
@@ -36,8 +36,6 @@ for item in grid_list
     current_dict["n_samples"] = item[8]
     push!(grid_dict, current_dict)
 end
-
-grid_dict
 
 #--- Goal Inference ---#
 
@@ -264,12 +262,6 @@ for (i, params) in enumerate(grid_dict)
 end
 
 #--- Save Best Parameters ---#
-# best_params["corr"] = best_R
-# json_data = JSON.json(best_params)
-# json_file = joinpath(path, model_name, "category_"*category, "best_params.json")
-# open(json_file, "w") do f
-#     JSON.print(f, json_data)
-# end
 mxval, mxindx = findmax(corrolation)
 best_params = grid_dict[mxindx]
 best_params["corr"] = mxval
@@ -294,9 +286,10 @@ end
 best_params["n_samples"] = 500
 number_of_trials = 10
 
-for category in [1]
+
+for category in 1:4
     category = string(category)
-    for scenario in 2:4
+    for scenario in 1:4
         scenario = string(scenario)
         mkpath(joinpath(path, "results", model_name, category * "_" * scenario))
         #--- Initial Setup ---#

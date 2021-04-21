@@ -5,6 +5,7 @@ using Statistics
 using JSON
 using UnPack
 using Random
+using Glob
 
 include("render.jl")
 include("utils.jl")
@@ -13,7 +14,7 @@ path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 domain = load_domain(joinpath(path, "domain.pddl"))
 #--- Generate Search Grid ---#
 
-model_name = "apg_category_level"
+model_name = "apg"
 search_noise = [0.02, 0.5]
 action_noise = [0.05, 0.1, 0.2]
 goal_noise = [0.1, 0.2]
@@ -37,7 +38,6 @@ for item in grid_list
     push!(grid_dict, current_dict)
 end
 
-grid_dict
 
 #--- Goal Inference ---#
 
@@ -182,100 +182,99 @@ end
 
 #--- Search ---#
 
-category = "2"
-mkpath(joinpath(path, model_name, "category_"*category))
+for category in 1:4
+    category = string(category)
+    mkpath(joinpath(path, "results_per_category", model_name, "search_results", "category_"*category))
 
-# Load human data
-human_data = []
-for scenario in 1:4
-    scenario = string(scenario)
-    file_name = category * "_" * scenario * ".csv"
-    temp = vec(CSV.read(joinpath(path, "human_results_arrays", file_name), datarow=1, Tables.matrix))
-    append!(human_data, temp)
-end
-
-# Search parameters
-corrolation = []
-for (i, params) in enumerate(grid_dict)
-    total = size(grid_dict)[1]
-    model_data = []
+    # Load human data
+    human_data = []
     for scenario in 1:4
-        #--- Initial Setup ---#
-        # Specify problem
         scenario = string(scenario)
-        # print("Scenario: " * scenario * " \n")
-        experiment = "scenario-" * category * "-" * scenario
-        problem_name = experiment * ".pddl"
-
-        # Load domain, problem, actions, and goal space
-        problem = load_problem(joinpath(path, "new-scenarios", problem_name))
-        actions = get_action(category * "-" * scenario)
-        goal_words = get_goal_space(category * "-" * scenario)
-        goals = word_to_terms.(goal_words)
-
-        # Initialize state
-        state = initialize(problem)
-        goal = problem.goal
-
-        # Execute list of actions and generate intermediate states
-        function execute_plan(state, domain, actions)
-            states = State[]
-            push!(states, state)
-            for action in actions
-                action = parse_pddl(action)
-                state = execute(action, state, domain)
-                push!(states, state)
-            end
-            return states
-        end
-
-        traj = execute_plan(state, domain, actions)
-        goal_probs = goal_inference(params, domain, problem, goal_words, goals, state, traj)
-        flattened_array = collect(Iterators.flatten(goal_probs[1:2:end]))
-        append!(model_data, flattened_array)
+        file_name = category * "_" * scenario * ".csv"
+        temp = vec(CSV.read(joinpath(path, "average_human_results_arrays", file_name), datarow=1, Tables.matrix))
+        append!(human_data, temp)
     end
-    R = cor(model_data, human_data)
-    push!(corrolation, R)
 
-    # #--- Save Parameters ---#
-    params["corr"] = R
-    json_data = JSON.json(params)
-    json_file = joinpath(path, model_name, "category_"*category, "parameter_set_"*string(i)*".json")
+    # Search parameters
+    corrolation = []
+    for (i, params) in enumerate(grid_dict)
+        model_data = []
+        for scenario in 1:4
+            #--- Initial Setup ---#
+            # Specify problem
+            scenario = string(scenario)
+            # print("Scenario: " * scenario * " \n")
+            experiment = "scenario-" * category * "-" * scenario
+            problem_name = experiment * ".pddl"
+
+            # Load domain, problem, actions, and goal space
+            problem = load_problem(joinpath(path, "new-scenarios", problem_name))
+            actions = get_action(category * "-" * scenario)
+            goal_words = get_goal_space(category * "-" * scenario)
+            goals = word_to_terms.(goal_words)
+
+            # Initialize state
+            state = initialize(problem)
+            goal = problem.goal
+
+            # Execute list of actions and generate intermediate states
+            function execute_plan(state, domain, actions)
+                states = State[]
+                push!(states, state)
+                for action in actions
+                    action = parse_pddl(action)
+                    state = execute(action, state, domain)
+                    push!(states, state)
+                end
+                return states
+            end
+
+            traj = execute_plan(state, domain, actions)
+            goal_probs = goal_inference(params, domain, problem, goal_words, goals, state, traj)
+            flattened_array = collect(Iterators.flatten(goal_probs[1:2:end]))
+            append!(model_data, flattened_array)
+        end
+        R = cor(model_data, human_data)
+        push!(corrolation, R)
+
+        # #--- Save Parameters ---#
+        params["corr"] = R
+        json_data = JSON.json(params)
+        json_file = joinpath(path, "results_per_category", model_name, "search_results", "category_"*category, "parameter_set_"*string(i)*".json")
+        open(json_file, "w") do f
+            JSON.print(f, json_data)
+        end
+    end
+
+    #--- Save Best Parameters ---#
+    mxval, mxindx = findmax(corrolation)
+    best_params = grid_dict[mxindx]
+    best_params["corr"] = mxval
+    json_data = JSON.json(best_params)
+    json_file = joinpath(path, "results_per_category", model_name, "search_results", "category_"*category,"best_params_"*string(mxindx)*".json")
+    # json_file = joinpath(path, model_name, "category_"*category, "best_params.json")
     open(json_file, "w") do f
         JSON.print(f, json_data)
     end
-
-    print("Parameters Set " * string(i) * " / " * string(total) * " done \n")
 end
 
-#--- Save Best Parameters ---#
-# best_params["corr"] = best_R
-# json_data = JSON.json(best_params)
-# json_file = joinpath(path, model_name, "category_"*category, "best_params.json")
-# open(json_file, "w") do f
-#     JSON.print(f, json_data)
-# end
-mxval, mxindx = findmax(corrolation)
-best_params = grid_dict[mxindx]
-best_params["corr"] = mxval
-json_data = JSON.json(best_params)
-json_file = joinpath(path, model_name, "category_"*category, "best_params.json")
-open(json_file, "w") do f
-    JSON.print(f, json_data)
-end
 
 
 #--- Generate Results ---#
-# best_params = Dict()
-# open(joinpath(path, model_name, "category_"*category, "best_params.json"), "r") do f
-#     string_dict = read(f,String) # file information to string
-#     string_dict=JSON.parse(string_dict)  # parse and transform data
-#     best_params=JSON.parse(string_dict)
-# end
 
+for category in 1:4
+    category = string(category)
+    best_params = Dict()
+    files = glob("best_params_*.json", joinpath(path, "results", model_name, "search_results"))
+    file = files[1]
+    open(file, "r") do f
+        string_dict = read(f,String) # file information to string
+        string_dict=JSON.parse(string_dict)  # parse and transform data
+        global best_params=JSON.parse(string_dict)
+    end
 best_params["n_samples"] = 500
 number_of_trials = 10
-
+category
 for scenario in 1:4
     #--- Initial Setup ---#
     # Specify problem

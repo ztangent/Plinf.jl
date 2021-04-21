@@ -1,1 +1,1 @@
-"{\"pred_noise\":0.1,\"rejuvenation\":\"None\",\"n_samples\":100,\"goal_noise\":0.1,\"corr\":0.545976843399106,\"r\":4,\"action_noise\":0.05,\"search_noise\":0.5,\"q\":0.9}"
+"{\"pred_noise\":0.1,\"rejuvenation\":\"None\",\"n_samples\":300,\"goal_noise\":0.1,\"corr\":0.6852032492369401,\"r\":4,\"action_noise\":0.05,\"search_noise\":0.5,\"q\":0.9}"

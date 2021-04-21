@@ -173,12 +173,15 @@ end
 
 #--- Model Setup ---#
 model_name = "ag" #ap #ag #pg
+best_params = Dict()
 file =  joinpath(path, "results", "apg", "search_results", "best_params_20.json")
 open(file, "r") do f
     string_dict = read(f,String) # file information to string
     string_dict=JSON.parse(string_dict)  # parse and transform data
-    best_params=JSON.parse(string_dict)
+    global best_params=JSON.parse(string_dict)
 end
+
+best_params
 
 #--- Problem Setup ---#
 for category in 1:4
