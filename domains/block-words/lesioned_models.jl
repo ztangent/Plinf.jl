@@ -220,7 +220,6 @@ for category in 1:4
         number_of_trials = 10
         for i in 1:number_of_trials
             best_params["n_samples"] = 500
-
             if model_name == "ap"
                 isgoal = false
                 isplan = true
