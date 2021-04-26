@@ -6,6 +6,7 @@ using JSON
 using UnPack
 using Random
 using Glob
+
 include("render.jl")
 include("utils.jl")
 include("./new-scenarios/experiment-scenarios.jl")
@@ -179,9 +180,7 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
 end
 
 #--- Search ---#
-
-
-mkpath(joinpath(path, "results", model_name, "search_results"))
+mkpath(joinpath(path, "results_entire_dataset", model_name, "search_results"))
 
 # Load human data
 human_data = []
@@ -204,10 +203,10 @@ for (i, params) in enumerate(grid_dict)
     for category in 1:4
         category = string(category)
         for scenario in 1:4
+            scenario = string(scenario)
+
             #--- Initial Setup ---#
             # Specify problem
-            scenario = string(scenario)
-            # print("Scenario: " * scenario * " \n")
             experiment = "scenario-" * category * "-" * scenario
             problem_name = experiment * ".pddl"
 
@@ -221,6 +220,7 @@ for (i, params) in enumerate(grid_dict)
             state = initialize(problem)
             goal = problem.goal
 
+            #--- Initialize algorithm ---#
             # Execute list of actions and generate intermediate states
             function execute_plan(state, domain, actions)
                 states = State[]
@@ -232,33 +232,34 @@ for (i, params) in enumerate(grid_dict)
                 end
                 return states
             end
-
             traj = execute_plan(state, domain, actions)
+
+            #--- Run inference ---#
             goal_probs = goal_inference(params, domain, problem, goal_words, goals, state, traj)
             flattened_array = collect(Iterators.flatten(goal_probs[1:2:end]))
             append!(model_data, flattened_array)
 
-            # Load human data for current scenario and compute corrolation
+            #--- Store corrolation for current scenario ---#
             file_name = category * "_" * scenario * ".csv"
             temp_human_data = vec(CSV.read(joinpath(path, "average_human_results_arrays", file_name), datarow=1, Tables.matrix))
             push!(scenarios_list, category*"_"*scenario)
             push!(corrolation_list, cor(flattened_array, temp_human_data))
         end
     end
-    # Save corrolation per category
-    df = DataFrame(Scenario=scenarios_list, Corrolation=corrolation_list)
-    CSV.write(joinpath(path, "results", model_name, "search_results", "parameter_set_"*string(i)*".csv"), df)
-
-    #Save Parameter Set and Overall Corrolation in Json
     R = cor(model_data, human_data)
     push!(corrolation, R)
+
+    #--- Save corrolation CSV ---#
+    df = DataFrame(Scenario=scenarios_list, Corrolation=corrolation_list)
+    CSV.write(joinpath(path, "results_entire_dataset", model_name, "search_results", "parameter_set_"*string(i)*".csv"), df)
+
+    # #--- Save Parameters ---#
     params["corr"] = R
     json_data = JSON.json(params)
-    json_file = joinpath(path, "results", model_name, "search_results", "parameter_set_"*string(i)*".json")
+    json_file = joinpath(path, "results_entire_dataset", model_name, "search_results", "parameter_set_"*string(i)*".json")
     open(json_file, "w") do f
         JSON.print(f, json_data)
     end
-    print("Parameters Set " * string(i) * " / " * string(length(grid_dict)) * " done \n")
 end
 
 #--- Save Best Parameters ---#
@@ -266,8 +267,7 @@ mxval, mxindx = findmax(corrolation)
 best_params = grid_dict[mxindx]
 best_params["corr"] = mxval
 json_data = JSON.json(best_params)
-json_file = joinpath(path, "results", model_name, "search_results", "best_params_"*string(mxindx)*".json")
-# json_file = joinpath(path, model_name, "category_"*category, "best_params.json")
+json_file = joinpath(path, "results_entire_dataset", model_name, "search_results", "best_params_"*string(mxindx)*".json")
 open(json_file, "w") do f
     JSON.print(f, json_data)
 end
@@ -275,6 +275,8 @@ end
 
 #--- Generate Results ---#
 best_params = Dict()
+
+# Read best Params #
 files = glob("best_params_*.json", joinpath(path, "results", model_name, "search_results"))
 file = files[1]
 open(file, "r") do f
@@ -282,16 +284,15 @@ open(file, "r") do f
     string_dict=JSON.parse(string_dict)  # parse and transform data
     global best_params=JSON.parse(string_dict)
 end
-
 best_params["n_samples"] = 500
+
 number_of_trials = 10
-
-
 for category in 1:4
     category = string(category)
     for scenario in 1:4
         scenario = string(scenario)
-        mkpath(joinpath(path, "results", model_name, category * "_" * scenario))
+        mkpath(joinpath(path, "results_entire_dataset", model_name, category * "_" * scenario))
+
         #--- Initial Setup ---#
         # Specify problem
         experiment = "scenario-" * category * "-" * scenario
@@ -307,6 +308,7 @@ for category in 1:4
         state = initialize(problem)
         goal = problem.goal
 
+        #--- Initialize algorithm ---#
         # Execute list of actions and generate intermediate states
         function execute_plan(state, domain, actions)
             states = State[]
@@ -318,9 +320,9 @@ for category in 1:4
             end
             return states
         end
-
         traj = execute_plan(state, domain, actions)
-        # Generate results
+
+        #--- Run inference ---#
         for i in 1:number_of_trials
             goal_probs = goal_inference(best_params, domain, problem, goal_words, goals, state, traj)
             df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
