@@ -14,15 +14,34 @@ path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 domain = load_domain(joinpath(path, "domain.pddl"))
 
 #--- Generate Search Grid ---#
-model_name = "apg"
-search_noise = [0.02, 0.5]
-action_noise = [0.05, 0.1, 0.2]
-goal_noise = [0.1, 0.2]
-r = [2, 4]
-q = [0.9, 0.95]
+model_name = "ag"
 pred_noise = [0.1]
 rejuvenation = ["None"]
 n_samples = [300]
+
+if model_name == "ag"
+    search_noise = [NaN]
+    r = [NaN]
+    q = [NaN]
+else
+    search_noise = [0.02, 0.5]
+    r = [2, 4]
+    q = [0.9, 0.95]
+end
+
+if model_name == "ap"
+    goal_noise = [NaN]
+else
+    goal_noise = [0.1, 0.2]
+end
+
+if model_name == "pg"
+    action_noise = [NaN]
+else
+    action_noise = [0.05, 0.1, 0.2]
+end
+
+
 grid_list = Iterators.product(search_noise, action_noise, goal_noise, r, q, rejuvenation, pred_noise, n_samples)
 grid_dict = []
 for item in grid_list
@@ -37,6 +56,8 @@ for item in grid_list
     current_dict["n_samples"] = item[8]
     push!(grid_dict, current_dict)
 end
+
+grid_dict
 
 #--- Goal Inference ---#
 
@@ -97,7 +118,12 @@ end
 # Define getter that returns current goal
 Plinf.get_goal(goal_spec::NoisyGoal) = goal_spec.cur_goal
 
-function goal_inference(params, domain, problem, goal_words, goals, state, traj)
+function goal_inference(params, domain, problem, goal_words, goals, state, traj, isgoal, isplan, isaction)
+    if isaction
+        action_noise = params["action_noise"]
+    else
+        action_noise = 0
+    end
     #### Goal Inference Setup ####
 
     # Define uniform prior over possible goals
@@ -105,38 +131,52 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
         goal_spec = GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
         return NoisyGoal(goal_spec, goal_spec)
     end
-
-    # Define custom noisy goal transition
-    @gen function goal_step(t, goal_spec::NoisyGoal, goal_noise::Real)
-        @unpack init_goal, cur_goal = goal_spec
-        # Corrupt the current goal with some parameter noise
-        if @trace(bernoulli(goal_noise), :corrupt)
-            if cur_goal == init_goal
-                cur_goal = corrupt_goal(init_goal)
-            else
-                cur_goal = init_goal
-            end
-        end
-        return NoisyGoal(init_goal, cur_goal)
-    end
-
-    # Define uniform prior over possible goals
-    # @gen function goal_prior()
-    #     GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
-    # end
     goal_strata = Dict((:goal_init => :goal) => goal_words)
 
-    # Assume either a planning agent or replanning agent as a model
-    heuristic = precompute(FFHeuristic(), domain)
-    planner = ProbAStarPlanner(heuristic=heuristic, search_noise=params["search_noise"])
-    replanner = Replanner(planner=planner, persistence=(params["r"], params["q"]))
-    agent_planner = replanner # planner
+    if isgoal
+        # Define custom noisy goal transition
+        @gen function goal_step(t, goal_spec::NoisyGoal, goal_noise::Real)
+            @unpack init_goal, cur_goal = goal_spec
+            # Corrupt the current goal with some parameter noise
+            if @trace(bernoulli(goal_noise), :corrupt)
+                if cur_goal == init_goal
+                    cur_goal = corrupt_goal(init_goal)
+                else
+                    cur_goal = init_goal
+                end
+            end
+            return NoisyGoal(init_goal, cur_goal)
+        end
+    end
+
+    if isplan
+        # Assume either a planning agent or replanning agent as a model
+        heuristic = precompute(FFHeuristic(), domain)
+        planner = ProbAStarPlanner(heuristic=heuristic, search_noise=params["search_noise"])
+        replanner = Replanner(planner=planner, persistence=(params["r"], params["q"]))
+        agent_planner = replanner # planner
+    else
+        heuristic = precompute(FFHeuristic(), domain)
+        planner = AStarPlanner(heuristic=heuristic)
+        replanner = Replanner(planner=planner, persistence=(10,0.999)) ##todo: add persistence
+        agent_planner = replanner # planner
+    end
 
     # Configure agent model with goal prior and planner
     agent_init = AgentInit(agent_planner, goal_prior)
-    agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(params["action_noise"],), act_step=Plinf.noisy_act_step,
-                           goal_step=goal_step, goal_args=(params["goal_noise"],))
-
+    if isgoal
+        if isaction
+            agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(action_noise, ),
+                                    act_step=Plinf.noisy_act_step, goal_step=goal_step,
+                                    goal_args=(params["goal_noise"],))
+        else
+            agent_config = AgentConfig(domain=domain, planner=agent_planner, act_args=(),
+                                    act_step=Plinf.planned_act_step, goal_step=goal_step,
+                                    goal_args=(params["goal_noise"],))
+        end
+    else
+        agent_config = AgentConfig(domain, agent_planner, act_noise=action_noise)
+    end
     # Define observation noise model
     obs_params = observe_params(domain, pred_noise=params["pred_noise"]; state=state)
     obs_terms = collect(keys(obs_params))
@@ -156,8 +196,8 @@ function goal_inference(params, domain, problem, goal_words, goals, state, traj)
         # print_goal_probs(get_goal_probs(trs, ws, goal_words))
     end
 
-    act_proposal = params["action_noise"] > 0 ? forward_act_proposal : nothing
-    act_proposal_args = (params["action_noise"],)
+    act_proposal = action_noise > 0 ? forward_act_proposal : nothing
+    act_proposal_args = (action_noise,)
 
     # Set up rejuvenation moves
     goal_rejuv! = pf -> pf_goal_move_accept!(pf, goal_words)
@@ -236,13 +276,30 @@ for (i, params) in enumerate(grid_dict)
             end
             traj = execute_plan(state, domain, actions)
 
+            #--- Run inference ---#
+            if model_name == "ap"
+                isgoal = false
+                isplan = true
+                isaction = true
+            elseif model_name == "ag"
+                isgoal = true
+                isplan = false
+                isaction = true
+            elseif model_name == "pg"
+                isgoal = true
+                isplan = true
+                isaction = false
+            end
 
             #--- Run inference ---#
             mean_array = zeros(5*length(traj[1:2:end]))
             for j in 1:number_of_search_trials
-                goal_probs = goal_inference(best_params, domain, problem, goal_words, goals, state, traj)
+                goal_probs = goal_inference(params, domain, problem, goal_words, goals,
+                                            state, traj, isgoal, isplan, isaction)
                 df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
-                CSV.write(joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials", "parameter_set_"*string(i), category*"_"*scenario, string(j)*".csv"), df)
+                CSV.write(joinpath(path, "results_entire_dataset", model_name,
+                                    "search_results_multi_trials", "parameter_set_"*string(i),
+                                    category*"_"*scenario, string(j)*".csv"), df)
                 flattened_array = collect(Iterators.flatten(goal_probs[1:2:end]))
                 mean_array = mean_array + flattened_array
             end
@@ -273,6 +330,7 @@ for (i, params) in enumerate(grid_dict)
     end
 end
 
+
 #--- Save Best Parameters ---#
 mxval, mxindx = findmax(corrolation)
 best_params = grid_dict[mxindx]
@@ -301,8 +359,6 @@ number_of_trials = 10
 for category in 1:4
     category = string(category)
     for scenario in 1:4
-        print(best_params)
-        print("\n")
         scenario = string(scenario)
         mkpath(joinpath(path, "results_entire_dataset", model_name, "results_multi_trials", category * "_" * scenario))
 
@@ -337,7 +393,22 @@ for category in 1:4
 
         #--- Run inference ---#
         for i in 1:number_of_trials
-            goal_probs = goal_inference(best_params, domain, problem, goal_words, goals, state, traj)
+            #--- Run inference ---#
+            if model_name == "ap"
+                isgoal = false
+                isplan = true
+                isaction = true
+            elseif model_name == "ag"
+                isgoal = true
+                isplan = false
+                isaction = true
+            elseif model_name == "pg"
+                isgoal = true
+                isplan = true
+                isaction = false
+            end
+            goal_probs = goal_inference(best_params, domain, problem, goal_words, goals,
+                                        state, traj, isgoal, isplan, isaction)
             df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
             CSV.write(joinpath(path, "results_entire_dataset", model_name, "results_multi_trials", category * "_" * scenario, string(i)*".csv"), df)
         end
