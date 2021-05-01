@@ -277,7 +277,7 @@ end
 best_params = Dict()
 
 # Read best Params #
-files = glob("best_params_*.json", joinpath(path, "results", model_name, "search_results"))
+files = glob("best_params_*.json", joinpath(path, "results_entire_dataset", model_name, "search_results"))
 file = files[1]
 open(file, "r") do f
     string_dict = read(f,String) # file information to string
@@ -290,6 +290,8 @@ number_of_trials = 10
 for category in 1:4
     category = string(category)
     for scenario in 1:4
+        print(best_params)
+        print("\n")
         scenario = string(scenario)
         mkpath(joinpath(path, "results_entire_dataset", model_name, category * "_" * scenario))
 
@@ -326,7 +328,7 @@ for category in 1:4
         for i in 1:number_of_trials
             goal_probs = goal_inference(best_params, domain, problem, goal_words, goals, state, traj)
             df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
-            CSV.write(joinpath(path, "results", model_name, category * "_" * scenario, string(i)*".csv"), df)
+            CSV.write(joinpath(path, "results_entire_dataset", model_name, category * "_" * scenario, string(i)*".csv"), df)
         end
     end
 end

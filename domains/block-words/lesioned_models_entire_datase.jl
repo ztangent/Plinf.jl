@@ -175,7 +175,7 @@ end
 
 
 #--- Model Setup ---#
-model_name = "pg" #ap #ag #pg
+model_name = "ap" #ap #ag #pg
 
 #--- Generate Results ---#
 best_params = Dict()
@@ -195,6 +195,8 @@ for category in 1:4
     category = string(category)
     for scenario in 1:4
         scenario = string(scenario)
+        print(best_params)
+        print("\n")
         mkpath(joinpath(path, "results_entire_dataset", model_name, category * "_" * scenario))
 
         #--- Initial Setup ---#
@@ -244,7 +246,7 @@ for category in 1:4
             goal_probs = goal_inference(best_params, domain, problem, goal_words, goals,
                                         state, traj, isgoal, isplan, isaction)
             df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
-            CSV.write(joinpath(path, "results", model_name, category * "_" * scenario, string(i)*".csv"), df)
+            CSV.write(joinpath(path, "results_entire_dataset", model_name, category * "_" * scenario, string(i)*".csv"), df)
         end
     end
 end
