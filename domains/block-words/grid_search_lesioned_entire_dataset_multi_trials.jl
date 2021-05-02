@@ -238,6 +238,9 @@ end
 number_of_search_trials = 5
 corrolation = []
 for (i, params) in enumerate(grid_dict)
+    if i == 1
+        continue
+    end
     model_data = []
     scenarios_list = []
     corrolation_list = []
