@@ -198,6 +198,9 @@ end
 number_of_search_trials = 5
 corrolation = []
 for (i, params) in enumerate(grid_dict)
+    if i < 9
+        continue
+    end 
     model_data = []
     scenarios_list = []
     corrolation_list = []
@@ -274,14 +277,37 @@ for (i, params) in enumerate(grid_dict)
 end
 
 #--- Save Best Parameters ---#
-mxval, mxindx = findmax(corrolation)
-best_params = grid_dict[mxindx]
-best_params["corr"] = mxval
+best_params = Dict("corr"=>0)
+mxindx = 0
+for i = 1:length(grid_dict)
+    file = joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials", "parameter_set_"*string(i)*".json")
+    open(file, "r") do f
+        params_dict = read(f,String) # file information to string
+        params_dict=JSON.parse(params_dict)  # parse and transform data
+        global params =JSON.parse(params_dict)
+    end
+    if params["corr"] > best_params["corr"]
+        global best_params = params
+        global mxindx = i
+    end
+end
+best_params
+mxindx
 json_data = JSON.json(best_params)
 json_file = joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials", "best_params_"*string(mxindx)*".json")
 open(json_file, "w") do f
     JSON.print(f, json_data)
 end
+
+#
+# mxval, mxindx = findmax(corrolation)
+# best_params = grid_dict[mxindx]
+# best_params["corr"] = mxval
+# json_data = JSON.json(best_params)
+# json_file = joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials", "best_params_"*string(mxindx)*".json")
+# open(json_file, "w") do f
+#     JSON.print(f, json_data)
+# end
 
 
 #--- Generate Results ---#
