@@ -14,7 +14,7 @@ path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 domain = load_domain(joinpath(path, "domain.pddl"))
 
 #--- Generate Search Grid ---#
-model_name = "ag"
+model_name = "pg"
 pred_noise = [0.1]
 rejuvenation = ["None"]
 n_samples = [300]
@@ -237,7 +237,11 @@ end
 # Search parameters
 number_of_search_trials = 5
 corrolation = []
+
 for (i, params) in enumerate(grid_dict)
+    if i < 2
+        continue
+    end
     model_data = []
     scenarios_list = []
     corrolation_list = []
@@ -332,9 +336,20 @@ end
 
 
 #--- Save Best Parameters ---#
-mxval, mxindx = findmax(corrolation)
-best_params = grid_dict[mxindx]
-best_params["corr"] = mxval
+best_params = Dict("corr"=>0)
+mxindx = 0
+for i=1:length(grid_dict)
+    file = joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials", "parameter_set_"*string(i)*".json")
+    open(file, "r") do f
+        params_dict = read(f,String) # file information to string
+        params_dict=JSON.parse(params_dict)  # parse and transform data
+        global params =JSON.parse(params_dict)
+    end
+    if params["corr"] > best_params["corr"]
+        best_params = params
+        mxindx = i
+    end
+end
 json_data = JSON.json(best_params)
 json_file = joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials", "best_params_"*string(mxindx)*".json")
 open(json_file, "w") do f
