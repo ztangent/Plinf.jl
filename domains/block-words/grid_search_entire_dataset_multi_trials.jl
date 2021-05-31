@@ -198,9 +198,9 @@ end
 number_of_search_trials = 5
 corrolation = []
 for (i, params) in enumerate(grid_dict)
-    if i < 9
+    if i != 18
         continue
-    end 
+    end
     model_data = []
     scenarios_list = []
     corrolation_list = []
@@ -322,14 +322,12 @@ open(file, "r") do f
     global best_params=JSON.parse(string_dict)
 end
 best_params["n_samples"] = 500
-
 number_of_trials = 10
-for category in 1:4
+for category in [4]
     category = string(category)
     for scenario in 1:4
-        print(best_params)
-        print("\n")
         scenario = string(scenario)
+        println(category*"_"*scenario)
         mkpath(joinpath(path, "results_entire_dataset", model_name, "results_multi_trials", category * "_" * scenario))
 
         #--- Initial Setup ---#
@@ -363,6 +361,7 @@ for category in 1:4
 
         #--- Run inference ---#
         for i in 1:number_of_trials
+            println(i)
             goal_probs = goal_inference(best_params, domain, problem, goal_words, goals, state, traj)
             df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
             CSV.write(joinpath(path, "results_entire_dataset", model_name, "results_multi_trials", category * "_" * scenario, string(i)*".csv"), df)
