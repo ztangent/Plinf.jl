@@ -324,7 +324,7 @@ for category in 1:4
 
         #--- Run inference ---#
         for i in 1:number_of_trials
-            goal_probs = goal_inference(params, domain, problem, goals, state, traj)
+            goal_probs = goal_inference(best_params, domain, problem, goals, state, traj)
             df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
             CSV.write(joinpath(path, "results_entire_dataset", model_name, "results_multi_trials", category * "_" * scenario, string(i)*".csv"), df)
         end

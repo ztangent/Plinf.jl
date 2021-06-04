@@ -282,7 +282,7 @@ for i=1:length(grid_dict)
         global params =JSON.parse(params_dict)
     end
     if params["corr"] > best_params["corr"]
-        best_params = params
+        global best_params = params
         mxindx = i
     end
 end
@@ -359,12 +359,12 @@ for category in 1:4
         end
 
         for i in 1:number_of_trials
-            goal_probs = goal_inference(params, domain, problem, goals, state, traj,
+            goal_probs = goal_inference(best_params, domain, problem, goals, state, traj,
                                         isplan, isaction)
             df = DataFrame(Timestep=collect(1:length(traj)), Probs=goal_probs)
             CSV.write(joinpath(path, "results_entire_dataset", model_name,
-                                "search_results_multi_trials", "parameter_set_"*string(i),
-                                category*"_"*scenario, string(j)*".csv"), df)
+                                "results_multi_trials",
+                                category*"_"*scenario, string(i)*".csv"), df)
         end
     end
 end
