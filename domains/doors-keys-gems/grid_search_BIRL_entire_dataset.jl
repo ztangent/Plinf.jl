@@ -95,7 +95,7 @@ function run_birl_inference(state::State, plan::Vector{<:Term},
 end
 
 #--- Search ---#
-mkpath(joinpath(path, "results_entire_dataset", model_name, "search_results"))
+mkpath(joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials"))
 
 # Load human data
 human_data = []
@@ -110,6 +110,7 @@ for category in 1:4
 end
 
 # Search parameters
+number_of_search_trials = 5
 corrolation = []
 for (i, params) in enumerate(grid_dict)
     model_data = []
@@ -119,7 +120,8 @@ for (i, params) in enumerate(grid_dict)
         category = string(category)
         for scenario in 1:4
             scenario = string(scenario)
-
+            mkpath(joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials", "parameter_set_"*string(i), category*"_"*scenario))
+            
             #--- Initial Setup ---#
             # Specify problem
             stimulus_idx = ((parse(Int64,category)-1) * 4) +  parse(Int64,scenario)
@@ -145,22 +147,32 @@ for (i, params) in enumerate(grid_dict)
             plan = parse_pddl.(actions)
 
             #--- Run inference ---#
-            goal_probs = run_birl_inference(state, plan, goals, domain, act_noise=params["action_noise"], verbose=false)
-            flattened_array = collect(Iterators.flatten(goal_probs[1:end]))
-            only_judgement_model = []
-            for i in judgement_points[stimulus_idx]
-                idx = (i) * 3
-                for j in flattened_array[idx-2:idx]
-                    push!(only_judgement_model, j)
+            mean_array = zeros(3*length(judgement_points[stimulus_idx]))
+            for j in 1:number_of_search_trials
+                goal_probs = run_birl_inference(state, plan, goals, domain, act_noise=params["action_noise"], verbose=false)
+                df = DataFrame(Timestep=collect(1:length(plan)+1), Probs=goal_probs)
+                CSV.write(joinpath(path, "results_entire_dataset", model_name,
+                        "search_results_multi_trials", "parameter_set_"*string(i),
+                        category*"_"*scenario, string(j)*".csv"), df)
+                flattened_array = collect(Iterators.flatten(goal_probs[1:end]))
+                only_judgement_model = []
+                for k in judgement_points[stimulus_idx]
+                    idx = (k) * 3
+                    for n in flattened_array[idx-2:idx]
+                        push!(only_judgement_model, n)
+                    end
                 end
+                mean_array = mean_array + only_judgement_model
             end
-            append!(model_data, only_judgement_model)
+            mean_array = mean_array / number_of_search_trials
+            append!(model_data, mean_array)
 
             #--- Store corrolation for current scenario ---#
             file_name = category * "_" * scenario * ".csv"
             temp_human_data = vec(CSV.read(joinpath(path, "average_human_results_arrays", file_name), datarow=1, Tables.matrix))
             push!(scenarios_list, category*"_"*scenario)
-            push!(corrolation_list, cor(only_judgement_model, temp_human_data))
+            push!(corrolation_list, cor(mean_array, temp_human_data))
+
         end
     end
 
@@ -169,12 +181,13 @@ for (i, params) in enumerate(grid_dict)
 
     #--- Save corrolation CSV ---#
     df = DataFrame(Scenario=scenarios_list, Corrolation=corrolation_list)
-    CSV.write(joinpath(path, "results_entire_dataset", model_name, "search_results", "parameter_set_"*string(i)*".csv"), df)
+    CSV.write(joinpath(path, "results_entire_dataset", model_name,
+                        "search_results_multi_trials", "parameter_set_"*string(i)*".csv"), df)
 
-    # #--- Save Parameters ---#
+    #--- Save Parameters ---#
     params["corr"] = R
     json_data = JSON.json(params)
-    json_file = joinpath(path, "results_entire_dataset", model_name, "search_results", "parameter_set_"*string(i)*".json")
+    json_file = joinpath(path, "results_entire_dataset", model_name, "search_results_multi_trials", "parameter_set_"*string(i)*".json")
     open(json_file, "w") do f
         JSON.print(f, json_data)
     end
