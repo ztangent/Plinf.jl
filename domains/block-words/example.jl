@@ -12,7 +12,7 @@ domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-1.pddl"))
 
 # Initialize state
-state = initialize(problem)
+state = initstate(domain, problem)
 goal = problem.goal
 
 #--- Visualize Plans ---#

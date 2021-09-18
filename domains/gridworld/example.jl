@@ -13,7 +13,7 @@ domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-3.pddl"))
 
 # Initialize state, set goal position
-state = initialize(problem)
+state = initstate(domain, problem)
 goal = [problem.goal]
 goal_pos = goal_to_pos(problem.goal)
 start_pos = (state[:xpos], state[:ypos])
@@ -30,7 +30,7 @@ println("== Plan ==")
 display(plan)
 plt = render(state; start=start_pos, goals=goal_pos, plan=plan)
 anim = anim_traj(traj, plt)
-@assert satisfy(goal, traj[end], domain)[1] == true
+@assert satisfy(domain, traj[end], goal) == true
 
 # Visualize full horizon probabilistic A* search
 planner = ProbAStarPlanner(heuristic=manhattan, trace_states=true)

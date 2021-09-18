@@ -4,17 +4,17 @@
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "gridworld")
 gridworld = load_domain(joinpath(path, "domain.pddl"))
 gw_problem = load_problem(joinpath(path, "problem-1.pddl"))
-gw_state = initialize(gw_problem)
+gw_state = initstate(gridworld, gw_problem)
 
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
 doors_keys_gems = load_domain(joinpath(path, "domain.pddl"))
 dkg_problem = load_problem(joinpath(path, "problem-1.pddl"))
-dkg_state = initialize(dkg_problem)
+dkg_state = initstate(doors_keys_gems, dkg_problem)
 
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
 blocksworld = load_domain(joinpath(path, "domain.pddl"))
 bw_problem = load_problem(joinpath(path, "problem-0.pddl"))
-bw_state = initialize(bw_problem)
+bw_state = initstate(blocksworld, bw_problem)
 
 @testset "Observed Facts" begin
 

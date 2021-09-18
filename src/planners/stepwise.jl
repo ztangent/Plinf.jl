@@ -32,7 +32,7 @@ struct PlanState <: AbstractPlanState
 end
 
 get_action(ps::PlanState)::Term =
-    0 < ps.step <= length(ps.plan) ? ps.plan[ps.step] : Const(PDDL.no_op.name)
+    0 < ps.step <= length(ps.plan) ? ps.plan[ps.step] : Const(Symbol("--"))
 
 "Extract plan from a sequence of planning states."
 extract_plan(plan_states::AbstractArray{PlanState}) = plan_states[end].plan
@@ -59,7 +59,7 @@ get_step_proposal(::Planner)::GenerativeFunction = planner_propose_step
        call = get_call(planner)
        plan, traj = @trace(call(planner, domain, state, goal_spec))
        if plan == nothing || traj == nothing # Return no-op on plan failure
-           plan, traj = Term[Const(PDDL.no_op.name)], State[state]
+           plan, traj = Term[Const(Symbol("--"))], State[state]
        end
        return PlanState(1, plan, traj)
    else

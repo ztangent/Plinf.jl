@@ -33,18 +33,18 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
         state = state_dict[state_hash]
         if trace_states @trace(labeled_unif([state]), (:state, count)) end
         # Return plan if search budget is reached or goals are satisfied
-        if count >= max_nodes || satisfy(goals, state, domain)[1]
+        if count >= max_nodes || satisfy(domain, state, goals)
             return reconstruct_plan(state_hash, state_dict, parents) end
         count += 1
         # Get list of available actions
-        actions = available(state, domain)
+        actions = available(domain, state)
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
             next_state = transition(domain, state, act; check=false)
             next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
-            if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
+            if !isempty(constraints) && !satisfy(domain, state, constraints)
                 continue end
             # Compute path cost
             act_cost = metric == nothing ? 1 :
@@ -108,19 +108,19 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
         if trace_states @trace(labeled_unif([state]), (:state, count)) end
         delete!(queue, state_hash)
         # Return plan if search budget is reached or goals are satisfied
-        if count >= max_nodes || satisfy(goals, state, domain)[1]
+        if count >= max_nodes || satisfy(domain, state, goals)
             return reconstruct_plan(state_hash, state_dict, parents)
         end
         count += 1
         # Get list of available actions
-        actions = available(state, domain)
+        actions = available(domain, state)
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
             next_state = transition(domain, state, act; check=false)
             next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
-            if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
+            if !isempty(constraints) && !satisfy(domain, state, constraints)
                 continue end
             # Compute path cost
             act_cost = metric == nothing ? 1 :
@@ -212,19 +212,19 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
             (obs_queue[1] == nothing || obs_queue[1] == state_hash)
             popfirst!(obs_queue) end
         # Return plan if goals are satisfied
-        if count >= max_nodes || satisfy(goals, state, domain)[1]
+        if count >= max_nodes || satisfy(domain, state, goals)
             return reconstruct_plan(state_hash, state_dict, parents)
         end
         count += 1
         # Get list of available actions
-        actions = available(state, domain)
+        actions = available(domain, state)
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
             next_state = transition(domain, state, act; check=false)
             next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
-            if !isempty(constraints) && !satisfy(constraints, state, domain)[1]
+            if !isempty(constraints) && !satisfy(domain, state, constraints)
                 continue end
             # Compute path cost
             act_cost = metric == nothing ? 1 :

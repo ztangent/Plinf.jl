@@ -11,8 +11,8 @@ end
 
 "FastForward (FF) delete-relaxation heuristic."
 struct FFHeuristic <: Heuristic
-    cache::FFCache # Precomputed domain information
-    FFHeuristic() = new()
+    cache::Union{FFCache,Nothing} # Precomputed domain information
+    FFHeuristic() = new(nothing)
     FFHeuristic(cache) = new(cache)
 end
 
@@ -21,24 +21,25 @@ Base.hash(heuristic::FFHeuristic, h::UInt) = hash(FFHeuristic, h)
 function precompute(heuristic::FFHeuristic,
                     domain::Domain, state::State, goal_spec::GoalSpec)
     # Check if cache has already been computed
-    if isdefined(heuristic, :cache) return heuristic end
-    domain = copy(domain) # Make a local copy of the domain
+    if heuristic.cache !== nothing return heuristic end
+    domain = domain isa CompiledDomain ? # Make a local copy of the domain
+        copy(PDDL.get_source(domain)) : copy(domain)
     # Preprocess axioms
-    axioms = regularize_clauses(domain.axioms) # Regularize domain axioms
+    axioms = regularize_clauses(collect(values(domain.axioms)))
     axioms = [Clause(ax.head, [t for t in ax.body if t.name != :not])
               for ax in axioms] # Remove negative literals
-    domain.axioms = Clause[] # Remove axioms so they do not affect execution
+    empty!(domain.axioms) # Remove axioms so they do not affect execution
     # Preprocess actions
     preconds = Dict{Symbol,Vector{Vector{Term}}}()
     additions = Dict{Symbol,Vector{Term}}()
     for (act_name, act_def) in domain.actions
         # Convert preconditions to DNF without negated literals
-        conds = get_preconditions(act_def; converter=to_dnf)
+        conds = to_dnf(PDDL.get_precond(act_def))
         conds = [c.args for c in conds.args]
         for c in conds filter!(t -> t.name != :not, c) end
         preconds[act_name] = conds
         # Extract additions from each effect
-        diff = effect_diff(act_def.effect)
+        diff = effect_diff(domain, state, act_def.effect)
         additions[act_name] = diff.add
     end
     cache = FFCache(domain, axioms, preconds, additions)
@@ -48,7 +49,7 @@ end
 function compute(heuristic::FFHeuristic,
                  domain::Domain, state::State, goal_spec::GoalSpec)
     # Precompute if necessary
-    if !isdefined(heuristic, :cache)
+    if heuristic.cache === nothing
         heuristic = precompute(heuristic, domain, state, goal_spec) end
     @unpack cache = heuristic
     @unpack domain = cache
@@ -60,9 +61,9 @@ function compute(heuristic::FFHeuristic,
     cur_level = 1
     while true
         facts = Set(keys(levels))
-        state = State(types, facts, Dict{Symbol,Any}())
+        state = GenericState(types, facts, Dict{Symbol,Any}())
         # Break out of loop once all goals are achieved
-        if satisfy(goals, state, domain)[1] break end
+        if satisfy(domain, state, goals) break end
         cur_level += 1
         # Add all one-step derivations of domain axioms
         for ax in cache.axioms
@@ -75,7 +76,7 @@ function compute(heuristic::FFHeuristic,
             end
         end
         # Add effects of available actions
-        actions = available(state, domain)
+        actions = available(domain, state)
         for act in actions
             act_vars = domain.actions[act.name].args
             subst = Subst(var => val for (var, val) in zip(act_vars, act.args))

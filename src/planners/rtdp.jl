@@ -31,11 +31,11 @@ function solve!(planner::RTDPlanner,
         state = rand(init_states)
         count = 0
         while count < rollout_len
-            if satisfy(goals, state, domain)[1]
+            if satisfy(domain, state, goals)
                 vals[hash(state)] = 0.0
                 break
             end
-            actions = available(state, domain)
+            actions = available(domain, state)
             succs = [transition(domain, state, act) for act in actions]
             qs = map(succs) do s
                 h = heuristic(domain, s, goals)
@@ -60,7 +60,7 @@ function default_qvals(planner::RTDPlanner,
                        domain::Domain, state::State, goal_spec::GoalSpec)
     @unpack goals = goal_spec
     @unpack heuristic, discount, vals = planner
-    actions = available(state, domain)
+    actions = available(domain, state)
     qs = map(actions) do act
         s = transition(domain, state, act)
         h = heuristic(domain, s, goals)
@@ -78,7 +78,7 @@ end
     @unpack qvals, act_noise, max_length = planner
     plan, traj = Term[], State[state]
     count = 0
-    while !satisfy(goals, state, domain)[1] && count < max_length
+    while !satisfy(domain, state, goals) && count < max_length
         count += 1
         qs = get!(qvals, hash(state),
                   default_qvals(planner, domain, state, goal_spec))

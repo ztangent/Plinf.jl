@@ -20,9 +20,6 @@ precompute(h::Heuristic, domain::Domain, state::State, goal_spec) =
 precompute(h::Heuristic, domain::Domain, state::State) =
     precompute(h, domain, state, GoalSpec(goals=Term[]))
 
-precompute(h::Heuristic, domain::Domain) =
-    precompute(h, domain, State(Term[]), GoalSpec(goals=Term[]))
-
 "Computes the heuristic value of state relative to a goal in a given domain."
 compute(h::Heuristic, domain::Domain, state::State, goal_spec::GoalSpec) =
     error("Not implemented.")

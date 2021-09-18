@@ -22,7 +22,7 @@ get_call(::BFSPlanner)::GenerativeFunction = bfs_call
         if step > planner.max_depth continue end
         # Get list of available actions
         state = traj[end]
-        actions = available(state, domain)
+        actions = available(domain, state)
         # Iterate over actions
         for act in actions
             # Execute actions on state
@@ -31,8 +31,7 @@ get_call(::BFSPlanner)::GenerativeFunction = bfs_call
             next_plan = Term[plan; act]
             next_traj = State[traj; next_state]
             # Return plan if goals are satisfied
-            sat, _ = satisfy(goals, next_state, domain)
-            if sat return (next_plan, next_traj) end
+            if satisfy(domain, next_state, goals) return (next_plan, next_traj) end
             # Otherwise push to queue
             push!(queue, (next_plan, next_traj))
         end

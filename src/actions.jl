@@ -13,10 +13,10 @@ end
 "ϵ-noisy action selection from current plan."
 @gen function noisy_act_step(t, agent_state, env_state, domain, eps)
     if t == 1 # TODO: Re-index to avoid this hack
-        return @trace(labeled_unif([Const(PDDL.no_op.name)]), :act)
+        return @trace(labeled_unif([Const(Symbol("--"))]), :act)
     end
     intended = get_action(agent_state.plan_state)
-    actions = pushfirst!(available(env_state, domain), Const(PDDL.no_op.name))
+    actions = pushfirst!(collect(available(domain, env_state)), Const(Symbol("--")))
     weights = [act == intended ? (1. - eps) / eps : 1. for act in actions]
     probs = weights ./ sum(weights)
     act = @trace(labeled_cat(actions, probs), :act)
@@ -45,7 +45,7 @@ end
 @gen function forward_act_proposal(domain, agent_state, env_state,
                                    next_obs_state, eps=0.0)
     guess = get_action(agent_state.plan_state)
-    actions = pushfirst!(available(env_state, domain), Const(PDDL.no_op.name))
+    actions = pushfirst!(collect(available(domain, env_state)), Const(Symbol("--")))
     for act in actions
         next_state = transition(domain, env_state, act)
         if next_state == next_obs_state

@@ -13,7 +13,7 @@ domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-6.pddl"))
 
 # Initialize state, set goal and goal colors
-state = initialize(problem)
+state = initstate(domain, problem)
 start_pos = (state[:xpos], state[:ypos])
 goal = [problem.goal]
 goal_colors = [colorant"#D41159", colorant"#FFC20A", colorant"#1A85FF"]
@@ -29,7 +29,7 @@ println("== Plan ==")
 display(plan)
 plt = render(state; start=start_pos, plan=plan, gem_colors=gem_colors)
 anim = anim_traj(traj; gem_colors=gem_colors, plan=plan)
-@assert satisfy(goal, traj[end], domain)[1] == true
+@assert satisfy(domain, traj[end], goal) == true
 
 # Visualize full horizon probabilistic A* search
 planner = ProbAStarPlanner(heuristic=GemManhattan(), trace_states=true)

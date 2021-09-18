@@ -21,7 +21,7 @@ get_call(::BackwardPlanner)::GenerativeFunction = bwd_call
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Construct references to start and goal states
     start = state
-    state = State(goal_spec.goals, PDDL.get_types(start))
+    state = goalstate(domain, state, goal_spec.goals)
     # Construct diff of constraints
     constraints = isempty(constraints) ? nothing : precond_diff(constraints)
     # Initialize path costs and priority queue
@@ -46,11 +46,11 @@ get_call(::BackwardPlanner)::GenerativeFunction = bwd_call
         end
         count += 1
         # Get list of relevant actions
-        actions = relevant(state, domain)
+        actions = relevant(domain, state)
         # Iterate over actions
         for act in actions
             # Regress (reverse-execute) the action
-            prev_state = regress(act, state, domain; check=false)
+            prev_state = regress(domain, state, act; check=false)
             # Add constraints to regression state
             if (constraints != nothing) update!(prev_state, constraints) end
             prev_hash = hash(prev_state)

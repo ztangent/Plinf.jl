@@ -67,7 +67,7 @@ init_plan_state(::Replanner)::AbstractPlanState =
     ReplanState(0, Term[], [], false)
 
 get_action(rp::ReplanState)::Term =
-    rp.rel_step == 0 ? Const(PDDL.no_op.name) : rp.part_plan[rp.rel_step]
+    rp.rel_step == 0 ? Const(Symbol("--")) : rp.part_plan[rp.rel_step]
 
 "Checks whether a plan already reaches a timestep t, and extends it if not."
 @gen function replan_step(t::Int, rp::ReplanState, replanner::Replanner,
@@ -76,9 +76,9 @@ get_action(rp::ReplanState)::Term =
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
     expected_state = rp.rel_step == 0 ? nothing : rp.part_traj[rel_step]
-    if plan_done || satisfy(goal_spec.goals, state, domain)[1]
+    if plan_done || satisfy(domain, state, goal_spec.goals)
         # Return no-op if plan is done
-        part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
+        part_plan, part_traj = Term[Const(Symbol("--"))], [state, state]
         return ReplanState(1, part_plan, part_traj, true)
     elseif rel_step < length(rp.part_traj) && state == expected_state
         # Step forward if the end of the planned trajectory is not reached
@@ -94,7 +94,7 @@ get_action(rp::ReplanState)::Term =
     if part_plan == nothing || length(part_plan) == 0
         # Return no-op if goal cannot be reached, or plan is of zero-length
         plan_done |= (part_plan == nothing) # Terminate if goal is unreachable
-        part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
+        part_plan, part_traj = Term[Const(Symbol("--"))], [state, state]
     end
     return ReplanState(1, part_plan, part_traj, plan_done)
 end
@@ -110,9 +110,9 @@ end
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
     expected_state = rp.rel_step == 0 ? nothing : rp.part_traj[rel_step]
-    if plan_done || satisfy(goal_spec.goals, state, domain)[1]
+    if plan_done || satisfy(domain, state, goal_spec.goals)
         # Return no-op if plan is done
-        part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
+        part_plan, part_traj = Term[Const(Symbol("--"))], [state, state]
         return ReplanState(1, part_plan, part_traj, true)
     elseif rel_step < length(rp.part_traj) && state == expected_state
         # Step forward if the end of the planned trajectory is not reached
@@ -132,7 +132,7 @@ end
     if part_plan == nothing || length(part_plan) == 0
         # Return no-op if goal cannot be reached, or plan is of zero-length
         plan_done |= (part_plan == nothing) # Terminate if goal is unreachable
-        part_plan, part_traj = Term[Const(PDDL.no_op.name)], [state, state]
+        part_plan, part_traj = Term[Const(Symbol("--"))], [state, state]
     end
     return ReplanState(1, part_plan, part_traj, plan_done)
 end
