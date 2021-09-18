@@ -5,7 +5,7 @@ using DataStructures: OrderedDict
 
 "Convert PDDL state to array of wall locations."
 function state_to_array(state::State)
-    width, height = state[:width], state[:height]
+    width, height = state[pddl"width"], state[pddl"height"]
     array = zeros(Int64, (width, height))
     for x=1:width, y=1:height
         if state[@julog(wall($x, $y))] array[y, x] = 1 end
@@ -111,7 +111,7 @@ end
 function render_pos!(state::State, plt=nothing;
                      radius=0.25, color=:red, alpha=1, dir=nothing, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
-    x, y = state[:xpos], state[:ypos]
+    x, y = state[pddl"xpos"], state[pddl"ypos"]
     if dir in [:up, :down, :right, :left]
         marker = make_triangle(x, y, radius*1.5, dir)
         xscale, yscale = (dir in [:up, :down]) ? (0.8, 1.0) : (1.0, 0.8)
@@ -134,7 +134,8 @@ function render_objects!(state::State, plt=nothing;
         (l, c) -> render_gem!(l[1], l[2], 0.3, color=c, plt=plt)
     ]
     for (query, colors, rndr!) in zip(obj_queries, obj_colors, obj_renderers)
-        _, subst = satisfy(query, state; mode=:all)
+        # TODO: Avoid referencing domain as a global variable
+        subst = satisfiers(domain, state, query)
         sort!(subst, by=s->get(s, @julog(O), Const(0)).name)
         locs = [(s[@julog(X)].name, s[@julog(Y)].name) for s in subst]
         if isa(colors, AbstractDict)
@@ -162,7 +163,8 @@ function render_inventory!(state::State, plt=nothing;
         (l, c) -> render_gem!(l[1], l[2], 0.3, color=c, plt=plt)
     ]
     for (query, colors, rndr!) in zip(obj_queries, obj_colors, obj_renderers)
-        _, subst = satisfy(query, state; mode=:all)
+        # TODO: Avoid referencing domain as a global variable
+        subst = satisfiers(domain, state, query)
         sort!(subst, by=s->get(s, @julog(O), Const(0)).name)
         if isa(colors, AbstractDict)
             obj_terms = [s[@julog(O)] for s in subst]
@@ -172,11 +174,11 @@ function render_inventory!(state::State, plt=nothing;
         end
         for (i, col) in enumerate(colors) rndr!((i, 0.5), col) end
     end
-    plot!(plt, xticks=(collect(0:state[:width]+1) .- 0.5, []),
+    plot!(plt, xticks=(collect(0:state[pddl"width"]+1) .- 0.5, []),
                yticks=([0, 1.0], []))
     xgrid!(plt, :on, :black, 1, :dash, 0.75)
     annotate!(0.5, 1.25, Plots.text("Inventory", 12, :black, :left))
-    xlims!(plt, 0.5, state[:width]+0.5)
+    xlims!(plt, 0.5, state[pddl"width"]+0.5)
     ylims!(plt, 0, 1)
     return plt
 end
@@ -247,7 +249,7 @@ function render!(traj::Vector{State}, plt=nothing;
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      for state in traj
-         x, y = state[:xpos], state[:ypos]
+         x, y = state[pddl"xpos"], state[pddl"ypos"]
          dot = make_circle(x, y, radius)
          plot!(plt, dot, color=color, linealpha=0, alpha=alpha, legend=false)
      end
@@ -284,7 +286,7 @@ function render_traces!(traces, weights=nothing, plt=nothing;
             env_traj = env_traj[min(length(env_traj), t_cur+1):end]
         end
         for state in env_traj
-            pt = (state[:xpos], state[:ypos])
+            pt = (state[pddl"xpos"], state[pddl"ypos"])
             goal_pt_weights[pt] = get(goal_pt_weights, pt, 0.0) + exp(w)
         end
     end
@@ -309,7 +311,7 @@ function anim_traj(traj::AbstractVector{State}, canvas=nothing, animation=nothin
     splitflag = length(splitpoints) > 0
     splitanims, splitpoints = Animation[], collect(splitpoints)
     start_pos = start_pos == nothing ?
-        (traj[1][:xpos], traj[1][:ypos]) : start_pos
+        (traj[1][pddl"xpos"], traj[1][pddl"ypos"]) : start_pos
     dir = start_dir
     for (t, state) in enumerate(traj)
         plt = deepcopy(canvas)
@@ -386,7 +388,7 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
     sort!(filter!(p -> p[1][1] == :state, node_choices))
     # Render each node expanded in sequence
     for state in values(node_choices)
-        dot = make_circle(state[:xpos], state[:ypos], node_radius)
+        dot = make_circle(state[pddl"xpos"], state[pddl"ypos"], node_radius)
         plt = plot!(plt, dot, color=search_color, alpha=search_alpha,
                     linealpha=0, legend=false)
         frame(animation, plt)

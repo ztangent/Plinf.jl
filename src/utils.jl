@@ -39,3 +39,23 @@ dist_type(d::Distribution{T}) where {T} = T
         return fn
     end
 end
+
+"""
+    simulate(domain, state, actions; kwargs...)
+Returns the state trajectory that results from applying a sequence of `actions`
+to an initial `state` in a given `domain`. Keyword arguments specify whether
+to `check` if action preconditions hold, the `fail_mode` (`:error` or `:no_op`)
+if they do not, and a `callback` function to apply after each step.
+"""
+function simulate(domain::Domain, state::State, actions::Vector{<:Term};
+                  check::Bool=true, fail_mode::Symbol=:error,
+                  callback::Function=(d,s,a)->nothing)
+    trajectory = State[state]
+    callback(domain, state, Const(:start))
+    for act in actions
+        state = transition(domain, state, act; check=check, fail_mode=fail_mode)
+        push!(trajectory, state)
+        callback(domain, state, act)
+    end
+    return trajectory
+end

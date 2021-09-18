@@ -14,7 +14,7 @@ problem = load_problem(joinpath(path, "problem-6.pddl"))
 
 # Initialize state, set goal and goal colors
 state = initstate(domain, problem)
-start_pos = (state[:xpos], state[:ypos])
+start_pos = (state[pddl"xpos"], state[pddl"ypos"])
 goal = [problem.goal]
 goal_colors = [colorant"#D41159", colorant"#FFC20A", colorant"#1A85FF"]
 gem_terms = @julog [gem1, gem2, gem3]

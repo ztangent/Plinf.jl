@@ -9,10 +9,10 @@ function Plinf.compute(heuristic::GemManhattan,
                        domain::Domain, state::State, goal_spec::GoalSpec)
     goals = goal_spec.goals
     goal_objs = [g.args[1] for g in goals if g.name == :has]
-    at_terms = find_matches(@julog(at(O, X, Y)), state)
+    at_terms = find_matches(domain, state, @julog(at(O, X, Y)))
     locs = [[t.args[2].name, t.args[3].name]
             for t in at_terms if t.args[1] in goal_objs]
-    pos = [state[:xpos], state[:ypos]]
+    pos = [state[pddl"xpos"], state[pddl"ypos"]]
     dists = [sum(abs.(pos - l)) for l in locs]
     min_dist = length(dists) > 0 ? minimum(dists) : 0
     return min_dist + GoalCountHeuristic()(domain, state, goal_spec)

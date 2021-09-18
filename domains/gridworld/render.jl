@@ -5,7 +5,7 @@ using DataStructures: OrderedDict
 
 "Convert gridworld PDDL state to array for plotting."
 function state_to_array(state::State)
-    width, height = state[:width], state[:height]
+    width, height = state[pddl"width"], state[pddl"height"]
     array = zeros(Int64, (width, height))
     for x=1:width, y=1:height
         if state[@julog(wall($x, $y))] array[y, x] = 1 end
@@ -93,7 +93,7 @@ function render!(traj::Vector{State}, plt=nothing;
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      for state in traj
-         x, y = state[:xpos], state[:ypos]
+         x, y = state[pddl"xpos"], state[pddl"ypos"]
          dot = make_circle(x, y, radius)
          plot!(plt, dot, color=color, linealpha=0, alpha=alpha, legend=false)
      end
@@ -104,7 +104,7 @@ end
 function render_pos!(state::State, plt=nothing;
                      radius=0.25, color=:black, alpha=1, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
-    x, y = state[:xpos], state[:ypos]
+    x, y = state[pddl"xpos"], state[pddl"ypos"]
     circ = make_circle(x, y, radius)
     plot!(plt, circ, color=color, alpha=alpha, legend=false)
 end
@@ -156,7 +156,7 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
     sort!(filter!(p -> p[1][1] == :state, node_choices))
     # Render each node expanded in sequence
     for state in values(node_choices)
-        dot = make_circle(state[:xpos], state[:ypos], node_radius)
+        dot = make_circle(state[pddl"xpos"], state[pddl"ypos"], node_radius)
         plt = plot!(plt, dot, color=search_color, alpha=search_alpha,
                     linealpha=0, legend=false)
         frame(animation, plt)

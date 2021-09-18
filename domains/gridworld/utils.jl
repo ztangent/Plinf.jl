@@ -1,7 +1,7 @@
 using DataStructures: OrderedDict
 
 pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
-goal_to_pos(term) = (s = State(term.args); (s[:xpos], s[:ypos]))
+goal_to_pos(term) = (term.args[1].args[2].name, term.args[2].args[2].name)
 
 function get_goal_probs(traces, weights, goal_idxs=[])
     goal_probs = OrderedDict{Any,Float64}(g => 0.0 for g in goal_idxs)

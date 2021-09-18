@@ -16,7 +16,7 @@ problem = load_problem(joinpath(path, "problem-3.pddl"))
 state = initstate(domain, problem)
 goal = [problem.goal]
 goal_pos = goal_to_pos(problem.goal)
-start_pos = (state[:xpos], state[:ypos])
+start_pos = (state[pddl"xpos"], state[pddl"ypos"])
 
 #--- Visualize Plans ---#
 
@@ -112,7 +112,7 @@ n_samples = 30
 traces, weights, lml_est =
     world_importance_sampler(world_init, world_config,
                              traj, obs_terms, n_samples;
-                             use_proposal=true, strata=goal_strata)
+                             use_proposal=true, strata=goal_strata);
 
 # Plot sampled trajectory for each trace
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
@@ -161,6 +161,6 @@ traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
                           rejuvenate=nothing, callback=callback,
                           strata=goal_strata, act_proposal=act_proposal,
-                          act_proposal_args=act_proposal_args)
+                          act_proposal_args=act_proposal_args);
 # Show animation of goal inference
 gif(anim; fps=3)

@@ -25,8 +25,9 @@ end
 function compute_locations(state::State, nan_holding=false)
     locs = OrderedDict{Symbol,Tuple{Real,Real}}()
     # Get list of blocks
-    _, subst = satisfy(@julog(block(X)), state, mode=:all)
-    blocks = sort!([s[Var(:X)].name for s in subst])
+    blocks = sort!(collect(getfield.(PDDL.get_objects(state, :block), :name)))
+    # subst = satisfiers(domain, state, @julog(block(X)))
+    # blocks = sort!([s[Var(:X)].name for s in subst])
     width, height = length(blocks)*1.5, length(blocks)*1.5
     for (i, block) in enumerate(blocks)
         # Compute location for each block on table
@@ -35,8 +36,9 @@ function compute_locations(state::State, nan_holding=false)
             locs[block] = (x, y)
             while !state[@julog(clear($block))]
                 # Compute location for all stacked blocks
-                _, subst = satisfy(@julog(on(X, $block)), state)
-                block = subst[1][Var(:X)].name
+                block = filter(b -> state[@julog(on($b, $block))], blocks)[1]
+                # _, subst = satisfy(@julog(on(X, $block)), state)
+                # block = subst[1][Var(:X)].name
                 y += 1
                 locs[block] = (x, y)
             end
@@ -141,8 +143,9 @@ function render!(state::State, plt=nothing;
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
     # Get list of blocks
-    _, subst = satisfy(@julog(block(X)), state, mode=:all)
-    blocks = sort!([s[Var(:X)].name for s in subst])
+    blocks = sort!(collect(getfield.(PDDL.get_objects(state, :block), :name)))
+    # subst = satisfiers(domain, state, @julog(block(X)))
+    # blocks = sort!([s[Var(:X)].name for s in subst])
     # Create axis
     width, height = length(blocks)*1.5, length(blocks)*1.5
     plot!(plt, xticks=([], []), yticks=([], []))
@@ -171,10 +174,10 @@ function render_traces!(traces, weights=nothing, plt=nothing;
     for (tr, w) in zip(traces, weights)
         if exp(w) < 0.01 continue end
         init_state = tr[:init => :env]
-        _, subst = satisfy(@julog(block(X)), init_state, mode=:all)
-        block_consts = [s[Var(:X)] for s in subst]
-        block_terms = Term[@julog(block(:b)) for b in block_consts]
-        goal_state = State([tr[:init => :agent => :goal].goals; block_terms])
+        blocks = sort!(getfield.(collect(PDDL.get_objects(state, :block)), :name))
+        block_terms = Term[@julog(block($b)) for b in blocks]
+        goal_terms = tr[:init => :agent => :goal].goals
+        goal_state = GenericState(Set(block_terms), Set(goal_terms), Dict())
         plt = render_blocks!(goal_state, plt; alpha=exp(w)*max_alpha)
     end
     return plt
