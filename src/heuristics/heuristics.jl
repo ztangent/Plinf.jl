@@ -31,7 +31,7 @@ compute(h::Heuristic, domain::Domain, state::State, goal_spec) =
 function (h::Heuristic)(domain::Domain, state::State, goal_spec::GoalSpec;
                         cache::Bool=true)
     if (cache)
-        key = (hash(h), domain.name, hash(state), hash(goal_spec))
+        key = (hash(h), PDDL.get_name(domain), hash(state), hash(goal_spec))
         if haskey(heuristic_cache, key) return heuristic_cache[key] end
     end
     val = compute(h, domain, state, goal_spec)
