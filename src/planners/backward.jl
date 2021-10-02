@@ -21,7 +21,7 @@ get_call(::BackwardPlanner)::GenerativeFunction = bwd_call
     heuristic = precompute(heuristic, domain, state, goal_spec)
     # Construct references to start and goal states
     start = state
-    state = goalstate(domain, state, goal_spec.goals)
+    state = goalstate(domain, PDDL.get_objtypes(state), goal_spec.goals)
     # Construct diff of constraints
     constraints = isempty(constraints) ? nothing : precond_diff(constraints)
     # Initialize path costs and priority queue

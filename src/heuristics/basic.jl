@@ -29,7 +29,7 @@ Base.hash(heuristic::ManhattanHeuristic, h::UInt) =
 
 function precompute(heuristic::ManhattanHeuristic,
                     domain::Domain, state::State, goal_spec::GoalSpec)
-    goal_state = goalstate(domain, state, goal_spec.goals)
+    goal_state = goalstate(domain, PDDL.get_objtypes(state), goal_spec.goals)
     fnames = collect(PDDL.get_fluent_names(goal_state))
     if !issubset(heuristic.fluents, fnames)
         error("Fluents $(join(heuristic.fluents, ", ")) not in goal.")
@@ -39,7 +39,7 @@ end
 
 function precompute(heuristic::ManhattanHeuristic,
                     domain::CompiledDomain, state::State, goal_spec::GoalSpec)
-    goal_state = goalstate(PDDL.get_source(domain), GenericState(state),
+    goal_state = goalstate(PDDL.get_source(domain), PDDL.get_objtypes(state),
                            goal_spec.goals)
     fnames = collect(PDDL.get_fluent_names(goal_state))
     if !issubset(heuristic.fluents, fnames)
