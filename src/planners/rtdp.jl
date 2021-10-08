@@ -98,7 +98,9 @@ struct PolicyState <: AbstractPlanState
     probs::Vector{Float64}
 end
 
-get_action(ps::PolicyState) = actions[argmax(probs)]
+init_plan_state(::RTDPlanner) = PolicyState(Term[pddl"(--)"], [1.0])
+
+get_action(ps::PolicyState) = ps.actions[argmax(ps.probs)]
 
 get_step(::RTDPlanner)::GenerativeFunction = rtdp_step
 
