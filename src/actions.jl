@@ -36,16 +36,20 @@ end
         env_state = trace[:init => :env]
     end
     # Call proposal
-    @trace(proposal_fn(domain, agent_state, env_state,
+    @trace(proposal_fn(t+1, domain, agent_state, env_state,
                        next_obs_state, prop_args...),
            :timestep => t+1 => :act)
 end
 
 "Proposes an action among those available that matches the observed state."
-@gen function forward_act_proposal(domain, agent_state, env_state,
-                                   next_obs_state, eps=0.0)
+@gen function forward_act_proposal(t, domain, agent_state, env_state,
+                                   next_obs_state, eps=0.0, include_noop=true)
+    if t == 1 # TODO: Re-index to avoid this hack
+        return @trace(labeled_unif([Const(Symbol("--"))]), :act)
+    end
     guess = get_action(agent_state.plan_state)
-    actions = pushfirst!(collect(available(domain, env_state)), Const(Symbol("--")))
+    actions = collect(available(domain, env_state))
+    if include_noop pushfirst!(actions, Const(Symbol("--"))) end
     for act in actions
         next_state = transition(domain, env_state, act)
         if next_state == next_obs_state
@@ -53,7 +57,11 @@ end
             break
         end
     end
-    weights = [act == guess ? (1. - eps) / eps : 1. for act in actions]
-    probs = weights ./ sum(weights)
+    if eps > 0
+        weights = [act == guess ? (1. - eps) / eps : 1. for act in actions]
+        probs = weights ./ sum(weights)
+    else
+        probs = [act == guess ? 1.0 : 0.0 for act in actions]
+    end
     act = @trace(labeled_cat(actions, probs), :act)
 end

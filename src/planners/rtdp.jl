@@ -18,8 +18,8 @@ set_max_resource(planner::RTDPlanner, val) = @set planner.n_rollouts = val
 
 get_call(::RTDPlanner)::GenerativeFunction = rtdp_call
 
-function solve!(planner::RTDPlanner,
-                domain::Domain, init_states::Vector{State}, goal_spec::GoalSpec)
+function solve!(planner::RTDPlanner, domain::Domain,
+                init_states::AbstractVector{<:State}, goal_spec::GoalSpec)
     @unpack goals, metric, constraints = goal_spec
     @unpack n_rollouts, rollout_len, heuristic, rollout_noise = planner
     @unpack vals, qvals, discount, act_noise = planner

@@ -1,4 +1,4 @@
-export AgentState, AgentInit, AgentConfig, agent_step
+export AgentState, AgentInit, AgentConfig, BoltzmannAgentConfig, agent_step
 
 "Represents the state of the agent at time `t`."
 struct AgentState
@@ -27,7 +27,7 @@ AgentInit(planner::Planner, goal_init) =
     act_args::Union{Tuple,GenerativeFunction} = ()
 end
 
-function AgentConfig(domain::Domain, planner::Planner;
+function AgentConfig(domain::Domain, planner::Union{Planner,GenerativeFunction};
                      act_noise=0.0, kwargs...)
     if act_noise == 0
         AgentConfig(domain=domain, planner=planner,
@@ -37,6 +37,10 @@ function AgentConfig(domain::Domain, planner::Planner;
                     act_step=noisy_act_step, act_args=(act_noise,), kwargs...)
     end
 end
+
+BoltzmannAgentConfig(domain, planner; kwargs...) =
+    AgentConfig(domain=domain, planner=planner,
+                plan_step=rtdp_step, act_step=boltzmann_act_step, kwargs...)
 
 "Intialize agent_state by sampling from the initializers"
 @gen function init_agent_model(init::AgentInit, config::AgentConfig)
