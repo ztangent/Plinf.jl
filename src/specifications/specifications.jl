@@ -57,6 +57,7 @@ include("min_metric.jl")
 include("max_metric.jl")
 include("state_constrained.jl")
 include("discounted.jl")
+include("action_costs.jl")
 include("goal_reward.jl")
 include("backward.jl")
 
