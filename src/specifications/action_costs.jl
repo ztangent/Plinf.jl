@@ -6,6 +6,9 @@ struct MinActionCosts{C <: NamedTuple} <: Goal
     costs::C # Named tuple of action costs
 end
 
+MinActionCosts(term::Term, costs) =
+    MinActionCosts(flatten_conjs(term), costs)
+
 function MinActionCosts(terms, actions, costs)
     costs = NamedTuple{Tuple(actions)}(Tuple(Float64.(costs)))
     return MinActionCosts(flatten_conjs(terms), costs)
