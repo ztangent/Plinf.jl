@@ -14,17 +14,16 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
 
 "Deterministic A* search for a plan."
 @gen function astar_call(planner::AStarPlanner,
-                         domain::Domain, state::State, goal_spec::GoalSpec)
-    @unpack goals, metric, constraints = goal_spec
+                         domain::Domain, state::State, spec::Specification)
     @unpack max_nodes, h_mult, heuristic, trace_states = planner
     # Perform any precomputation required by the heuristic
-    heuristic = precompute(heuristic, domain, state, goal_spec)
+    heuristic = precompute(heuristic, domain, state, spec)
     # Initialize path costs and priority queue
     state_hash = hash(state)
     state_dict = Dict{UInt,State}(state_hash => state)
     parents = Dict{UInt,Tuple{UInt,Term}}()
     path_costs = Dict{UInt,Float64}(state_hash => 0)
-    est_cost = heuristic(domain, state, goal_spec)
+    est_cost = heuristic(domain, state, spec)
     queue = PriorityQueue{UInt,Float64}(state_hash => est_cost)
     count = 1
     while length(queue) > 0
@@ -33,7 +32,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
         state = state_dict[state_hash]
         if trace_states @trace(labeled_unif([state]), (:state, count)) end
         # Return plan if search budget is reached or goals are satisfied
-        if count >= max_nodes || satisfy(domain, state, goals)
+        if count >= max_nodes || is_goal(spec, domain, state)
             return reconstruct_plan(state_hash, state_dict, parents) end
         count += 1
         # Get list of available actions
@@ -44,11 +43,9 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
             next_state = transition(domain, state, act; check=false)
             next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
-            if !isempty(constraints) && !satisfy(domain, state, constraints)
-                continue end
+            if is_violated(spec, domain, state) continue end
             # Compute path cost
-            act_cost = metric == nothing ? 1 :
-                next_state[domain, metric] - state[domain, metric]
+            act_cost = get_cost(spec, domain, state, act, next_state)
             path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
             cost_diff = get(path_costs, next_hash, Inf) - path_cost
@@ -59,7 +56,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
                 path_costs[next_hash] = path_cost
                 # Update estimated cost from next state to goal
                 if !(next_hash in keys(queue))
-                    est_remain_cost = heuristic(domain, next_state, goal_spec)
+                    est_remain_cost = heuristic(domain, next_state, spec)
                     est_remain_cost *= h_mult
                     enqueue!(queue, next_hash, path_cost + est_remain_cost)
                 else
@@ -85,17 +82,16 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
 
 "Probabilistic A* search for a plan."
 @gen function aprob_call(planner::ProbAStarPlanner,
-                         domain::Domain, state::State, goal_spec::GoalSpec)
-    @unpack goals, metric, constraints = goal_spec
+                         domain::Domain, state::State, spec::Specification)
     @unpack heuristic, max_nodes, search_noise, trace_states = planner
     # Perform any precomputation required by the heuristic
-    heuristic = precompute(heuristic, domain, state, goal_spec)
+    heuristic = precompute(heuristic, domain, state, spec)
     # Initialize path costs and priority queue
     state_hash = hash(state)
     state_dict = Dict{UInt,State}(state_hash => state)
     parents = Dict{UInt,Tuple{UInt,Term}}()
     path_costs = Dict{UInt,Float64}(state_hash => 0)
-    est_cost = heuristic(domain, state, goal_spec)
+    est_cost = heuristic(domain, state, spec)
     queue = OrderedDict{UInt,Float64}(state_hash => est_cost)
     # Initialize node count
     count = 1
@@ -108,7 +104,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
         if trace_states @trace(labeled_unif([state]), (:state, count)) end
         delete!(queue, state_hash)
         # Return plan if search budget is reached or goals are satisfied
-        if count >= max_nodes || satisfy(domain, state, goals)
+        if count >= max_nodes || is_goal(spec, domain, state)
             return reconstruct_plan(state_hash, state_dict, parents)
         end
         count += 1
@@ -120,11 +116,9 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
             next_state = transition(domain, state, act; check=false)
             next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
-            if !isempty(constraints) && !satisfy(domain, state, constraints)
-                continue end
+            if is_violated(spec, domain, state) continue end
             # Compute path cost
-            act_cost = metric == nothing ? 1 :
-                next_state[domain, metric] - state[domain, metric]
+            act_cost = get_cost(spec, domain, state, act, next_state)
             path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
             cost_diff = get(path_costs, next_hash, Inf) - path_cost
@@ -135,7 +129,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
                 path_costs[next_hash] = path_cost
                 # Update estimated cost from next state to goal
                 if !(next_hash in keys(queue))
-                    est_remain_cost = heuristic(domain, next_state, goal_spec)
+                    est_remain_cost = heuristic(domain, next_state, spec)
                     queue[next_hash] = path_cost + est_remain_cost
                 else
                     queue[next_hash] -= cost_diff
@@ -151,19 +145,18 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
 
 "Data-driven proposal for probabilistic A* search."
 @gen function aprob_propose(planner::ProbAStarPlanner,
-                            domain::Domain, state::State, goal_spec::GoalSpec,
+                            domain::Domain, state::State, spec::Specification,
                             obs_states::Vector{<:Union{State,Nothing}})
     @param obs_bias::Float64 # How much more likely an observed state is sampled
-    @unpack goals, metric, constraints = goal_spec
     @unpack heuristic, max_nodes, search_noise, trace_states = planner
     # Perform any precomputation required by the heuristic
-    heuristic = precompute(heuristic, domain, state, goal_spec)
+    heuristic = precompute(heuristic, domain, state, spec)
     # Initialize path costs and priority queue
     state_hash = hash(state)
     state_dict = Dict{UInt,State}(state_hash => state)
     parents = Dict{UInt,Tuple{UInt,Term}}()
     path_costs = Dict{UInt,Float64}(state_hash => 0)
-    est_cost = heuristic(domain, state, goal_spec)
+    est_cost = heuristic(domain, state, spec)
     queue = OrderedDict{UInt,Float64}(state_hash => est_cost)
     # Initialize observation queue and descendants
     obs_queue = [s == nothing ? nothing : hash(s) for s in obs_states]
@@ -212,7 +205,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
             (obs_queue[1] == nothing || obs_queue[1] == state_hash)
             popfirst!(obs_queue) end
         # Return plan if goals are satisfied
-        if count >= max_nodes || satisfy(domain, state, goals)
+        if count >= max_nodes || is_goal(spec, domain, state)
             return reconstruct_plan(state_hash, state_dict, parents)
         end
         count += 1
@@ -224,11 +217,9 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
             next_state = transition(domain, state, act; check=false)
             next_hash = hash(next_state)
             # Check if next state satisfies trajectory constraints
-            if !isempty(constraints) && !satisfy(domain, state, constraints)
-                continue end
+            if is_violated(spec, domain, state) continue end
             # Compute path cost
-            act_cost = metric == nothing ? 1 :
-                next_state[domain, metric] - state[domain, metric]
+            act_cost = get_cost(spec, domain, state, act, next_state)
             path_cost = path_costs[state_hash] + act_cost
             # Update path costs if new path is shorter
             cost_diff = get(path_costs, next_hash, Inf) - path_cost
@@ -239,7 +230,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
                 path_costs[next_hash] = path_cost
                 # Update estimated cost from next state to goal
                 if !(next_hash in keys(queue))
-                    est_remain_cost = heuristic(domain, next_state, goal_spec)
+                    est_remain_cost = heuristic(domain, next_state, spec)
                     queue[next_hash] = path_cost + est_remain_cost
                 else
                     queue[next_hash] -= cost_diff

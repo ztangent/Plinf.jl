@@ -103,7 +103,7 @@ pf_replan_move_reweight!(pf_state::ParticleFilterState; n_iters::Int=1) =
     # Propose goals that are closer to the current state
     new_goal_idx = @trace(categorical(probs),
                           :init => :agent => :goal => goal_addr)
-    new_goal = GoalSpec(goals[new_goal_idx])
+    new_goal = Specification(goals[new_goal_idx])
     if new_goal == world_states[1].agent_state.goal_state
         return new_goal end # Don't replan if goal does not change
     # Replan from the start, given new goal

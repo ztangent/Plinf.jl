@@ -19,7 +19,7 @@ end
 Base.hash(heuristic::FFHeuristic, h::UInt) = hash(FFHeuristic, h)
 
 function precompute(heuristic::FFHeuristic,
-                    domain::Domain, state::State, goal_spec::GoalSpec)
+                    domain::Domain, state::State, spec::Specification)
     # Check if cache has already been computed
     if heuristic.cache !== nothing return heuristic end
     domain = domain isa CompiledDomain ? # Make a local copy of the domain
@@ -47,14 +47,14 @@ function precompute(heuristic::FFHeuristic,
 end
 
 function compute(heuristic::FFHeuristic,
-                 domain::Domain, state::State, goal_spec::GoalSpec)
+                 domain::Domain, state::State, spec::Specification)
     # Precompute if necessary
     if heuristic.cache === nothing
-        heuristic = precompute(heuristic, domain, state, goal_spec) end
+        heuristic = precompute(heuristic, domain, state, spec) end
     @unpack cache = heuristic
     @unpack domain = cache
-    @unpack goals = goal_spec
     @unpack types, facts = state
+    goals = get_goal_terms(spec)
     # Initialize fact levels and achievers in a GraphPlan-style planning graph
     levels = Dict{Term,Int}(f => 1 for f in facts)
     achievers = Dict{Term,Vector{Term}}(f => Term[] for f in facts)

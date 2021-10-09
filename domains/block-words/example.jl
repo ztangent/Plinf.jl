@@ -54,7 +54,7 @@ goals = word_to_terms.(goal_words)
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
-    GoalSpec(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
+    Specification(word_to_terms(@trace(labeled_unif(goal_words), :goal)))
 end
 goal_strata = Dict((:goal_init => :goal) => goal_words)
 

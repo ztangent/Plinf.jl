@@ -3,7 +3,6 @@ export RTDPlanner
 "Real Time Dynamic Programming (RTDP) planner."
 @kwdef struct RTDPlanner <: Planner
     heuristic::Heuristic = GoalCountHeuristic()
-    discount::Float64 = 1.0
     act_noise::Float64 = 1.0
     max_length::Int = 50
     n_rollouts::Int = 50
@@ -24,68 +23,84 @@ end
 Policy() = Policy(Dict(), Dict())
 
 function solve(planner::RTDPlanner, domain::Domain,
-               init_states::AbstractVector{<:State}, goal_spec::GoalSpec)
-    @unpack goals, metric, constraints = goal_spec
-    @unpack n_rollouts, rollout_len, heuristic, rollout_noise = planner
-    @unpack discount, act_noise = planner
+               init_states::AbstractVector{<:State}, spec::Specification)
+    @unpack n_rollouts, rollout_len, rollout_noise = planner
+    @unpack heuristic, act_noise = planner
     policy = Policy()
     # Perform any precomputation required by the heuristic
-    heuristic = precompute(heuristic, domain, init_states[1], goal_spec)
+    heuristic = precompute(heuristic, domain, init_states[1], spec)
     # Perform rollouts from randomly sampled initial state
+    visited = Vector{eltype(init_states)}()
     for n in 1:n_rollouts
         state = rand(init_states)
-        count = 0
-        while count < rollout_len
-            if satisfy(domain, state, goals)
-                policy.V[hash(state)] = 0.0
-                break
-            end
-            actions = available(domain, state)
-            succs = [transition(domain, state, act) for act in actions]
-            qs = map(succs) do s
-                h = heuristic(domain, s, goals)
-                discount * get!(policy.V, hash(s), -h == -Inf ? -1000 : -h) - 1
-            end
-            policy.Q[hash(state)] = Dict{Term,Float64}(zip(actions, qs))
-            probs = softmax(qs ./ act_noise)
-            policy.V[hash(state)] = act_noise > 0 ?
-                sum(softmax(qs ./ act_noise) .* qs) : maximum(qs)
-            state = succs[categorical(softmax(qs ./ rollout_noise))]
-            count += 1
+        # Rollout until maximum depth
+        for t in 1:rollout_len
+            push!(visited, state)
+            if is_goal(spec, domain, state) break end
+            update_values!(planner, policy, domain, state, spec)
+            actions, qvals = unzip_pairs(policy.Q[hash(state)])
+            probs = softmax(qvals ./ rollout_noise)
+            act = actions[categorical(probs)]
+            state = transition(domain, state, act)
+        end
+        # Post-rollout update
+        while length(visited) > 0
+            state = pop!(visited)
+            update_values!(planner, policy, domain, state, spec)
         end
     end
     return policy
 end
 
-solve(planner::RTDPlanner, domain::Domain, state::State, goal_spec::GoalSpec) =
-    solve(planner, domain, [state], goal_spec)
+solve(planner::RTDPlanner, domain::Domain, state::State, spec::Specification) =
+    solve(planner, domain, [state], spec)
+
+function update_values!(planner::RTDPlanner, policy::Policy,
+                        domain::Domain, state::State, spec::Specification)
+    actions = collect(available(domain, state))
+    state_id = hash(state)
+    if is_goal(spec, domain, state)
+        qs = zeros(length(actions))
+        policy.Q[state_id] = Dict{Term,Float64}(a => 0 for a in actions)
+        policy.V[state_id] = 0.0
+        return
+    end
+    qs = map(actions) do act
+        next_state = transition(domain, state, act)
+        r = get_reward(spec, domain, state, act, next_state)
+        h_val = planner.heuristic(domain, next_state, spec)
+        return get_discount(spec) * get!(policy.V, hash(next_state), -h_val) + r
+    end
+    policy.Q[state_id] = Dict{Term,Float64}(zip(actions, qs))
+    policy.V[state_id] = planner.act_noise == 0 ?
+        maximum(qs) : sum(softmax(qs ./ planner.act_noise) .* qs)
+end
 
 function default_qvals(planner::RTDPlanner, policy::Policy,
-                       domain::Domain, state::State, goal_spec::GoalSpec)
-    @unpack goals = goal_spec
-    @unpack heuristic, discount = planner
+                       domain::Domain, state::State, spec::Specification)
+    @unpack heuristic = planner
     actions = available(domain, state)
     qs = map(actions) do act
-        s = transition(domain, state, act)
-        h = heuristic(domain, s, goals)
-        discount * get(policy.V, hash(s), -h == -Inf ? -1000 : -h) - 1
+        next_state = transition(domain, state, act)
+        r = get_reward(spec, domain, state, act, next_state)
+        h_val = planner.heuristic(domain, next_state, spec)
+        return get_discount(spec) * get(policy.V, hash(next_state), -h_val) + r
     end
     return Dict{Term,Float64}(zip(actions, qs))
 end
 
 @gen function rtdp_call(planner::RTDPlanner,
-                        domain::Domain, state::State, goal_spec::GoalSpec)
+                        domain::Domain, state::State, spec::Specification)
     # Compute policy
-    policy = solve(planner, domain, state, goal_spec)
+    policy = solve(planner, domain, state, spec)
     # Construct plan by sampling from policy until goal is reached
-    @unpack goals = goal_spec
     @unpack act_noise, max_length = planner
     plan, traj = Term[], State[state]
     count = 0
-    while !satisfy(domain, state, goals) && count < max_length
+    while !is_goal(spec, domain, state) && count < max_length
         count += 1
         qs = get(policy.Q, hash(state),
-                 default_qvals(planner, policy, domain, state, goal_spec))
+                 default_qvals(planner, policy, domain, state, spec))
         actions = collect(keys(qs))
         probs = softmax(values(qs) ./ act_noise)
         act = @trace(labeled_cat(actions, probs), (:act, count))
@@ -112,11 +127,11 @@ get_step(::RTDPlanner)::GenerativeFunction = rtdp_step
 
 "Step-wise planning call for RTDPlanner, returns a local policy."
 @gen function rtdp_step(t::Int, ps::PolicyState, planner::RTDPlanner,
-                        domain::Domain, state::State, goal_spec::GoalSpec)
+                        domain::Domain, state::State, spec::Specification)
     policy = ps.policy === nothing ?
-        solve(planner, domain, state, goal_spec) : ps.policy
+        solve(planner, domain, state, spec) : ps.policy
     qs = get(policy.Q, hash(state),
-             default_qvals(planner, policy, domain, state, goal_spec))
+             default_qvals(planner, policy, domain, state, spec))
     actions = collect(keys(qs))
     probs = softmax(values(qs) ./ planner.act_noise)
     return PolicyState(policy, actions, probs)

@@ -11,9 +11,10 @@ end
 Base.hash(::GoalCountHeuristic, h::UInt) = hash(GoalCountHeuristic, h)
 
 function compute(heuristic::GoalCountHeuristic,
-                 domain::Domain, state::State, goal_spec::GoalSpec)
-    count = sum(!domain[state => g] for g in goal_spec.goals)
-    return heuristic.dir == :backward ? length(goal_spec.goals) - count : count
+                 domain::Domain, state::State, spec::Specification)
+    goals = get_goal_terms(spec)
+    count = sum(!satisfy(domain, state, g) for g in goals)
+    return heuristic.dir == :backward ? length(goals) - count : count
 end
 
 "Computes Manhattan distance to the goal for the specified numeric fluents."
@@ -28,8 +29,8 @@ Base.hash(heuristic::ManhattanHeuristic, h::UInt) =
     hash(heuristic.fluents, hash(ManhattanHeuristic, h))
 
 function precompute(heuristic::ManhattanHeuristic,
-                    domain::Domain, state::State, goal_spec::GoalSpec)
-    goal_state = goalstate(domain, PDDL.get_objtypes(state), goal_spec.goals)
+                    domain::Domain, state::State, spec::Specification)
+    goal_state = goalstate(domain, PDDL.get_objtypes(state), get_goal_terms(spec))
     fnames = collect(PDDL.get_fluent_names(goal_state))
     if !issubset(heuristic.fluents, fnames)
         error("Fluents $(join(heuristic.fluents, ", ")) not in goal.")
@@ -38,9 +39,9 @@ function precompute(heuristic::ManhattanHeuristic,
 end
 
 function precompute(heuristic::ManhattanHeuristic,
-                    domain::CompiledDomain, state::State, goal_spec::GoalSpec)
+                    domain::CompiledDomain, state::State, spec::Specification)
     goal_state = goalstate(PDDL.get_source(domain), PDDL.get_objtypes(state),
-                           goal_spec.goals)
+                           get_goal_terms(spec))
     fnames = collect(PDDL.get_fluent_names(goal_state))
     if !issubset(heuristic.fluents, fnames)
         error("Fluents $(join(heuristic.fluents, ", ")) not in goal.")
@@ -49,10 +50,10 @@ function precompute(heuristic::ManhattanHeuristic,
 end
 
 function compute(heuristic::ManhattanHeuristic,
-                 domain::Domain, state::State, goal_spec::GoalSpec)
+                 domain::Domain, state::State, spec::Specification)
     # Precompute if necessary
     if heuristic.goal_state === nothing
-        heuristic = precompute(heuristic, domain, state, goal_spec) end
+        heuristic = precompute(heuristic, domain, state, spec) end
     @unpack fluents, goal_state = heuristic
     goal_vals = [domain[goal_state => f] for f in fluents]
     curr_vals = [domain[state => f] for f in fluents]

@@ -63,7 +63,7 @@ goal_names = [string(g) for g in goal_set]
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
-    GoalSpec(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
+    Specification(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
 end
 goal_strata = Dict((:init=>:agent=>:goal=>:goal) => collect(1:length(goals)))
 

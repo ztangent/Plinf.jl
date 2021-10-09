@@ -71,12 +71,12 @@ get_action(rp::ReplanState)::Term =
 
 "Checks whether a plan already reaches a timestep t, and extends it if not."
 @gen function replan_step(t::Int, rp::ReplanState, replanner::Replanner,
-                          domain::Domain, state::State, goal_spec::GoalSpec)
+                          domain::Domain, state::State, spec::Specification)
     @unpack planner, persistence = replanner
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
     expected_state = rp.rel_step == 0 ? nothing : rp.part_traj[rel_step]
-    if plan_done || satisfy(domain, state, goal_spec.goals)
+    if plan_done || is_goal(spec, domain, state)
         # Return no-op if plan is done
         part_plan, part_traj = Term[Const(Symbol("--"))], [state, state]
         return ReplanState(1, part_plan, part_traj, true)
@@ -90,7 +90,7 @@ get_action(rp::ReplanState)::Term =
     planner = set_max_resource(planner, max_resource)
     # Plan to achieve the goals until the maximum node budget
     part_plan, part_traj =
-        @trace(sample_plan(planner, domain, state, goal_spec), :subplan)
+        @trace(sample_plan(planner, domain, state, spec), :subplan)
     if part_plan == nothing || length(part_plan) == 0
         # Return no-op if goal cannot be reached, or plan is of zero-length
         plan_done |= (part_plan == nothing) # Terminate if goal is unreachable
@@ -102,7 +102,7 @@ end
 "Propose a likely replanning step, given the observed trajectory from `t`."
 @gen function replan_propose_step(t::Int, rp::ReplanState,
                                   replanner::Replanner, domain::Domain,
-                                  state::State, goal_spec::GoalSpec,
+                                  state::State, spec::Specification,
                                   obs_states::Vector{<:Union{State,Nothing}},
                                   proposal_args::Union{Tuple,Nothing})
     @unpack planner, persistence = replanner
@@ -110,7 +110,7 @@ end
     plan_done = rp.plan_done
     rel_step = rp.rel_step + 1 # Compute relative step for current timestep
     expected_state = rp.rel_step == 0 ? nothing : rp.part_traj[rel_step]
-    if plan_done || satisfy(domain, state, goal_spec.goals)
+    if plan_done || is_goal(spec, domain, state)
         # Return no-op if plan is done
         part_plan, part_traj = Term[Const(Symbol("--"))], [state, state]
         return ReplanState(1, part_plan, part_traj, true)
@@ -128,7 +128,7 @@ end
     planner = set_max_resource(planner, max_resource)
     # Plan to achieve the goals until the maximum node budget
     part_plan, part_traj = @trace(propose_plan(planner, domain, state,
-                                               goal_spec, obs_states), :subplan)
+                                               spec, obs_states), :subplan)
     if part_plan == nothing || length(part_plan) == 0
         # Return no-op if goal cannot be reached, or plan is of zero-length
         plan_done |= (part_plan == nothing) # Terminate if goal is unreachable
@@ -139,7 +139,7 @@ end
 
 "Plan to achieve a goal by repeated planning calls"
 @gen function replan_call(replanner::Replanner,
-                          domain::Domain, state::State, goal_spec::GoalSpec)
+                          domain::Domain, state::State, spec::Specification)
     # Intialize state for replan step
     rp_states = [ReplanState(0, Term[], [state], false)]
     plan_count, success = 0, false
@@ -147,7 +147,7 @@ end
         # Take a replanning step
         t = length(rp_states)
         rp = @trace(replan_step(t, rp_states[end], replanner,
-                                domain, state, goal_spec),
+                                domain, state, spec),
                     :timestep => t => :agent => :plan)
         push!(rp_states, rp)
         # Compute next state (assuming environment determinism)

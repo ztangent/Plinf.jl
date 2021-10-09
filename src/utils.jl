@@ -3,6 +3,10 @@ export labeled_cat, labeled_unif, flip
 "Unzips an array of tuples to a tuple of arrays."
 unzip(a) = map(x->getfield.(a, x), fieldnames(eltype(a)))
 
+"Unzips dictionaries or arrays of pairs."
+unzip_pairs(ps::AbstractDict) = unzip_pairs(collect(ps))
+unzip_pairs(ps::AbstractArray{<:Pair}) = first.(ps), last.(ps)
+
 "Pad / truncate vector to specified length."
 pad_vector(v::Vector, n::Int) =
     length(v) < n ? [v; fill(v[end], n - length(v))] : v[1:n]

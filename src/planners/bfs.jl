@@ -11,8 +11,7 @@ get_call(::BFSPlanner)::GenerativeFunction = bfs_call
 
 "Uninformed breadth-first search for a plan."
 @gen function bfs_call(planner::BFSPlanner,
-                       domain::Domain, state::State, goal_spec::GoalSpec)
-    @unpack goals = goal_spec
+                       domain::Domain, state::State, spec::Specification)
     plan, traj = Term[], State[state]
     queue = [(plan, traj)]
     while length(queue) > 0
@@ -31,7 +30,8 @@ get_call(::BFSPlanner)::GenerativeFunction = bfs_call
             next_plan = Term[plan; act]
             next_traj = State[traj; next_state]
             # Return plan if goals are satisfied
-            if satisfy(domain, next_state, goals) return (next_plan, next_traj) end
+            if is_goal(spec, domain, next_state)
+                return (next_plan, next_traj) end
             # Otherwise push to queue
             push!(queue, (next_plan, next_traj))
         end

@@ -7,14 +7,14 @@ export sample_plan, propose_plan
 abstract type Planner end
 
 "Call planner without tracing internal random choices."
-(planner::Planner)(domain::Domain, state::State, goal_spec::GoalSpec) =
-    get_call(planner)(planner, domain, state, goal_spec)
+(planner::Planner)(domain::Domain, state::State, spec::Specification) =
+    get_call(planner)(planner, domain, state, spec)
 
 (planner::Planner)(domain::Domain, state::State, goals::Vector{<:Term}) =
-    get_call(planner)(planner, domain, state, GoalSpec(goals))
+    get_call(planner)(planner, domain, state, Specification(goals))
 
 (planner::Planner)(domain::Domain, state::State, goal::Term) =
-    get_call(planner)(planner, domain, state, GoalSpec(goal))
+    get_call(planner)(planner, domain, state, Specification(goal))
 
 "Return copy of the planner with adjusted resource bound."
 set_max_resource(planner::Planner, val) = planner
@@ -27,34 +27,34 @@ get_proposal(::Planner)::GenerativeFunction = planner_propose
 
 "Abstract planner call template, to be implemented by concrete planners."
 @gen function planner_call(planner::Planner,
-                           domain::Domain, state::State, goal_spec::GoalSpec)
+                           domain::Domain, state::State, spec::Specification)
     error("Not implemented.")
     return plan, traj
 end
 
 "Default data-driven proposal to the planner's internal random choices."
 @gen function planner_propose(planner::Planner,
-                              domain::Domain, state::State, goal_spec::GoalSpec,
+                              domain::Domain, state::State, spec::Specification,
                               obs_states::Vector{<:Union{State,Nothing}})
     call = get_call(planner) # Default to proposing from the prior
-    return @trace(call(planner, domain, state, goal_spec))
+    return @trace(call(planner, domain, state, spec))
 end
 
 "Sample a plan given a planner, domain, initial state and goal specification."
 @gen function sample_plan(planner::Planner,
-                          domain::Domain, state::State, goal_spec)
-    goal_spec = isa(goal_spec, GoalSpec) ? goal_spec : GoalSpec(goal_spec)
+                          domain::Domain, state::State, spec)
+    spec = isa(spec, Specification) ? spec : Specification(spec)
     call = get_call(planner)
-    return @trace(call(planner, domain, state, goal_spec))
+    return @trace(call(planner, domain, state, spec))
 end
 
 "Propose a plan given a planner and a sequence of observed states."
 @gen function propose_plan(planner::Planner,
-                           domain::Domain, state::State, goal_spec,
+                           domain::Domain, state::State, spec,
                            obs_states::Vector{<:Union{State,Nothing}})
-    goal_spec = isa(goal_spec, GoalSpec) ? goal_spec : GoalSpec(goal_spec)
+    spec = isa(spec, Specification) ? spec : Specification(spec)
     proposal = get_proposal(planner)
-    return @trace(proposal(planner, domain, state, goal_spec, obs_states))
+    return @trace(proposal(planner, domain, state, spec, obs_states))
 end
 
 include("stepwise.jl")

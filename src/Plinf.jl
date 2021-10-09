@@ -7,7 +7,7 @@ using DataStructures: PriorityQueue, OrderedDict, enqueue!, dequeue!
 using Random, Julog, PDDL, Gen
 
 include("utils.jl")
-include("goals.jl")
+include("specifications/specifications.jl")
 include("heuristics/heuristics.jl")
 include("planners/planners.jl")
 include("actions.jl")

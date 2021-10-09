@@ -22,7 +22,7 @@ Base.hash(heuristic::HSPHeuristic, h::UInt) =
     hash(heuristic.op, hash(HSPHeuristic, h))
 
 function precompute(heuristic::HSPHeuristic,
-                    domain::Domain, state::State, goal_spec::GoalSpec)
+                    domain::Domain, state::State, spec::Specification)
     # Check if cache has already been computed
     if heuristic.cache !== nothing return heuristic end
     domain = domain isa CompiledDomain ? # Make a local copy of the domain
@@ -50,14 +50,14 @@ function precompute(heuristic::HSPHeuristic,
 end
 
 function compute(heuristic::HSPHeuristic,
-                 domain::Domain, state::State, goal_spec::GoalSpec)
+                 domain::Domain, state::State, spec::Specification)
     # Precompute if necessary
     if heuristic.cache === nothing
-        heuristic = precompute(heuristic, domain, state, goal_spec) end
+        heuristic = precompute(heuristic, domain, state, spec) end
     @unpack op, cache = heuristic
     @unpack domain = cache
-    @unpack goals = goal_spec
     @unpack types, facts = state
+    goals = get_goal_terms(spec)
     # Initialize fact costs in a GraphPlan-style graph
     fact_costs = Dict{Term,Float64}(f => 0 for f in facts)
     while true
@@ -120,10 +120,10 @@ Base.hash(heuristic::HSPRHeuristic, h::UInt) =
     hash(heuristic.op, hash(HSPRHeuristic, h))
 
 function precompute(heuristic::HSPRHeuristic,
-                    domain::Domain, state::State, goal_spec::GoalSpec)
+                    domain::Domain, state::State, spec::Specification)
     @unpack op = heuristic
-    @unpack goals = goal_spec
     @unpack types, facts = state
+    goals = get_goal_terms(spec)
     # Preprocess domain and axioms
     domain = domain isa CompiledDomain ? # Make a local copy of the domain
         copy(PDDL.get_source(domain)) : copy(domain)
@@ -188,10 +188,10 @@ function precompute(heuristic::HSPRHeuristic,
 end
 
 function compute(heuristic::HSPRHeuristic,
-                 domain::Domain, state::State, goal_spec::GoalSpec)
+                 domain::Domain, state::State, spec::Specification)
     # Precompute if necessary
     if isempty(heuristic.fact_costs)
-        heuristic = precompute(heuristic, domain, state, goal_spec) end
+        heuristic = precompute(heuristic, domain, state, spec) end
     @unpack op, fact_costs = heuristic
     # Compute cost of achieving all facts in current state
     return op([0; [get(fact_costs, f, 0) for f in PDDL.get_facts(state)]])

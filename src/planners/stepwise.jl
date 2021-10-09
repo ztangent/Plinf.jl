@@ -54,10 +54,10 @@ get_step_proposal(::Planner)::GenerativeFunction = planner_propose_step
 
 "Default step-wise planning call, which does all planning up-front."
 @gen function planner_step(t::Int, ps::PlanState, planner::Planner,
-                           domain::Domain, state::State, goal_spec::GoalSpec)
+                           domain::Domain, state::State, spec::Specification)
    if ps.step == 0 # Calls planner at the start
        call = get_call(planner)
-       plan, traj = @trace(call(planner, domain, state, goal_spec))
+       plan, traj = @trace(call(planner, domain, state, spec))
        if plan == nothing || traj == nothing # Return no-op on plan failure
            plan, traj = Term[Const(Symbol("--"))], State[state]
        end
@@ -70,26 +70,26 @@ end
 "Default proposal for planner step."
 @gen function planner_propose_step(t::Int, ps::AbstractPlanState,
                                    planner::Planner, domain::Domain,
-                                   state::State, goal_spec::GoalSpec,
+                                   state::State, spec::Specification,
                                    obs_states::Vector{<:Union{State,Nothing}},
                                    proposal_args::Tuple)
     # Default to using prior as proposal
     step_call = get_step(planner)
-    return @trace(step_call(t, ps, planner, domain, state, goal_spec))
+    return @trace(step_call(t, ps, planner, domain, state, spec))
 end
 
 "Sample planning steps for timesteps in `t1:t2`."
 @gen function sample_step_range(t1::Int, t2::Int, ps::AbstractPlanState,
                                 planner::Planner, domain::Domain,
                                 env_states::Vector{<:Union{State,Nothing}},
-                                goal_spec::GoalSpec)
+                                spec::Specification)
    step_call = get_step(planner)
    plan_states = Vector{typeof(ps)}()
    state = nothing
    for t in 1:(t2-t1+1)
        state = (t == 1 || env_states[t] !== nothing) ? env_states[t] :
            transition(domain, state, get_action(ps))
-       ps = @trace(step_call(t+t1-1, ps, planner, domain, state, goal_spec),
+       ps = @trace(step_call(t+t1-1, ps, planner, domain, state, spec),
                    :timestep => t+t1-1 => :agent => :plan)
        push!(plan_states, ps)
    end
@@ -100,7 +100,7 @@ end
 @gen function propose_step_range(t1::Int, t2::Int, ps::AbstractPlanState,
                                  planner::Planner, domain::Domain,
                                  env_states::Vector{<:Union{State,Nothing}},
-                                 goal_spec::GoalSpec,
+                                 spec::Specification,
                                  obs_states::Vector{<:Union{State,Nothing}},
                                  proposal_args::Vector{<:Union{Tuple,Nothing}})
    step_propose = get_step_proposal(planner)
@@ -110,7 +110,7 @@ end
        state = (t == 1 || env_states[t] !== nothing) ? env_states[t] :
            transition(domain, state, get_action(ps))
        ps = @trace(step_propose(t+t1-1, ps, planner, domain, state,
-                                goal_spec, obs_states[t:end], proposal_args[t]),
+                                spec, obs_states[t:end], proposal_args[t]),
                    :timestep => t+t1-1 => :agent => :plan)
    end
    return plan_states

@@ -16,12 +16,13 @@ get_call(::FastDownwardPlanner)::GenerativeFunction = fast_downward_call
 
 "Calls the FastDownward planning system to produce a plan."
 @gen function fast_downward_call(planner::FastDownwardPlanner, domain::Domain,
-                                 state::State, goal_spec::GoalSpec)
+                                 state::State, spec::Specification)
     if !haskey(ENV, "FD_PATH")
         error("FD_PATH not set to location of fast_downward.py") end
     @unpack search, heuristic, h_params, timeout, verbose = planner
     # Write temporary domain and problem files
-    @unpack goals, metric = goal_spec
+    goals = get_goal_terms(spec)
+    metric = hasfield(typeof(spec), :metric) ? spec.metric : nothing
     if metric != nothing metric = (-1, metric) end
     problem = Problem(state, Compound(:and, goals), metric; domain=domain.name)
     domain_path = save_domain(tempname(), domain)
