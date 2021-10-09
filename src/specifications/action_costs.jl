@@ -19,7 +19,7 @@ end
 
 Base.hash(spec::MinActionCosts, h::UInt) =
     hash(spec.costs, hash(Set(spec.terms), h))
-Base.isequal(s1::MinActionCosts, s2::MinActionCosts) =
+Base.:(==)(s1::MinActionCosts, s2::MinActionCosts) =
     s1.costs == s2.costs && s1.terms == s2.terms
 
 is_goal(spec::MinActionCosts, domain::Domain, state::State) =
@@ -50,7 +50,7 @@ end
 
 Base.hash(spec::ExtraActionCosts, h::UInt) =
     hash(spec.costs, hash(spec.spec, h))
-Base.isequal(s1::ExtraActionCosts, s2::ExtraActionCosts) =
+Base.:(==)(s1::ExtraActionCosts, s2::ExtraActionCosts) =
     s1.costs == s2.costs && s1.spec == s2.spec
 
 is_goal(spec::ExtraActionCosts, domain::Domain, state::State) =
