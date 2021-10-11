@@ -34,8 +34,14 @@ function WorldConfig(domain::Domain, agent_config::AgentConfig,
 end
 
 "Environment transition function for deterministic dynamics."
-@gen determ_env_step(t, env_state::State, action::Term, domain::Domain) =
-    transition(domain, env_state, action; fail_mode=:no_op)
+"Environment transition function for deterministic dynamics."
+@gen function determ_env_step(t, env_state::State, action::Term, domain::Domain)
+    if action.name == Symbol("--") || !available(domain, env_state, action)
+        return env_state
+    else
+        return transition(domain, env_state, action, check=false)
+    end
+end
 
 "Observation which depends on only the current environment state."
 @gen markov_obs_step(t, obs_state, env_state::State, domain::Domain, params) =
