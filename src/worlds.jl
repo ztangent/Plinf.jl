@@ -34,7 +34,6 @@ function WorldConfig(domain::Domain, agent_config::AgentConfig,
 end
 
 "Environment transition function for deterministic dynamics."
-"Environment transition function for deterministic dynamics."
 @gen function determ_env_step(t, env_state::State, action::Term, domain::Domain)
     if action.name == Symbol("--") || !available(domain, env_state, action)
         return env_state
