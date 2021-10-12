@@ -30,11 +30,11 @@ end
 function AgentConfig(domain::Domain, planner::Union{Planner,GenerativeFunction};
                      act_noise=0.0, include_noop=true, kwargs...)
     if act_noise == 0
-        AgentConfig(domain=domain, planner=planner,
+        AgentConfig(;domain=domain, planner=planner,
                     act_step=planned_act_step, kwargs...)
     else
         act_args = (act_noise, include_noop)
-        AgentConfig(domain=domain, planner=planner,
+        AgentConfig(;domain=domain, planner=planner,
                     act_step=noisy_act_step, act_args=act_args, kwargs...)
     end
 end
@@ -42,10 +42,10 @@ end
 function BoltzmannAgentConfig(domain, planner; act_noise=nothing, kwargs...)
     if !haskey(kwargs, :act_args)
         act_args = (act_noise,)
-        AgentConfig(domain=domain, planner=planner, plan_step=rtdp_step,
+        AgentConfig(;domain=domain, planner=planner, plan_step=rtdp_step,
                     act_step=boltzmann_act_step, act_args=act_args, kwargs...)
     else
-        AgentConfig(domain=domain, planner=planner,
+        AgentConfig(;domain=domain, planner=planner,
                     plan_step=rtdp_step, act_step=boltzmann_act_step, kwargs...)
     end
 end
