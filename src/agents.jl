@@ -21,26 +21,34 @@ AgentInit(planner::Planner, goal_init) =
     planner::Union{Planner,GenerativeFunction}
     goal_step::GenerativeFunction = static_goal_step
     goal_args::Union{Tuple,GenerativeFunction} = ()
-    plan_step::GenerativeFunction = replan_step
+    plan_step::GenerativeFunction = get_step(planner)
     plan_args::Union{Tuple,GenerativeFunction} = ()
     act_step::GenerativeFunction = planned_act_step
     act_args::Union{Tuple,GenerativeFunction} = ()
 end
 
 function AgentConfig(domain::Domain, planner::Union{Planner,GenerativeFunction};
-                     act_noise=0.0, kwargs...)
+                     act_noise=0.0, include_noop=true, kwargs...)
     if act_noise == 0
         AgentConfig(domain=domain, planner=planner,
                     act_step=planned_act_step, kwargs...)
     else
+        act_args = (act_noise, include_noop)
         AgentConfig(domain=domain, planner=planner,
-                    act_step=noisy_act_step, act_args=(act_noise,), kwargs...)
+                    act_step=noisy_act_step, act_args=act_args, kwargs...)
     end
 end
 
-BoltzmannAgentConfig(domain, planner; kwargs...) =
-    AgentConfig(domain=domain, planner=planner,
-                plan_step=rtdp_step, act_step=boltzmann_act_step, kwargs...)
+function BoltzmannAgentConfig(domain, planner; act_noise=nothing, kwargs...)
+    if !haskey(kwargs, :act_args)
+        act_args = (act_noise,)
+        AgentConfig(domain=domain, planner=planner, plan_step=rtdp_step,
+                    act_step=boltzmann_act_step, act_args=act_args, kwargs...)
+    else
+        AgentConfig(domain=domain, planner=planner,
+                    plan_step=rtdp_step, act_step=boltzmann_act_step, kwargs...)
+    end
+end
 
 "Intialize agent_state by sampling from the initializers"
 @gen function init_agent_model(init::AgentInit, config::AgentConfig)

@@ -114,14 +114,15 @@ end
 "Represents policy at a particular state."
 struct PolicyState <: AbstractPlanState
     policy::Union{Policy,Nothing}
+    act_noise::Float64
     actions::Vector{Term}
-    probs::Vector{Float64}
+    qvalues::Vector{Float64}
 end
 
 init_plan_state(::RTDPlanner) =
-    PolicyState(nothing, Term[pddl"(--)"], [1.0])
+    PolicyState(nothing, 0.0, Term[pddl"(--)"], [1.0])
 
-get_action(ps::PolicyState) = ps.actions[argmax(ps.probs)]
+get_action(ps::PolicyState) = ps.actions[argmax(ps.qvalues)]
 
 get_step(::RTDPlanner)::GenerativeFunction = rtdp_step
 
@@ -133,6 +134,6 @@ get_step(::RTDPlanner)::GenerativeFunction = rtdp_step
     qs = get(policy.Q, hash(state),
              default_qvals(planner, policy, domain, state, spec))
     actions = collect(keys(qs))
-    probs = softmax(values(qs) ./ planner.act_noise)
-    return PolicyState(policy, actions, probs)
+    qvalues = collect(values(qs))
+    return PolicyState(policy, planner.act_noise, actions, qvalues)
 end

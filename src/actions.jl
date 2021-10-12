@@ -5,18 +5,31 @@ export forward_act_proposal
     @trace(labeled_unif([get_action(agent_state.plan_state)]), :act)
 
 "Boltzmann action selection from precomputed policy."
-@gen function boltzmann_act_step(t, agent_state, env_state, domain)
-    @unpack actions, probs = agent_state.plan_state
-    @trace(labeled_cat(actions, probs), :act)
+@gen function boltzmann_act_step(t, agent_state, env_state, domain,
+                                 act_noise=nothing)
+    # Use policy action noise if not overridden
+    if act_noise === nothing
+        act_noise = agent_state.plan_state.act_noise
+    end
+    @unpack actions, qvalues = agent_state.plan_state
+    if act_noise > 0
+        probs = softmax(qvalues ./ act_noise)
+    else
+        best_act = actions[argmax(qvalues)]
+        probs = [act == best_act ? 1.0 : 0.0 for act in actions]
+    end
+    return @trace(labeled_cat(actions, probs), :act)
 end
 
 "ϵ-noisy action selection from current plan."
-@gen function noisy_act_step(t, agent_state, env_state, domain, eps)
+@gen function noisy_act_step(t, agent_state, env_state, domain, eps,
+                             include_noop=true)
     if t == 1 # TODO: Re-index to avoid this hack
         return @trace(labeled_unif([Const(Symbol("--"))]), :act)
     end
     intended = get_action(agent_state.plan_state)
-    actions = pushfirst!(collect(available(domain, env_state)), Const(Symbol("--")))
+    actions = collect(available(domain, env_state))
+    if include_noop pushfirst!(actions, Const(Symbol("--"))) end
     weights = [act == intended ? (1. - eps) / eps : 1. for act in actions]
     probs = weights ./ sum(weights)
     act = @trace(labeled_cat(actions, probs), :act)
