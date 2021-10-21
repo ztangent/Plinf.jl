@@ -19,7 +19,7 @@ function initialize_pf_stratified(
     observations::ChoiceMap,
     strata::AbstractDict{<:Any,<:AbstractVector},
     n_particles::Int,
-    copy_repeats::Bool=true
+    copy_repeats::Bool=false
 ) where {T,U}
     traces = Vector{U}(undef, n_particles)
     log_weights = Vector{Float64}(undef, n_particles)
@@ -40,7 +40,11 @@ function initialize_pf_stratified(
     # Select the remainder at random from the full set of enumerated traces
     if n_remain > 0
         i_particle = n_particles - n_remain + 1
-        trs, ws = enumerate_traces(model, model_args, strata, observations)
+        if copy_repeats && i > 1
+            trs, ws = traces[1:n_strata], log_weights[1:n_strata]
+        else
+            trs, ws = enumerate_traces(model, model_args, strata, observations)
+        end
         idxs = randperm(n_strata)[1:n_remain]
         traces[i_particle:end] = trs[idxs]
         log_weights[i_particle:end] = ws[idxs]
@@ -55,7 +59,7 @@ function initialize_pf_stratified(
     observations::ChoiceMap,
     strata::Nothing,
     n_particles::Int,
-    copy_repeats::Bool=true
+    copy_repeats::Bool=false
 )
     # Initialize as usual if no strata are provided
     initialize_particle_filter(model, model_args, observations, n_particles)
