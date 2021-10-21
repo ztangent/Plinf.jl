@@ -13,11 +13,15 @@ function enumerate_traces(gen_fn::GenerativeFunction, args::Tuple,
 end
 
 "Initialize a particle filter with stratified sampling."
-function initialize_pf_stratified(model::GenerativeFunction{T,U},
-                                  model_args::Tuple, observations::ChoiceMap,
-                                  strata::AbstractDict{<:Any,<:AbstractVector},
-                                  n_particles::Int) where {T,U}
-    traces = Vector{Any}(undef, n_particles)
+function initialize_pf_stratified(
+    model::GenerativeFunction{T,U},
+    model_args::Tuple,
+    observations::ChoiceMap,
+    strata::AbstractDict{<:Any,<:AbstractVector},
+    n_particles::Int,
+    copy_repeats::Bool=true
+) where {T,U}
+    traces = Vector{U}(undef, n_particles)
     log_weights = Vector{Float64}(undef, n_particles)
     n_strata = reduce(*, length(vals) for (addr, vals) in strata, init=1)
     n_repeats = n_particles ÷ n_strata
@@ -25,7 +29,11 @@ function initialize_pf_stratified(model::GenerativeFunction{T,U},
     # Repeat discrete enumeration of traces over provided strata
     for i in 1:n_repeats
         i_particle = (i-1) * n_strata + 1
-        trs, ws = enumerate_traces(model, model_args, strata, observations)
+        if copy_repeats && i > 1
+            trs, ws = traces[1:n_strata], log_weights[1:n_strata]
+        else
+            trs, ws = enumerate_traces(model, model_args, strata, observations)
+        end
         traces[i_particle:i_particle + n_strata - 1] = trs
         log_weights[i_particle:i_particle + n_strata - 1] = ws
     end
@@ -38,12 +46,17 @@ function initialize_pf_stratified(model::GenerativeFunction{T,U},
         log_weights[i_particle:end] = ws[idxs]
     end
     return ParticleFilterState{U}(traces, Vector{U}(undef, n_particles),
-                                      log_weights, 0., collect(1:n_particles))
+                                  log_weights, 0., collect(1:n_particles))
 end
 
-function initialize_pf_stratified(model::GenerativeFunction,
-                                  model_args::Tuple, observations::ChoiceMap,
-                                  strata::Nothing, n_particles::Int)
+function initialize_pf_stratified(
+    model::GenerativeFunction,
+    model_args::Tuple,
+    observations::ChoiceMap,
+    strata::Nothing,
+    n_particles::Int,
+    copy_repeats::Bool=true
+)
     # Initialize as usual if no strata are provided
     initialize_particle_filter(model, model_args, observations, n_particles)
 end
