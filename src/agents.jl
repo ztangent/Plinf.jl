@@ -61,7 +61,7 @@ end
     act_args = @trace(sample_fn(act_args), :act_args)
     # Initialize agent states
     goal_state = @trace(sample_fn(init.goal_init), :goal)
-    plan_state = @trace(sample_fn(init.plan_init), :plan)
+    plan_state = @trace(sample_fn(init.plan_init, (goal_state,)), :plan)
     # Return sampled state and configuration
     state = AgentState(goal_state, plan_state)
     config = AgentConfig(domain, planner, goal_step, goal_args,
