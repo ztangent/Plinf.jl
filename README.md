@@ -8,6 +8,7 @@ using [PDDL](https://github.com/ztangent/PDDL.jl) and [Gen](https://www.gen.dev/
 To use this library in your own projects, press `]` at the Julia REPL to
 enter the package manager, then run:
 ```julia
+add https://github.com/JuliaPlanners/PDDL.jl.git
 add https://github.com/ztangent/Plinf.jl.git
 ```
 
