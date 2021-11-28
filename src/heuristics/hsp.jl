@@ -13,8 +13,8 @@ end
 "HSP family of delete-relaxation heuristics."
 struct HSPHeuristic <: Heuristic
     op::Function # Aggregator (e.g. maximum, sum) for fact costs
-    cache::HSPCache # Precomputed domain information
-    HSPHeuristic(op) = new(op)
+    cache::Union{HSPCache,Nothing} # Precomputed domain information
+    HSPHeuristic(op) = new(op, nothing)
     HSPHeuristic(op, cache) = new(op, cache)
 end
 
@@ -24,7 +24,7 @@ Base.hash(heuristic::HSPHeuristic, h::UInt) =
 function precompute(heuristic::HSPHeuristic,
                     domain::Domain, state::State, goal_spec::GoalSpec)
     # Check if cache has already been computed
-    if isdefined(heuristic, :cache) return heuristic end
+    if heuristic.cache !== nothing return heuristic end
     domain = copy(domain) # Make a local copy of the domain
     # Preprocess axioms
     axioms = regularize_clauses(domain.axioms) # Regularize domain axioms
@@ -51,7 +51,7 @@ end
 function compute(heuristic::HSPHeuristic,
                  domain::Domain, state::State, goal_spec::GoalSpec)
     # Precompute if necessary
-    if !isdefined(heuristic, :cache)
+    if heuristic.cache === nothing
         heuristic = precompute(heuristic, domain, state, goal_spec) end
     @unpack op, cache = heuristic
     @unpack domain = cache
@@ -111,7 +111,7 @@ HAdd(args...) = HSPHeuristic(sum, args...)
 struct HSPRHeuristic <: Heuristic
     op::Function
     fact_costs::Dict{Term,Float64} # Est. cost of reaching each fact from goal
-    HSPRHeuristic(op) = new(op)
+    HSPRHeuristic(op) = new(op, Dict{Term,Float64}())
     HSPRHeuristic(op, fact_costs) = new(op, fact_costs)
 end
 
@@ -188,7 +188,7 @@ end
 function compute(heuristic::HSPRHeuristic,
                  domain::Domain, state::State, goal_spec::GoalSpec)
     # Precompute if necessary
-    if !isdefined(heuristic, :fact_costs)
+    if isempty(heuristic.fact_costs)
         heuristic = precompute(heuristic, domain, state, goal_spec) end
     @unpack op, fact_costs = heuristic
     # Compute cost of achieving all facts in current state

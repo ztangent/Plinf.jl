@@ -19,8 +19,8 @@ end
 "Computes Manhattan distance to the goal for the specified numeric fluents."
 struct ManhattanHeuristic <: Heuristic
     fluents::Vector{Term}
-    goal_state::State
-    ManhattanHeuristic(fluents) = new(fluents)
+    goal_state::Union{State,Nothing}
+    ManhattanHeuristic(fluents) = new(fluents, nothing)
     ManhattanHeuristic(fluents, goal_state) = new(fluents, goal_state)
 end
 
@@ -36,7 +36,7 @@ end
 function compute(heuristic::ManhattanHeuristic,
                  domain::Domain, state::State, goal_spec::GoalSpec)
     # Precompute if necessary
-    if !isdefined(heuristic, :goal_state)
+    if heuristic.goal_state === nothing
         heuristic = precompute(heuristic, domain, state, goal_spec) end
     @unpack fluents, goal_state = heuristic
     goal_vals = [goal_state[domain, f] for f in fluents]
