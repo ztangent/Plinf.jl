@@ -49,7 +49,7 @@ get_call(::BackwardPlanner)::GenerativeFunction = bwd_call
             # Regress (reverse-execute) the action
             prev_state = regress(domain, state, act; check=false)
             # Add constraints to regression state
-            add_constraints!(spec, state)
+            add_constraints!(spec, domain, state)
             prev_hash = hash(prev_state)
             # Compute path cost
             act_cost = get_cost(spec, domain, state, act, prev_state)
