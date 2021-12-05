@@ -31,7 +31,7 @@ function observe_params(domain::Domain; state=nothing,
     params = Dict{Term,Tuple{Distribution, Tuple}}()
     static_fluents = infer_static_fluents(domain)
     # Add Boolean corruption noise to all Boolean predicates
-    for (name, pred) in domain.predicates
+    for (name, pred) in pairs(PDDL.get_predicates(domain))
         if name in static_fluents continue end # Ignore static predicates
         if isempty(pred.args)
             term = convert(Term, pred)
@@ -44,7 +44,7 @@ function observe_params(domain::Domain; state=nothing,
         params[term] = (flip, (pred_noise,))
     end
     # Add Gaussian noise to all numeric fluents / functions
-    for (name, func) in domain.functions
+    for (name, func) in pairs(PDDL.get_functions(domain))
         if name == Symbol("total-cost") continue end # Ignore total cost
         if name in static_fluents continue end # Ignore static fluents
         if PDDL.arity(func) == 0
