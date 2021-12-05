@@ -139,9 +139,9 @@ plotters = [ # List of subplot callbacks:
 ]
 canvas = render(state; show_blocks=false)
 callback = (t, s, trs, ws) -> begin
-    # multiplot_cb(t, s, trs, ws, plotters;
-    #              canvas=canvas, animation=anim, show=true,
-    #              goal_probs=goal_probs, goal_names=goal_words);
+    multiplot_cb(t, s, trs, ws, plotters;
+                 canvas=canvas, animation=anim, show=true,
+                 goal_probs=goal_probs, goal_names=goal_words);
     print("t=$t\t");
     print_goal_probs(get_goal_probs(trs, ws, goal_words))
 end
@@ -157,7 +157,7 @@ traces, weights =
                           resample=true, rejuvenate=pf_replan_move_accept!,
                           strata=goal_strata, callback=callback,
                           act_proposal=act_proposal,
-                          act_proposal_args=act_proposal_args)
+                          act_proposal_args=act_proposal_args);
 
 # Print posterior probability of each goal
 goal_probs = get_goal_probs(traces, weights, goal_words)

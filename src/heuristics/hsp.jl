@@ -6,7 +6,7 @@ export HSPRHeuristic, HAddR, HMaxR
 struct HSPHeuristic <: Heuristic
     op::Function # Aggregator (e.g. maximum, sum) for fact costs
     graph::PlanningGraph # Precomputed planning graph
-    goal_idxs::Set{Int} # Precomputed list of goal indices
+    goal_idxs::Union{Nothing,Set{Int}} # Precomputed list of goal indices
     HSPHeuristic(op) = new(op)
     HSPHeuristic(op, graph, goal_idxs) = new(op, graph, goal_idxs)
 end
@@ -23,17 +23,30 @@ function precompute(h::HSPHeuristic,
     return HSPHeuristic(h.op, graph, goal_idxs)
 end
 
+function precompute(h::HSPHeuristic,
+                    domain::Domain, state::State, spec::NullGoal)
+    graph = build_planning_graph(domain, state)
+    return HSPHeuristic(h.op, graph, nothing)
+end
+
 function compute(h::HSPHeuristic,
                  domain::Domain, state::State, spec::Specification)
     # Precompute if necessary
     if !isdefined(h, :graph)
         h = precompute(h, domain, state, spec)
     end
+    # Construct goal indices if necessary
+    if h.goal_idxs === nothing
+        goal_conds = PDDL.to_cnf_clauses(get_goal_terms(spec))
+        goal_idxs = Set(findall(c -> c in goal_conds, h.graph.conditions))
+    else
+        goal_idxs = h.goal_idxs
+    end
     # Compute relaxed costs to each condition node of the planning graph
     costs, _ = relaxed_graph_search(domain, state, spec,
-                                    h.op, h.graph, h.goal_idxs)
+                                    h.op, h.graph, goal_idxs)
     # Return goal cost (may be infinite if unreachable)
-    goal_cost = h.op(costs[g] for g in h.goal_idxs)
+    goal_cost = h.op(costs[g] for g in goal_idxs)
     return goal_cost
 end
 
