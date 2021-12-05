@@ -55,6 +55,6 @@ get_call(::FastDownwardPlanner)::GenerativeFunction = fast_downward_call
     plan = readlines("./sas_plan")[1:end-1]
     Base.Filesystem.rm("./sas_plan")
     plan = parse_pddl.(plan)
-    traj = PDDL.simulate(domain, state, plan)
+    traj = Plinf.simulate(domain, state, plan)
     return plan, traj
 end

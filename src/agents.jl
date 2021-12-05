@@ -93,7 +93,7 @@ end
     agent_states = Vector{AgentState}()
     for t in 1:(t2-t1+1)
         # Potentially sample a new goal
-        goal_state = @trace(goal_step(t, goal_state, goal_args...),
+        goal_state = @trace(goal_step(t+t1-1, goal_state, goal_args...),
                             :timestep => t+t1-1 => :agent => :goal)
         goal_spec = get_goal(goal_state)
         # Propose new planning step
@@ -107,17 +107,17 @@ end
         # Propose next action
         if (t < (t2-t1+1) &&
             (length(obs_states) < t+1 || obs_states[t+1] === nothing))
-            action = @trace(act_step(t, agent_state, env_state,
+            action = @trace(act_step(t+t1, agent_state, env_state,
                                      domain, act_args...),
                             :timestep => t+t1 => :act)
         elseif t < (t2-t1+1)
-            action = @trace(forward_act_proposal(domain, agent_state, env_state,
+            action = @trace(forward_act_proposal(t+t1, domain, agent_state, env_state,
                                                  obs_states[t+1], act_args...),
                             :timestep => t+t1 => :act)
         end
         # Transition to next environment state
         if t < (t2-t1+1)
-            env_state = @trace(determ_env_step(t, env_state, action, domain),
+            env_state = @trace(determ_env_step(t+t1, env_state, action, domain),
                                :timestep => t+t1 => :env)
         end
     end

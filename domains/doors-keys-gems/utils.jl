@@ -15,22 +15,21 @@ function Plinf.compute(heuristic::GemManhattan,
     pos = [state[pddl"xpos"], state[pddl"ypos"]]
     dists = [sum(abs.(pos - l)) for l in locs]
     min_dist = length(dists) > 0 ? minimum(dists) : 0
-    return min_dist + GoalCountHeuristic()(domain, state, goal_spec)
+    return min_dist + GoalCountHeuristic()(domain, state, spec)
 end
 
 "Maze distance heuristic to location of goal gem."
 struct GemMazeDist <: Heuristic end
 
-maze_planner =
-    AStarPlanner(heuristic=ManhattanHeuristic(@julog([xpos, ypos])))
+maze_planner = AStarPlanner(heuristic=GemManhattan())
 
 function Plinf.compute(heuristic::GemMazeDist,
                        domain::Domain, state::State, spec::Specification)
     relaxed_state = copy(state)
-    for t in find_matches(@julog(door(X, Y)), state)
+    for t in find_matches(domain, state, @julog(door(X, Y)))
         relaxed_state[t] = false
     end
-    relaxed_plan = relaxed_planner(domain, relaxed_state, goal_spec)[1]
+    relaxed_plan = maze_planner(domain, relaxed_state, spec)[1]
     return length(relaxed_plan)
 end
 

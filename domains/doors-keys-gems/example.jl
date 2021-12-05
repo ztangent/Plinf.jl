@@ -95,7 +95,7 @@ plan2, traj = planner(domain, traj[end], @julog(not(door(8, 5))))
 plan3, traj = planner(domain, traj[end], @julog(has(key1)))
 plan4, traj = planner(domain, traj[end], @julog(has(gem3)))
 plan = [plan1; plan2; plan3; plan4]
-traj = PDDL.simulate(domain, state, plan)
+traj = Plinf.simulate(domain, state, plan)
 
 # Visualize trajectory
 frames = []
@@ -114,7 +114,7 @@ n_samples = 30
 traces, weights, lml_est =
     world_importance_sampler(world_init, world_config,
                              traj, obs_terms, n_samples;
-                             use_proposal=true, strata=goal_strata)
+                             use_proposal=true, strata=goal_strata);
 
 # Plot sampled trajectory for each trace
 plt = render(state; start=start_pos, gem_colors=gem_colors)
@@ -171,7 +171,7 @@ act_proposal = act_noise > 0 ? forward_act_proposal : nothing
 act_proposal_args = (act_noise,)
 
 # Run a particle filter to perform online goal inference
-n_samples = 30
+n_samples = 60
 traces, weights =
     world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
                           resample=true, rejuvenate=mixed_rejuv!,

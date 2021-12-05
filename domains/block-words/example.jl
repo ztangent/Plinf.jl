@@ -35,7 +35,7 @@ trajs = [planner(domain, state, goal)[2] for i in 1:5]
 anim = anim_traj(trajs; alpha=0.1)
 
 # Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=HAdd(), search_noise=0.1)
+astar = ProbAStarPlanner(heuristic=FFHeuristic(), search_noise=0.1)
 replanner = Replanner(planner=astar, persistence=(2, 0.95))
 plt = render(state)
 tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))
@@ -59,7 +59,7 @@ end
 goal_strata = Dict((:goal_init => :goal) => goal_words)
 
 # Assume either a planning agent or replanning agent as a model
-heuristic = precompute(FFHeuristic(), domain)
+heuristic = precompute(FFHeuristic(), domain, state)
 planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
 replanner = Replanner(planner=planner, persistence=(2, 0.95))
 agent_planner = replanner # planner
@@ -89,7 +89,7 @@ else
     plan = @pddl("(pick-up o)","(stack o w)","(unstack r p)","(stack r o)",
                  "(unstack d a)","(put-down d)","(unstack a c)","(put-down a)",
                  "(pick-up c)", "(stack c r)")
-    traj = PDDL.simulate(domain, state, plan)
+    traj = Plinf.simulate(domain, state, plan)
 end
 
 # Visualize trajectory
@@ -139,9 +139,9 @@ plotters = [ # List of subplot callbacks:
 ]
 canvas = render(state; show_blocks=false)
 callback = (t, s, trs, ws) -> begin
-    multiplot_cb(t, s, trs, ws, plotters;
-                 canvas=canvas, animation=anim, show=true,
-                 goal_probs=goal_probs, goal_names=goal_words);
+    # multiplot_cb(t, s, trs, ws, plotters;
+    #              canvas=canvas, animation=anim, show=true,
+    #              goal_probs=goal_probs, goal_names=goal_words);
     print("t=$t\t");
     print_goal_probs(get_goal_probs(trs, ws, goal_words))
 end
@@ -158,6 +158,13 @@ traces, weights =
                           strata=goal_strata, callback=callback,
                           act_proposal=act_proposal,
                           act_proposal_args=act_proposal_args)
+
+# Print posterior probability of each goal
+goal_probs = get_goal_probs(traces, weights, goal_words)
+println("Posterior probabilities:")
+for (goal, prob) in zip(sort(goal_words), values(sort(goal_probs)))
+  @printf "Goal: %s\t Prob: %0.3f\n" goal prob
+end
 
 # Show animation of goal inference
 gif(anim; fps=1)
