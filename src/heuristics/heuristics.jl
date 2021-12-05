@@ -42,6 +42,7 @@ end
 (h::Heuristic)(domain::Domain, state::State, spec; cache::Bool=true) =
     h(domain, state, Specification(spec); cache=cache)
 
+include("utils.jl")
 include("basic.jl")
 include("hsp.jl")
 include("ff.jl")
