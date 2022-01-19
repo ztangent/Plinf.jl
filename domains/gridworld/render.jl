@@ -88,7 +88,7 @@ function render!(plan::Vector{Term}, start::Tuple{Int,Int},
      return plt
 end
 
-function render!(traj::Vector{State}, plt=nothing;
+function render!(traj::Vector{<:State}, plt=nothing;
                  alpha::Real=0.50, color=:red, radius=0.1)
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
@@ -128,7 +128,7 @@ end
 "Render animation of state trajectory/ies."
 function anim_traj(trajs, canvas=nothing, animation=nothing;
                    show=true, fps=3, kwargs...)
-    if isa(trajs, Vector{State}) trajs = [trajs] end
+    if isa(trajs, Vector{<:State}) trajs = [trajs] end
     canvas = canvas == nothing ?
         render(trajs[1][1]; show_objs=false, kwargs...) : canvas
     animation = animation == nothing ? Animation() : animation

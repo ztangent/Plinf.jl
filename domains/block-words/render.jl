@@ -188,7 +188,7 @@ end
 "Render animation of state trajectory/ies."
 function anim_traj(trajs, canvas=nothing, animation=nothing;
                    show=true, fps=30, kwargs...)
-    if isa(trajs, Vector{State}) trajs = [trajs] end
+    if isa(trajs, Vector{<:State}) trajs = [trajs] end
     canvas = canvas == nothing ?
         render(trajs[1][1]; show_blocks=false, kwargs...) : canvas
     animation = animation == nothing ? Animation() : animation
