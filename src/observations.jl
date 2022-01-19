@@ -141,7 +141,7 @@ function state_choicemap(state::State, terms::Vector{<:Term}, addr=:obs)
 end
 
 "Construct array of Gen choicemaps from observed trajectory."
-function traj_choicemaps(traj::Vector{State}, domain::Union{Domain,Nothing},
+function traj_choicemaps(traj::Vector{<:State}, domain::Union{Domain,Nothing},
                          terms::Vector{<:Term}, traj_addr=:timestep,
                          obs_addr=:obs; as_choicemap::Bool=false, batch_size=1)
     traj_choices = ChoiceMap[]
@@ -159,7 +159,7 @@ function traj_choicemaps(traj::Vector{State}, domain::Union{Domain,Nothing},
     return as_choicemap ? traj_choices[1] : traj_choices
 end
 
-function traj_choicemaps(traj::Vector{State}, terms::Vector{<:Term},
+function traj_choicemaps(traj::Vector{<:State}, terms::Vector{<:Term},
                          traj_addr=:timestep, obs_addr=:obs; kwargs...)
     traj_choicemaps(traj, nothing, terms, traj_addr, obs_addr; kwargs...)
 end

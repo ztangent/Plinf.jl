@@ -36,7 +36,7 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
         n_attempts, p_cont = planner.persistence
         max_resource ~ neg_binom(n_attempts, 1-p_cont)
     else
-        max_resource_guess = t_diff * length(domain.actions)
+        max_resource_guess = t_diff * length(PDDL.get_actions(domain))
         max_resource ~ geometric(1 / (t_diff+1))
     end
     # Propose partial plans from t_resample to t_current

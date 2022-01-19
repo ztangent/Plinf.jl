@@ -8,7 +8,7 @@ include("kernels.jl")
 "Generate weighted importance samples over a world model."
 function world_importance_sampler(
         world_init::WorldInit, world_config::WorldConfig,
-        obs_traj::Vector{State}, obs_terms::Vector{<:Term}, n_samples::Int;
+        obs_traj::Vector{<:State}, obs_terms::Vector{<:Term}, n_samples::Int;
         use_proposal=true, strata=nothing, callback=nothing)
     @unpack domain = world_config
     # Construct choicemaps from observed trajectory
@@ -57,7 +57,7 @@ end
 "Online inference over a world model using a particle filter."
 function world_particle_filter(
         world_init::WorldInit, world_config::WorldConfig,
-        obs_traj::Vector{State}, obs_terms::Vector{<:Term}, n_particles::Int;
+        obs_traj::Vector{<:State}, obs_terms::Vector{<:Term}, n_particles::Int;
         batch_size::Int=1, strata=nothing, callback=nothing,
         act_proposal=nothing, act_proposal_args=(),
         ess_threshold::Float64=1/4, resample=true, rejuvenate=nothing)
