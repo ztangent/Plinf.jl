@@ -63,3 +63,26 @@ function simulate(domain::Domain, state::State, actions::Vector{<:Term};
     end
     return trajectory
 end
+
+"Memoized version of a function `f` with a local `cache`."
+struct CachedFunction{F,D} <: Function
+    f::F
+    cache::D
+end
+
+(cf::CachedFunction)(args...) =
+    get!(() -> cf.f(args...), cf.cache, args)
+
+Base.empty!(cf::CachedFunction) =
+    empty!(cf.cache)
+
+collected_available(domain::Domain, state::State) =
+    collect(available(domain, state))
+
+collected_available(domain::GenericDomain, state::State) =
+    available(domain, state)
+
+"Construct cached version of `available`."
+cached_available() =
+    CachedFunction(collected_available,
+                   Dict{Tuple{Domain,State},Vector{Compound}}())

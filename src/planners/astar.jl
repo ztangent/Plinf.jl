@@ -6,9 +6,14 @@ export AStarPlanner, ProbAStarPlanner
     h_mult::Real = 1
     max_nodes::Real = Inf
     trace_states::Bool = false
+    cache_actions::Bool = true
+    _available = cache_actions ? cached_available() : PDDL.available
 end
 
 set_max_resource(planner::AStarPlanner, val) = @set planner.max_nodes = val
+
+clear_action_cache!(p::AStarPlanner) =
+    p._available isa CachedFunction ? empty!(planner._available) : nothing
 
 get_call(::AStarPlanner)::GenerativeFunction = astar_call
 
@@ -36,7 +41,7 @@ get_call(::AStarPlanner)::GenerativeFunction = astar_call
             return reconstruct_plan(state_hash, state_dict, parents) end
         count += 1
         # Get list of available actions
-        actions = available(domain, state)
+        actions = planner._available(domain, state)
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
@@ -74,9 +79,14 @@ end
     max_nodes::Real = Inf
     search_noise::Real = 1.0
     trace_states::Bool = false
+    cache_actions::Bool = true
+    _available = cache_actions ? cached_available() : PDDL.available
 end
 
 set_max_resource(planner::ProbAStarPlanner, val) = @set planner.max_nodes = val
+
+clear_action_cache!(p::ProbAStarPlanner) =
+    p._available isa CachedFunction ? empty!(planner._available) : nothing
 
 get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
 
@@ -109,7 +119,7 @@ get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
         end
         count += 1
         # Get list of available actions
-        actions = available(domain, state)
+        actions = planner._available(domain, state)
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
