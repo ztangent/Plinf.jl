@@ -25,11 +25,11 @@ end
 @gen function noisy_act_step(t, agent_state, env_state, domain, eps,
                              include_noop=true)
     if t == 1 # TODO: Re-index to avoid this hack
-        return @trace(labeled_unif([Const(Symbol("--"))]), :act)
+        return @trace(labeled_unif(Term[PDDL.no_op]), :act)
     end
     intended = get_action(agent_state.plan_state)
     actions = collect(available(domain, env_state))
-    if include_noop pushfirst!(actions, Const(Symbol("--"))) end
+    if include_noop pushfirst!(actions, convert(Term, PDDL.no_op)) end
     weights = [act == intended ? (1. - eps) / eps : 1. for act in actions]
     probs = weights ./ sum(weights)
     act = @trace(labeled_cat(actions, probs), :act)
@@ -58,11 +58,11 @@ end
 @gen function forward_act_proposal(t, domain, agent_state, env_state,
                                    next_obs_state, eps=0.0, include_noop=true)
     if t == 1 # TODO: Re-index to avoid this hack
-        return @trace(labeled_unif([Const(Symbol("--"))]), :act)
+        return @trace(labeled_unif(Term[PDDL.no_op]), :act)
     end
     guess = get_action(agent_state.plan_state)
     actions = collect(available(domain, env_state))
-    if include_noop pushfirst!(actions, Const(Symbol("--"))) end
+    if include_noop pushfirst!(actions, convert(Term, PDDL.no_op)) end
     for act in actions
         next_state = transition(domain, env_state, act)
         if next_state == next_obs_state
