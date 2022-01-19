@@ -176,7 +176,7 @@ function render_traces!(traces, weights=nothing, plt=nothing;
         init_state = tr[:init => :env]
         blocks = sort!(getfield.(collect(PDDL.get_objects(state, :block)), :name))
         block_terms = Term[@julog(block($b)) for b in blocks]
-        goal_terms = tr[:init => :agent => :goal].goals
+        goal_terms = Plinf.get_goal_terms(tr[:init => :agent => :goal])
         goal_state = GenericState(Set(block_terms), Set(goal_terms), Dict())
         plt = render_blocks!(goal_state, plt; alpha=exp(w)*max_alpha)
     end
