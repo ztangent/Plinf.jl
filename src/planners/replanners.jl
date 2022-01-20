@@ -55,6 +55,8 @@ end
     max_plans::Real = 100
 end
 
+clear_action_cache!(p::Replanner) = clear_action_cache!(p.planner)
+
 set_max_resource(planner::Replanner, val) = @set planner.max_plans = val
 
 get_call(::Replanner)::GenerativeFunction = replan_call
@@ -68,6 +70,7 @@ init_plan_state(::Replanner)::AbstractPlanState =
 
 get_action(rp::ReplanState)::Term =
     rp.rel_step == 0 ? Const(Symbol("--")) : rp.part_plan[rp.rel_step]
+
 
 "Checks whether a plan already reaches a timestep t, and extends it if not."
 @gen function replan_step(t::Int, rp::ReplanState, replanner::Replanner,

@@ -2,6 +2,7 @@
 export Planner
 export set_max_resource, get_call, get_proposal
 export sample_plan, propose_plan
+export clear_action_cache!
 
 "Abstract planner type, which defines the interface for planners."
 abstract type Planner end
@@ -15,6 +16,9 @@ abstract type Planner end
 
 (planner::Planner)(domain::Domain, state::State, goal::Term) =
     get_call(planner)(planner, domain, state, Specification(goal))
+
+"Clears cache of action successors."
+clear_action_cache!(::Planner) = nothing
 
 "Return copy of the planner with adjusted resource bound."
 set_max_resource(planner::Planner, val) = planner

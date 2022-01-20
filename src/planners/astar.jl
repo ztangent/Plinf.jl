@@ -10,10 +10,10 @@ export AStarPlanner, ProbAStarPlanner
     _available = cache_actions ? cached_available() : PDDL.available
 end
 
-set_max_resource(planner::AStarPlanner, val) = @set planner.max_nodes = val
-
 clear_action_cache!(p::AStarPlanner) =
     p._available isa CachedFunction ? empty!(p._available) : nothing
+
+set_max_resource(planner::AStarPlanner, val) = @set planner.max_nodes = val
 
 get_call(::AStarPlanner)::GenerativeFunction = astar_call
 
@@ -83,10 +83,10 @@ end
     _available = cache_actions ? cached_available() : PDDL.available
 end
 
-set_max_resource(planner::ProbAStarPlanner, val) = @set planner.max_nodes = val
-
 clear_action_cache!(p::ProbAStarPlanner) =
     p._available isa CachedFunction ? empty!(p._available) : nothing
+
+set_max_resource(planner::ProbAStarPlanner, val) = @set planner.max_nodes = val
 
 get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
 
