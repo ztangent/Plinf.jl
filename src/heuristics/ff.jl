@@ -13,6 +13,7 @@ Base.hash(heuristic::FFHeuristic, h::UInt) = hash(FFHeuristic, h)
 
 function precompute(h::FFHeuristic,
                     domain::Domain, state::State, spec::Specification)
+    if isdefined(h, :graph) && isdefined(h, :goal_idxs) return h end
     # Build planning graph and find goal condition indices
     goal_conds = PDDL.to_cnf_clauses(get_goal_terms(spec))
     graph = build_planning_graph(domain, state, goal_conds)
@@ -22,6 +23,7 @@ end
 
 function precompute(h::FFHeuristic,
                     domain::Domain, state::State, spec::NullGoal)
+    if isdefined(h, :graph) && isdefined(h, :goal_idxs) return h end
     graph = build_planning_graph(domain, state)
     return FFHeuristic(graph, nothing)
 end

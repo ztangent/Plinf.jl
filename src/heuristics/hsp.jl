@@ -16,6 +16,7 @@ Base.hash(heuristic::HSPHeuristic, h::UInt) =
 
 function precompute(h::HSPHeuristic,
                     domain::Domain, state::State, spec::Specification)
+    if isdefined(h, :graph) && isdefined(h, :goal_idxs) return h end
     # Build planning graph and find goal condition indices
     goal_conds = PDDL.to_cnf_clauses(get_goal_terms(spec))
     graph = build_planning_graph(domain, state, goal_conds)
@@ -25,6 +26,7 @@ end
 
 function precompute(h::HSPHeuristic,
                     domain::Domain, state::State, spec::NullGoal)
+    if isdefined(h, :graph) && isdefined(h, :goal_idxs) return h end
     graph = build_planning_graph(domain, state)
     return HSPHeuristic(h.op, graph, nothing)
 end
@@ -69,6 +71,7 @@ Base.hash(heuristic::HSPRHeuristic, h::UInt) =
 
 function precompute(h::HSPRHeuristic,
                     domain::Domain, state::State, spec::Specification)
+    if isdefined(h, :costs) return h end
     # Construct and compute fact costs from planning graph
     graph = build_planning_graph(domain, state)
     costs, _ = relaxed_graph_search(domain, state, spec, h.op, graph)
