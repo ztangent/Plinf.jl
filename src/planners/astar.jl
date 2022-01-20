@@ -13,7 +13,7 @@ end
 set_max_resource(planner::AStarPlanner, val) = @set planner.max_nodes = val
 
 clear_action_cache!(p::AStarPlanner) =
-    p._available isa CachedFunction ? empty!(planner._available) : nothing
+    p._available isa CachedFunction ? empty!(p._available) : nothing
 
 get_call(::AStarPlanner)::GenerativeFunction = astar_call
 
@@ -86,7 +86,7 @@ end
 set_max_resource(planner::ProbAStarPlanner, val) = @set planner.max_nodes = val
 
 clear_action_cache!(p::ProbAStarPlanner) =
-    p._available isa CachedFunction ? empty!(planner._available) : nothing
+    p._available isa CachedFunction ? empty!(p._available) : nothing
 
 get_call(::ProbAStarPlanner)::GenerativeFunction = aprob_call
 
@@ -220,7 +220,7 @@ get_proposal(::ProbAStarPlanner)::GenerativeFunction = aprob_propose
         end
         count += 1
         # Get list of available actions
-        actions = available(domain, state)
+        actions = planner._available(domain, state)
         # Iterate over actions
         for act in actions
             # Execute action and trigger all post-action events
