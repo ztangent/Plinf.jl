@@ -32,5 +32,13 @@ function compute(h::PlannerHeuristic,
     domain = h.d_transform(domain)
     state = h.s_transform(state)
     plan, traj = h.planner(domain, state, spec)
-    return plan === nothing ? Inf : length(plan)
+    if plan === nothing
+        return Inf
+    else
+        plan_cost = 0.0
+        for (i, act) in enumerate(plan)
+            plan_cost += get_cost(spec, domain, traj[i], act, traj[i+1])
+        end
+        return plan_cost
+    end
 end
