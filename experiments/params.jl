@@ -30,35 +30,6 @@ function Plinf.compute(heuristic::GemMazeDist,
     return length(relaxed_plan)
 end
 
-# "Custom relaxed distance heuristic for the taxi domain."
-# struct TaxiHeuristic <: Heuristic end
-#
-# function Plinf.compute(heuristic::TaxiHeuristic,
-#                        domain::Domain, state::State, goal_spec::GoalSpec)
-#     # Extract (sub)goal location
-#     goal = goal_spec.goals[1]
-#     dist = 0
-#     cur_loc_x, cur_loc_y = state[:xpos], state[:ypos]
-#     if !state[pddl"(passenger-at intaxi)"]
-#         goal_locname = find_matches(pddl"(passenger-at ?loc)", state)[1].args[1]
-#         loc_term = Compound(Symbol("pasloc-at-loc"), [goal_locname, @julog(L)])
-#         goal_loc = find_matches(loc_term, state)[1].args[2].name
-#         goal_loc_idx = parse(Int, string(goal_loc)[4:end])
-#         # Compute Manhattan distance to passenger location
-#         goal_loc_x, goal_loc_y = goal_loc_idx % 5, goal_loc_idx ÷ 5
-#         dist += abs(cur_loc_x - goal_loc_x) + abs(cur_loc_y - goal_loc_y)
-#         cur_loc_x, cur_loc_y = goal_loc_x, goal_loc_y
-#     end
-#     goal_locname = goal.args[1]
-#     loc_term = Compound(Symbol("pasloc-at-loc"), [goal_locname, @julog(L)])
-#     goal_loc = find_matches(loc_term, state)[1].args[2].name
-#     goal_loc_idx = parse(Int, string(goal_loc)[4:end])
-#     # Compute Manhattan distance to goal location
-#     goal_loc_x, goal_loc_y = goal_loc_idx % 5, goal_loc_idx ÷ 5
-#     dist += abs(cur_loc_x - goal_loc_x) + abs(cur_loc_y - goal_loc_y)
-#     return dist
-# end
-
 "Planner parameters for inference."
 SEARCH_NOISE = 0.1
 PERSISTENCE = (2, 0.95)
