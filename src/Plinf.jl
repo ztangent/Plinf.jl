@@ -6,6 +6,10 @@ using Setfield: @set
 using DataStructures: PriorityQueue, OrderedDict, enqueue!, dequeue!
 using Random, Julog, PDDL, Gen
 
+abstract type Specification end
+abstract type Heuristic end
+abstract type Planner end
+
 include("utils.jl")
 include("specifications/specifications.jl")
 include("heuristics/heuristics.jl")

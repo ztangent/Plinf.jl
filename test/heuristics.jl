@@ -29,8 +29,17 @@ end
 
 @testset "Manhattan Heuristic" begin
 
-manhattan = ManhattanHeuristic(@julog[xpos, ypos])
+manhattan = ManhattanHeuristic(@pddl("xpos", "ypos"))
 @test manhattan(gridworld, gw_state, gw_problem.goal) == 2
+
+end
+
+@testset "Planner Heuristic" begin
+
+# Test planner heuristic without state or domain transform
+planner = AStarPlanner(heuristic=ManhattanHeuristic(@pddl("xpos", "ypos")))
+heuristic = PlannerHeuristic(planner)
+@test heuristic(gridworld, gw_state, gw_problem.goal) == 6
 
 end
 
