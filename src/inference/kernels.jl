@@ -22,7 +22,7 @@ export pf_mixed_move_accept!, pf_mixed_move_reweight!
     resample ~ bernoulli(resample_prob)
     if !resample return end
     # Find earliest plan that diverges from observations
-    t_plans, _ = get_planning_steps(plan_states)
+    t_plans, _ = get_planning_steps(plan_states, false)
     plan_idx = max(searchsortedfirst(t_plans, t_diverge) - 1, 1)
     # Propose timestep to resample plans from
     n_plans = length(t_plans)
