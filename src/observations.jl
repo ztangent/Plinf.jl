@@ -101,7 +101,11 @@ end
         end
         for t in terms
             # Add noise to each observed term
-            obs[t] = @trace(dist(state[t], args...), t)
+            obs_val = @trace(dist(state[t], args...), t)
+            if PDDL.get_fluents(domain)[t.name].type == :integer
+                obs_val = round(Int, obs_val)
+            end
+            obs[t] = obs_val
         end
     end
     return obs
