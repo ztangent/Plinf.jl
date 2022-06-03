@@ -69,7 +69,7 @@ function update_values!(planner::RTDPlanner, policy::Policy,
         next_state = transition(domain, state, act)
         r = get_reward(spec, domain, state, act, next_state)
         next_value = get!(policy.V, hash(next_state)) do
-            planner.heuristic(domain, next_state, spec)
+            -planner.heuristic(domain, next_state, spec)
         end
         return get_discount(spec) * next_value + r
     end
@@ -86,7 +86,7 @@ function default_qvals(planner::RTDPlanner, policy::Policy,
         next_state = transition(domain, state, act)
         r = get_reward(spec, domain, state, act, next_state)
         next_value = get!(policy.V, hash(next_state)) do
-            planner.heuristic(domain, next_state, spec)
+            -planner.heuristic(domain, next_state, spec)
         end
         return get_discount(spec) * next_value + r
     end
@@ -136,8 +136,9 @@ get_step(::RTDPlanner)::GenerativeFunction = rtdp_step
                         domain::Domain, state::State, spec::Specification)
     policy = ps.policy === nothing ?
         solve(planner, domain, state, spec) : ps.policy
-    qs = get(policy.Q, hash(state),
-             default_qvals(planner, policy, domain, state, spec))
+    qs = get(policy.Q, hash(state)) do
+        default_qvals(planner, policy, domain, state, spec)
+    end
     actions = collect(keys(qs))
     qvalues = collect(values(qs))
     return PolicyState(policy, planner.act_noise, actions, qvalues)
