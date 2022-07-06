@@ -15,7 +15,7 @@
     ; Whether receptacle ?r is of type ?ty
     (receptacle-type ?ty - rtype ?r - receptacle)
     ; Whether tool ?t is of type ?ty
-    (tool-type ?t - ttype ?t - tool)
+    (tool-type ?ty - ttype ?t - tool)
     ; Whether appliance ?a has type ?ty
     (appliance-type ?ty - atype ?a - appliance)
 
@@ -116,7 +116,7 @@
    :parameters (?src ?dst - receptacle ?l - location)
    :precondition (and (holding ?src) (agent-at-loc ?l) (object-at-loc ?dst ?l)
                       (not (= ?src ?dst)))
-   :effect (forall (?i - item)
+   :effect (forall (?i - food)
                    (when (in-receptacle ?i ?src)
                          (and (in-receptacle ?i ?dst)
                               (not (in-receptacle ?i ?src)))))

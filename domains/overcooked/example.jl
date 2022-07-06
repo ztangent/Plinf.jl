@@ -20,13 +20,11 @@ satisfy(domain, state, problem.goal)
 
 # Use planner to solve for goal
 state = initstate(domain, problem)
-planner = AStarPlanner(HAdd())
-planner = FastDownward(heuristic="add", verbose=true)
-
+planner = AStarPlanner(HAdd(), save_search=true)
 @time sol = planner(domain, state, problem.goal)
 
 # Print solution
-write_pddl.(collect(sol))
+write_pddl.(collect(sol)) |> display
 
 # Load domain and problem 2
 domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
@@ -61,5 +59,12 @@ state = execute(domain, state, pddl"(put-down knife1 chop-loc)")
 state = execute(domain, state, pddl"(take-out fish1 board1 chop-loc)")
 state = execute(domain, state, pddl"(move chop-loc plate-loc)")
 state = execute(domain, state, pddl"(place-in fish1 plate1 plate-loc)")
-
 satisfy(domain, state, problem.goal)
+
+# Use planner to solve for goal
+state = initstate(domain, problem)
+planner = AStarPlanner(FFHeuristic(), save_search=true)
+@time sol = planner(domain, state, problem.goal)
+
+# Print solution
+write_pddl.(collect(sol))
