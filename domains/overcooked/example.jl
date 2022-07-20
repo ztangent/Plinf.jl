@@ -2,7 +2,7 @@ using PDDL, SymbolicPlanners
 
 # Load domain and problem
 domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
-problem = load_problem(joinpath(@__DIR__, "problem-1-1.pddl"))
+problem = load_problem(joinpath(@__DIR__, "problem-3-1.pddl"))
 
 # Manually execute plan and check if goal is satisfied
 state = initstate(domain, problem)
@@ -18,10 +18,14 @@ state = execute(domain, state, pddl"(move chop-loc plate-loc)")
 state = execute(domain, state, pddl"(place-in lettuce1 plate1 plate-loc)")
 satisfy(domain, state, problem.goal)
 
+problem.goal
+
 # Use planner to solve for goal
 state = initstate(domain, problem)
-planner = AStarPlanner(HAdd(), save_search=true)
-@time sol = planner(domain, state, problem.goal)
+heuristic = HMax()
+hval = heuristic(domain, state, problem.goal)
+planner = AStarPlanner(HAdd(), save_search=true, max_time=300)
+@time sol = planner(domain, state, problem.goal);
 
 # Print solution
 write_pddl.(collect(sol)) |> display

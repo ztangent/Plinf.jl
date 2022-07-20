@@ -1,3 +1,4 @@
+
 using HTTP, JSON3
 
 function gpt3_complete(
@@ -6,7 +7,7 @@ function gpt3_complete(
     api_key::String = get(ENV, "OPENAI_API_KEY", ""),
     model::String = "text-davinci-002",
     temperature::Real = 0.7,
-    max_tokens::Int = 256,
+    max_tokens::Int = 2560,
     logprobs::Union{Nothing,Int} = nothing,
     echo::Bool = false,
     stop::Union{String, Vector{<:String}} = "<|endoftext|>",

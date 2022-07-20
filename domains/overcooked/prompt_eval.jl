@@ -19,15 +19,15 @@ GOAL_PROMPT = replace(GOAL_PROMPT, "\n" => " ")
 
 # PDDL problems
 PROBLEMS = [
-    "problem-1-1.pddl",
-    "problem-2-1.pddl"
+    "problem-1-1.pddl"
+#    "problem-2-1.pddl"
 ]
 PROBLEMS = joinpath.(@__DIR__, PROBLEMS)
 
 # English descriptions of PDDL problems
 DESCRIPTIONS = [
-    "problem-1-1.txt",
-    "problem-2-1.txt"
+    "problem-1-1.txt"
+  #  "problem-2-1.txt"
 ]
 DESCRIPTIONS = joinpath.(@__DIR__, DESCRIPTIONS)
 
@@ -42,8 +42,8 @@ USE_INIT = true
 
 # Prompt example type
 # One of [:pddl, :eng, :pddl2eng, :eng2pddl, :pddl_eng, :eng_pddl]
-EXAMPLE_TYPE = :pddl2eng
-N_EXAMPLES = 0
+EXAMPLE_TYPE = :pddl_eng
+N_EXAMPLES = 1
 
 ## Helper functions ##
 
@@ -60,11 +60,10 @@ function construct_prompt_header(
     m = match(r"(\(:init[\n\s\w\-;,\(\)]*\))[\w\s]*\(:goal", problem_str)
     init = isnothing(m) ? error(":init block not found") : m.captures[1]
     # TODO: Extract initial state description from description text
-    # m = match(r"(\(:init[\n\s\w\-;,\(\)]*\))[\w\s]*\(:goal", description)
-    # init = isnothing(m) ? error("Description not found") : m.captures[1]
+    m = match(r"Initial State:([\n\s\w\-;,\(\).]*)[\w\s]*Goal:", description)
+    description = isnothing(m) ? error("Description not found") : m.captures[1]
     # Construct header
     header = description
-    header = header * "\n\n" * GOAL_PROMPT
     if use_objects
         header = header * "\n\nHere is the initial set of objects:\n\n" * objects
     end
@@ -77,43 +76,61 @@ end
 "Constructs prompt examples from PDDl goal and English language description."
 function construct_prompt_examples(
     problem_str::String, description::String;
-    n_examples::Int=1, example_type::Symbol=:pddl2eng
+    n_examples::Int=1, example_type::Symbol=:pddl_eng
 )
-    return ""
     @assert n_examples <= 1 "More than 1 example not supported yet."
     if n_examples == 0
         return ""
     end
     # TODO: Extract goal expression from problem file
-    m = match(r"(\(:objects[\n\s\w\-;,]*\))[\w\s]*\(:init", problem_str)
-    pddl_goal = isnothing(m) ? error(":objects block not found") : m.captures[1] 
+    m = match(r"\(:goal([\n\s\w\-;,\(\).\?]*\)\)\))[\w\s]*", problem_str)
+    pddl_goal = isnothing(m) ? error(":goal block not found") : m.captures[1] 
     # TODO: Extract English goal description from description text
-    m = match(r"(\(:init[\n\s\w\-;,\(\)]*\))[\w\s]*\(:goal", problem_str)
-    eng_goal = isnothing(m) ? error(":init block not found") : m.captures[1] 
+    m = match(r"Goal:([\n\s\w\-;,\(\).]*)[\w\s]*", description)
+    eng_goal = isnothing(m) ? error("English goal description not found") : m.captures[1] 
     # Construct examples
     if example_type == :pddl
-        return "PDDL:\n" * pddl_goal * "\n"
+        return "PDDL:\n" * pddl_goal * "\n\n" *  "PDDL:"
     elseif example_type == :eng
-        # TODO
-    elseif example_type == :eng2pddl
-        # TODO
-    else
-
+        return "English:\n" * eng_goal * "\n\n" * "English:"
+    elseif example_type == :eng_pddl
+        return "English:\n" * eng_goal * "\n\n" * "PDDL:\n" * pddl_goal * "\n\n" * "English:"
+    elseif example_type == :pddl_eng
+        return "PDDL:\n" * pddl_goal * "\n\n" * "English:\n" * eng_goal * "\n\n" * "PDDL:"
     end
 end
 
 "Parse GPT-3 completion into PDDL and English goal descriptions."
 function parse_completion(completion::String, example_type::Symbol)
-    return true, completion, completion
     # TODO: Use regex to split completion into parts
     if example_type == :pddl
-        # TODO
+        m = match(r"PDDL:\n([\n\s\w\-\;\,\?\(\)]*)", completion)
+        if m === nothing 
+            return false, "", ""
+        else 
+            return true, m.captures[1], ""
+        end
     elseif example_type == :eng
-        # TODO
-    elseif example_type == :eng2pddl
-        # TODO
-    else
-
+        m = match(r"English:\n([\n\s\w\-\;\,\.]*)", completion)
+        if m === nothing 
+            return false, "", ""
+        else 
+            return true, "", m.captures[1]
+        end
+    elseif example_type == :eng_pddl
+        m = match(r"English:\n([\n\s\w\-\;\,\.]*)PDDL:\n([\n\s\w\-\;\,\?\(\)]*)", completion)
+        if m === nothing 
+            return false, "", ""
+        else 
+            return true, m.captures[2], m.captures[1]
+        end 
+    elseif example_type == :pddl_eng
+        m = match(r"PDDL:\n([\n\s\w\-\;\,\?\(\)]*)English:\n([\n\s\w\-\;\,\.]*)", completion)
+        if m === nothing 
+            return false, "", ""
+        else 
+            return true, m.captures[1], m.captures[2]
+        end
     end
 end
 
@@ -162,13 +179,23 @@ for (problem_path, description_path) in zip(PROBLEMS, DESCRIPTIONS)
     examples = construct_prompt_examples(
         problem_str, description,
         n_examples=N_EXAMPLES, example_type=EXAMPLE_TYPE) 
-    prompt = header * "\n\n\n" * examples
+    prompt = header * "\n\n\n" * GOAL_PROMPT * "\n\n\n" * examples
     println() 
     println("Prompt:\n")
     println(prompt)
 
     # Send prompt to GPT3 and get response
-    response = gpt3_complete(prompt, N_REPEATS)
+    if EXAMPLE_TYPE == :pddl 
+        stop = "PDDL:"
+    elseif EXAMPLE_TYPE == :eng
+        stop = "English:"
+    elseif EXAMPLE_TYPE == :pddl_eng
+        stop = "PDDL:"
+    elseif EXAMPLE_TYPE == :eng_pddl
+        stop = "English:"
+    end
+
+    response = gpt3_complete(prompt, N_REPEATS, stop=stop)
     # Iterate over multiple completions
     for choice in response.choices
         # Extract completion text
@@ -210,24 +237,58 @@ end
 df_path = joinpath(@__DIR__, "prompt_eval_$(Dates.now()).csv")
 CSV.write(df_path, df)
 
-# Test prompt construction
-problem_str = read(PROBLEMS[1], String)
-description = read(DESCRIPTIONS[1], String)
-header = construct_prompt_header(domain_str, problem, description)
-examples = construct_prompt_examples(problem, description)
+# # Test prompt construction
+# problem_str = read(PROBLEMS[1], String)
+# description = read(DESCRIPTIONS[1], String)
+# header = construct_prompt_header(domain_str, problem, description)
+# examples = construct_prompt_examples(problem, description)
 
-# Example of how to match completions using regex
-str = "English:
-A sliced lettuce salad.
+# # Example of how to match completions using regex
 
-PDDL:
-(exists (?lettuce - food ?plate - receptacle)
-(and (food-type lettuce ?lettuce)
-     (receptacle-type plate ?plate)
-     (prepared slice ?lettuce)
-     (in-receptacle ?lettuce ?plate)))
-"
+# #English and PDDL
+# str1 = "English:
+# A sliced lettuce salad.
 
-m = match(r"English:\n([\n\s\w\-;,.]*)PDDL:\n([\n\s\w\-;,\?\(\)]*)", str)
-m.captures[1]
-m.captures[2]
+# PDDL:
+# (exists (?lettuce - food ?plate - receptacle)
+# (and (food-type lettuce ?lettuce)
+#      (receptacle-type plate ?plate)
+#      (prepared slice ?lettuce)
+#      (in-receptacle ?lettuce ?plate)))
+# "
+
+# #PDDL and English
+# str2 = "PDDL:
+# (exists (?lettuce - food ?plate - receptacle)
+# (and (food-type lettuce ?lettuce)
+#      (receptacle-type plate ?plate)
+#      (prepared slice ?lettuce)
+#      (in-receptacle ?lettuce ?plate)))
+
+#      English:
+# A sliced lettuce salad."
+# m = match(r"PDDL:\n([\n\s\w\-\;\,\?\(\)]*)English:\n([\n\s\w\-]*)", str2)
+# m.captures[1]
+# m.captures[2]
+
+# #English to PDDL
+# # str3 = "English:
+# # A sliced lettuce salad.
+
+# # PDDL:"
+# # m = match(r"English:\n([\n\s\w\-\;\,\.]*)PDDL:*", str3)
+# # m.captures[1]
+# # m.captures[2]
+
+# # #PDDL to English
+# # str4 = "PDDL:
+# # (exists (?lettuce - food ?plate - receptacle)
+# # (and (food-type lettuce ?lettuce)
+# #      (receptacle-type plate ?plate)
+# #      (prepared slice ?lettuce)
+# #      (in-receptacle ?lettuce ?plate)))
+
+# #      English:"
+# # m = match(r"PDDL:\n([\n\s\w\-\;\,\?\(\)]*)English:*", str4)
+# # m.captures[1]
+# # m.captures[2]

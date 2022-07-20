@@ -36,8 +36,8 @@
 	(:goal
 		(exists (?lettuce - food ?plate - receptacle)
 		        (and (food-type lettuce ?lettuce)
-								 (receptacle-type plate ?plate)
-		             (prepared slice ?lettuce)
-		             (in-receptacle ?lettuce ?plate)))
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?lettuce)
+                     (in-receptacle ?lettuce ?plate)))
 	)
 )
