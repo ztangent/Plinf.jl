@@ -15,20 +15,6 @@
 		start-loc food-loc chop-loc fryer-loc stove-loc plate-loc - location ; Locations
 	)
 	(:init
-		; Type declarations(:objects
-		hamburger-bun cheese beef chicken onion potato yellow-soda red-soda green-soda lettuce tomato pineapple - ftype ; Food types
-		chopping-board basket pan plate - rtype ; Receptacle types
-		knife - ttype ; Tool types
-		stove deep-fryer - atype ; Appliance types
-		slice chop mince - prepare-method ; Preparation methods
-		grill fry - cook-method ; Cooking methods
-		hamburger-bun1 cheese1 beef1 chicken1 onion1 potato1 yellow-soda1 red-soda1 green-soda1 lettuce1 tomato1 pineapple1 - food ; Food objects
-	    board1 basket1 pan1 plate1 - receptacle ; Receptacle objects
-		knife1 - tool ; Tool objects
-		stove1 fryer1 - appliance ; Appliance objects
-		start-loc food-loc chop-loc fryer-loc stove-loc plate-loc - location ; Locations
-	)
-	(:init
 		; Type declarations
 		(food-type hamburger-bun hamburger-bun1)
 		(food-type beef beef1)

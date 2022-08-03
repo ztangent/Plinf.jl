@@ -6,9 +6,9 @@
 		chopping-board tray plate - rtype ; Receptacle types
 		knife - ttype ; Tool types
 		oven - atype ; Appliance types
-		slice chop - prepare-method ; Preparation methods
+		slice - prepare-method ; Preparation methods
 		bake - cook-method ; Cooking methods
-		dough1 tomato1 cheese1 sausage1 - food ; Food objects
+		dough1 tomato1 cheese1 sausage1 chicken1 olive1 - food ; Food objects
 		board1 tray1 plate1 - receptacle ; Receptacle objects
 		knife1 - tool ; Tool objects
 		oven1 - appliance ; Appliance objects
@@ -19,7 +19,9 @@
 		(food-type dough dough1)
 		(food-type tomato tomato1)
 		(food-type cheese cheese1)
+		(food-type chicken chicken1)
 		(food-type sausage sausage1)
+		(food-type olive olive1)
 		(receptacle-type chopping-board board1)
 		(receptacle-type plate plate1)
 		(receptacle-type tray tray1)
@@ -27,7 +29,7 @@
 		(appliance-type oven oven1)
 		; Method declarations
 		(has-prepare-method slice chopping-board knife)
-		(has-cook-method bake oven)
+		(has-cook-method bake tray oven)
 		; Initial agent state
 		(handempty)
 		(agent-at-loc start-loc)
@@ -36,6 +38,8 @@
 		(object-at-loc tomato1 food-loc)
 		(object-at-loc cheese1 food-loc)
 		(object-at-loc sausage1 food-loc)
+		(object-at-loc chicken1 food-loc)
+		(object-at-loc olive1 food-loc)
 		; Receptacle, tool, and appliance locations
 		(object-at-loc board1 chop-loc)
 		(object-at-loc knife1 chop-loc)
@@ -50,8 +54,12 @@
              (food-type tomato ?tomato)
              (food-type cheese ?cheese)
              (food-type sausage ?sausage)
-			 (receptacle-type ?plate)
+			 (receptacle-type plate ?plate)
 			 (prepared slice ?sausage)
+			;  (cooked bake ?dough)
+			;  (cooked bake ?tomato) 
+			;  (cooked bake ?cheese)
+			;  (cooked bake ?sausage)
              (cooked-with bake ?tomato ?dough)
              (cooked-with bake ?dough ?cheese)
              (cooked-with bake ?cheese ?sausage)

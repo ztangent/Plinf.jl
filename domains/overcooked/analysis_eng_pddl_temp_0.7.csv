@@ -1,0 +1,7 @@
+use_predicates,use_actions,use_objects,use_init,temperature,example_type,valid_mean,gpt3_parse_error_mean,pddl_parse_error_mean,non_existent_predicates_mean,non_existent_objects_mean,goal_unreachable_mean,frac_unique,frac_unique_valid,frac_unique_out_of_valid
+false,false,false,true,0.7,eng_pddl,0.56,0.0,0.0,0.04,0.38,0.02,0.9800000000000001,0.54,0.9642857142857143
+false,false,true,true,0.7,eng_pddl,0.6,0.0,0.0,0.0,0.3,0.1,0.78,0.38,0.6333333333333334
+true,false,false,true,0.7,eng_pddl,0.64,0.0,0.0,0.02,0.3,0.04,0.82,0.45999999999999996,0.7187499999999999
+false,true,false,true,0.7,eng_pddl,0.6,0.0,0.0,0.06,0.3,0.04,0.86,0.48,0.8
+false,false,false,false,0.7,eng_pddl,0.3,0.0,0.02,0.08,0.6,0.0,0.82,0.2,0.6666666666666667
+true,true,true,true,0.7,eng_pddl,0.72,0.0,0.0,0.0,0.24,0.04,0.8,0.52,0.7222222222222223

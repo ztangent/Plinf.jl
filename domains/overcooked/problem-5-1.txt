@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently only have  eggs, honey, flour, chocolate, strawberry, watermelon, grape, apple, a knife, a chopping board, a stove, a mixing bowl, an mixer, a frying basket, a deep fryer, an oven and a plate.
+Goal:
+A freshly baked chocolate cake made of fluffy cake and chocolate icing.

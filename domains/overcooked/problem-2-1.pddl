@@ -51,7 +51,7 @@
 	   (and (food-type nori ?nori)
 	        (food-type rice ?rice)
 	        (food-type fish ?fish)
-					(receptacle-type plate ?plate)
+			(receptacle-type plate ?plate)
 	        (prepared slice ?fish)
 	        (cooked boil ?rice)
 	        (in-receptacle ?nori ?plate)

@@ -11,6 +11,7 @@ function gpt3_complete(
     logprobs::Union{Nothing,Int} = nothing,
     echo::Bool = false,
     stop::Union{String, Vector{<:String}} = "<|endoftext|>",
+    verbose::Bool = false,
     options... # Other options
 )
     headers = ["Content-Type" => "application/json",
@@ -24,6 +25,10 @@ function gpt3_complete(
                 "echo" => echo,
                 "stop" => stop, options...)
     data = JSON3.write(data)
-    response = HTTP.post(endpoint, headers, data)
+    if verbose
+        println("Posting HTTP request...")
+    end
+    response = HTTP.post(endpoint, headers, data,
+                         readtimeout=30, connect_timeout = 30)
     return JSON3.read(response.body)
 end

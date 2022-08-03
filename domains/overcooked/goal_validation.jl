@@ -1,29 +1,42 @@
 using PDDL, SymbolicPlanners
 
 "Validates a goal generation with several checks."
-function validate_goal(str::AbstractString, domain::Domain, state::State)
+function validate_goal(str::AbstractString, domain::Domain, state::State;
+                       verbose::Bool=false)
     # Check if string parses to PDDL formula
     goal = nothing
     try
         goal = parse_goal(str)
     catch e
-        return (false, "Parse error")
+        reason = "Parse error"
+        if verbose println("Validation Failed: $reason") end
+        return (false, reason)
     end
+    if verbose println("Validation: Goal Parsed") end
     # Check if predicates and types exist in the domain
     valid = validate_predicates_and_types(goal, domain)
     if !valid
-        return (false, "Non-existent predicates or types")
+        reason = "Non-existent predicates or types"
+        if verbose println("Validation Failed: $reason") end
+        return (false, reason)
     end
+    if verbose println("Validation: Predicates and Types Exist") end
     # Check if objects exist in the initial state
     valid = validate_objects(goal, domain, state)
     if !valid
-        return (false, "Non-existent objects or variables")
+        reason = "Non-existent objects or variables"
+        if verbose println("Validation Failed: $reason") end
+        return (false, reason)
     end
+    if verbose println("Validation: Objects and Variables Exist") end
     # Check if goal is reachable from the initial state
-    valid = validate_reachability(goal, domain, state)
+    valid = validate_reachability(goal, domain, state; verbose=verbose)
     if !valid
-        return (false, "Goal is not reachable")
+        reason = "Goal is not reachable"
+        if verbose println("Validation Failed: $reason") end
+        return (false, reason)
     end
+    if verbose println("Validation: Goal is Reachable") end
     return (true, "All checks passed")
 end
 
@@ -69,37 +82,41 @@ function validate_objects(term::Term, domain::Domain, state::State,
 end
 
 "Returns whether goal is reachable from initial state."
-function validate_reachability(goal::Term, domain::Domain, state::State)
+function validate_reachability(goal::Term, domain::Domain, state::State;
+                               verbose::Bool=false, max_time=10.0)
     # Check if reachable using HMax
     heuristic = HMax()
     hval = heuristic(domain, state, goal)
     if hval == Inf
+        if verbose println("Unreachable according to heuristic.") end
         return false
     end
+    
     # Check if a plan can be found that reaches the goal
-    planner = AStarPlanner(HAdd(), max_time=30.0)
+    planner = AStarPlanner(HAdd(), max_time=max_time)
     sol = planner(domain, state, goal)
     if sol isa NullSolution
+        if verbose println("Unreachable according to planner.") end
         return false
     end
     return true
 end
 
-# Load domain and problem
-domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
-problem = load_problem(joinpath(@__DIR__, "problem-1-1.pddl"))
-state = initstate(domain, problem)
+# # Load domain and problem
+# domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
+# problem = load_problem(joinpath(@__DIR__, "problem-5-1.pddl"))
+# state = initstate(domain, problem)
 
-# Goal as string
-str = """
-    (exists (?lettuce - food ?tomato - food ?plate - receptacle)
-        (and (food-type lettuce ?lettuce)
-             (food-type tomato ?tomato)
-             (receptacle-type plate ?plate)
-             (prepared slice ?lettuce)
-             (prepared slice ?tomato)
-             (in-receptacle ?lettuce ?plate)
-             (in-receptacle ?tomato ?plate)))
-"""
+# # Goal as string
+# str = """
+#     (exists (?lettuce - food ?tomato - food ?plate - receptacle)
+#         (and (food-type lettuce ?lettuce)
+#              (food-type tomato ?tomato)
+#              (receptacle-type plate ?plate)
+#              (prepared slice ?lettuce)
+#              (prepared slice ?tomato)
+#              (in-receptacle ?lettuce ?plate)
+#              (in-receptacle ?tomato ?plate)))
+# """
 
-# Test whether goal string is valid
+# # Test whether goal string is valid

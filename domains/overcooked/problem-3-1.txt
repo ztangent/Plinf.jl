@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently only have a hamburger bun, cheese, beef, chicken, onion, potato, yellow soda, red soda, green soda, lettuce, tomato, pineapple, chopping board, pan, frying basket, deep fryer, knife, stove and a plate.
+Goal:
+A classic cheeseburger made of grilled beef, sliced cheese, and a fresh hamburger bun.

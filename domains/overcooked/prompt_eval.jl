@@ -4,47 +4,6 @@ using CSV, DataFrames, Dates
 include("goal_validation.jl")
 include("gpt3_complete.jl")
 
-## Script options ##
-
-# TODO: Make more general
-GOAL_PROMPT = """
-What are some dishes that could possibly be made with the current
-ingredients? Given the initial state and an initial example, next
-describe two more examples different from the first. In each example
-first give a description in English then give a specification in the
-Planning Domain Definition Language (PDDL). Be as descriptive
-as possible with each English description.
-"""
-GOAL_PROMPT = replace(GOAL_PROMPT, "\n" => " ")
-
-# PDDL problems
-PROBLEMS = [
-    "problem-1-1.pddl"
-#    "problem-2-1.pddl"
-]
-PROBLEMS = joinpath.(@__DIR__, PROBLEMS)
-
-# English descriptions of PDDL problems
-DESCRIPTIONS = [
-    "problem-1-1.txt"
-  #  "problem-2-1.txt"
-]
-DESCRIPTIONS = joinpath.(@__DIR__, DESCRIPTIONS)
-
-# Number of completions per prompt
-N_REPEATS = 1
-
-# Prompt header options
-USE_PREDICATES = false
-USE_ACTIONS = false
-USE_OBJECTS = false
-USE_INIT = true
-
-# Prompt example type
-# One of [:pddl, :eng, :pddl2eng, :eng2pddl, :pddl_eng, :eng_pddl]
-EXAMPLE_TYPE = :pddl_eng
-N_EXAMPLES = 1
-
 ## Helper functions ##
 
 "Constructs a prompt header from a problem and a English language description."
@@ -59,7 +18,7 @@ function construct_prompt_header(
     # Extract initial facts from problem file
     m = match(r"(\(:init[\n\s\w\-;,\(\)]*\))[\w\s]*\(:goal", problem_str)
     init = isnothing(m) ? error(":init block not found") : m.captures[1]
-    # TODO: Extract initial state description from description text
+    # Extract initial state description from description text
     m = match(r"Initial State:([\n\s\w\-;,\(\).]*)[\w\s]*Goal:", description)
     description = isnothing(m) ? error("Description not found") : m.captures[1]
     # Construct header
@@ -78,14 +37,11 @@ function construct_prompt_examples(
     problem_str::String, description::String;
     n_examples::Int=1, example_type::Symbol=:pddl_eng
 )
-    @assert n_examples <= 1 "More than 1 example not supported yet."
-    if n_examples == 0
-        return ""
-    end
-    # TODO: Extract goal expression from problem file
+    @assert n_examples <= end
+   # Extract goal expression from problem file
     m = match(r"\(:goal([\n\s\w\-;,\(\).\?]*\)\)\))[\w\s]*", problem_str)
     pddl_goal = isnothing(m) ? error(":goal block not found") : m.captures[1] 
-    # TODO: Extract English goal description from description text
+    # Extract English goal description from description text
     m = match(r"Goal:([\n\s\w\-;,\(\).]*)[\w\s]*", description)
     eng_goal = isnothing(m) ? error("English goal description not found") : m.captures[1] 
     # Construct examples
@@ -101,31 +57,29 @@ function construct_prompt_examples(
 end
 
 "Parse GPT-3 completion into PDDL and English goal descriptions."
-function parse_completion(completion::String, example_type::Symbol)
-    # TODO: Use regex to split completion into parts
-    if example_type == :pddl
-        m = match(r"PDDL:\n([\n\s\w\-\;\,\?\(\)]*)", completion)
+function parse_completion(complcollating csv in julia
+        m = match(r"\n([\n\s\w\-\;\,\?\(\)]*)", completion)
         if m === nothing 
             return false, "", ""
         else 
             return true, m.captures[1], ""
         end
     elseif example_type == :eng
-        m = match(r"English:\n([\n\s\w\-\;\,\.]*)", completion)
+        m = match(r"\n([\n\s\w\-\;\,\.]*)", completion)
         if m === nothing 
             return false, "", ""
         else 
             return true, "", m.captures[1]
         end
     elseif example_type == :eng_pddl
-        m = match(r"English:\n([\n\s\w\-\;\,\.]*)PDDL:\n([\n\s\w\-\;\,\?\(\)]*)", completion)
+        m = match(r"\n([\n\s\w\-\;\,\.]*)PDDL:\n([\n\s\w\-\;\,\?\(\)]*)", completion)
         if m === nothing 
             return false, "", ""
         else 
             return true, m.captures[2], m.captures[1]
         end 
     elseif example_type == :pddl_eng
-        m = match(r"PDDL:\n([\n\s\w\-\;\,\?\(\)]*)English:\n([\n\s\w\-\;\,\.]*)", completion)
+        m = match(r"\n([\n\s\w\-\;\,\?\(\)]*)English:\n([\n\s\w\-\;\,\.]*)", completion)
         if m === nothing 
             return false, "", ""
         else 
@@ -133,6 +87,51 @@ function parse_completion(completion::String, example_type::Symbol)
         end
     end
 end
+
+## Script options ##
+
+GOAL_PROMPT = """
+Here are 100 dishes that could be made with the ingredients in this kitchen,
+in this exact format:
+"""
+GOAL_PROMPT = replace(GOAL_PROMPT, "\n" => " ")
+
+# PDDL problems
+PROBLEMS = [
+    "problem-1-1.pddl"
+    "problem-2-1.pddl"
+    "problem-3-1.pddl"
+    "problem-4-1.pddl"
+    "problem-5-1.pddl"
+]
+PROBLEMS = joinpath.(@__DIR__, PROBLEMS)
+
+# English descriptions of PDDL problems
+DESCRIPTIONS = [
+    "problem-1-1.txt"
+    "problem-2-1.txt"
+    "problem-3-1.txt"
+    "problem-4-1.txt"
+    "problem-5-1.txt"
+]
+DESCRIPTIONS = joinpath.(@__DIR__, DESCRIPTIONS)
+
+# Number of completions per prompt
+N_REPEATS = 10
+
+# Prompt header options
+USE_PREDICATES = false
+USE_ACTIONS = false
+USE_OBJECTS = false
+USE_INIT = true
+
+# Prompt example type
+# One of [:pddl, :eng, :pddl2eng, :eng2pddl, :pddl_eng, :eng_pddl]
+EXAMPLE_TYPE = :pddl_eng
+N_EXAMPLES = 1
+
+# Temperature of generated completion
+TEMPERATURE = 0.7
 
 # Initialize data frame
 df = DataFrame(
@@ -145,6 +144,7 @@ df = DataFrame(
     use_actions=Bool[],
     use_objects=Bool[],
     use_init=Bool[],
+    temperature=Float64[],
     n_examples=Int[],
     example_type=Symbol[],
     completion=String[],
@@ -154,6 +154,8 @@ df = DataFrame(
     valid=Bool[],
     reason=String[]
 )
+df_types = eltype.(eachcol(df))
+df_path = joinpath(@__DIR__, "prompt_eval_$(Dates.now()).csv")
 
 # Read domain as string
 domain_str = read(joinpath(@__DIR__, "domain.pddl"), String);
@@ -195,22 +197,30 @@ for (problem_path, description_path) in zip(PROBLEMS, DESCRIPTIONS)
         stop = "English:"
     end
 
-    response = gpt3_complete(prompt, N_REPEATS, stop=stop)
+    println("---")
+    println("Requesting $N_REPEATS completions through OpenAI API...")
+    response = gpt3_complete(prompt, N_REPEATS, verbose=true,
+                             stop=stop, temperature=TEMPERATURE)
+    println("---")
+
     # Iterate over multiple completions
-    for choice in response.choices
+    for (i, choice) in enumerate(response.choices)
         # Extract completion text
         completion = choice.text # TODO: Get string completion from JSON
-        println("Completion:")
+        println("-- Completion $i--")
         println(completion)
-        # TODO: Parse completion into PDDL and English parts using regex
+        # Parse completion into PDDL and English parts using regex
         success, pddl_goal, eng_goal = parse_completion(completion, EXAMPLE_TYPE)
-        if !success
-            continue
-        end
+        println()
+        println("-- Validation --")
+        println("Parse Successful: $success")
         # Check if goal is valid
-        valid, reason = validate_goal(pddl_goal, domain, state)
+        valid, reason = validate_goal(pddl_goal, domain, state; verbose=true)
+        println("Goal Validity: $valid")
+        println("Validation Reason: $reason")
+        println()
         row = Dict(
-            :problem => problem_path,
+            :problem => basename(problem_path),
             :description => description,
             :goal_prompt => GOAL_PROMPT,
             :header => header,
@@ -222,6 +232,7 @@ for (problem_path, description_path) in zip(PROBLEMS, DESCRIPTIONS)
             :use_actions => USE_ACTIONS,
             :use_objects => USE_OBJECTS,
             :use_init => USE_INIT,
+            :temperature => TEMPERATURE,
             :n_examples => N_EXAMPLES,
             :example_type => EXAMPLE_TYPE,
             :parse_success => success,
@@ -230,65 +241,20 @@ for (problem_path, description_path) in zip(PROBLEMS, DESCRIPTIONS)
             )
         push!(df, row)
     end
+    CSV.write(df_path, df)
+    println()
+    println("Sleeping for 15s to avoid rate limit...")
+    sleep(15.0)
 
     println()
 end
 
-df_path = joinpath(@__DIR__, "prompt_eval_$(Dates.now()).csv")
-CSV.write(df_path, df)
+# Construct filename for CSV
 
-# # Test prompt construction
-# problem_str = read(PROBLEMS[1], String)
-# description = read(DESCRIPTIONS[1], String)
-# header = construct_prompt_header(domain_str, problem, description)
-# examples = construct_prompt_examples(problem, description)
+df_path = "/home/ucfai/Projects/Plinf.jl/domains/overcooked/prompt_eval_2022-07027T22:14:38.355.csv"
 
-# # Example of how to match completions using regex
+# Save to CSV file
 
-# #English and PDDL
-# str1 = "English:
-# A sliced lettuce salad.
 
-# PDDL:
-# (exists (?lettuce - food ?plate - receptacle)
-# (and (food-type lettuce ?lettuce)
-#      (receptacle-type plate ?plate)
-#      (prepared slice ?lettuce)
-#      (in-receptacle ?lettuce ?plate)))
-# "
-
-# #PDDL and English
-# str2 = "PDDL:
-# (exists (?lettuce - food ?plate - receptacle)
-# (and (food-type lettuce ?lettuce)
-#      (receptacle-type plate ?plate)
-#      (prepared slice ?lettuce)
-#      (in-receptacle ?lettuce ?plate)))
-
-#      English:
-# A sliced lettuce salad."
-# m = match(r"PDDL:\n([\n\s\w\-\;\,\?\(\)]*)English:\n([\n\s\w\-]*)", str2)
-# m.captures[1]
-# m.captures[2]
-
-# #English to PDDL
-# # str3 = "English:
-# # A sliced lettuce salad.
-
-# # PDDL:"
-# # m = match(r"English:\n([\n\s\w\-\;\,\.]*)PDDL:*", str3)
-# # m.captures[1]
-# # m.captures[2]
-
-# # #PDDL to English
-# # str4 = "PDDL:
-# # (exists (?lettuce - food ?plate - receptacle)
-# # (and (food-type lettuce ?lettuce)
-# #      (receptacle-type plate ?plate)
-# #      (prepared slice ?lettuce)
-# #      (in-receptacle ?lettuce ?plate)))
-
-# #      English:"
-# # m = match(r"PDDL:\n([\n\s\w\-\;\,\?\(\)]*)English:*", str4)
-# # m.captures[1]
-# # m.captures[2]
+# Read saved CSV
+df = CSV.read(df_path, DataFrame, types=df_types)
