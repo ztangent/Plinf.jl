@@ -25,11 +25,10 @@ plan, traj = planner(gridworld, gw_state, gw_problem.goal)
 @test satisfy(gridworld, traj[end], gw_problem.goal) == true
 @test plan == @pddl("down", "down", "right", "right", "up", "up")
 
-plan, traj = planner(doors_keys_gems, dkg_state, dkg_problem.goal)
-@test satisfy(doors_keys_gems, traj[end], dkg_problem.goal) == true
-@test plan == @pddl("(down)", "(pickup key1)", "(down)", "(unlock key1 right)",
-                    "(right)", "(right)", "(up)", "(up)", "(pickup gem1)")
-
+# plan, traj = planner(doors_keys_gems, dkg_state, dkg_problem.goal)
+# @test satisfy(doors_keys_gems, traj[end], dkg_problem.goal) == true
+# @test plan == @pddl("(down)", "(pickup key1)", "(down)", "(unlock key1 right)",
+#                     "(right)", "(right)", "(up)", "(up)", "(pickup gem1)")
 
 plan, traj = planner(blocksworld, bw_state, bw_problem.goal)
 @test satisfy(blocksworld, traj[end], bw_problem.goal) == true
@@ -46,11 +45,11 @@ plan, traj = planner(gridworld, gw_state, gw_problem.goal)
 @test satisfy(gridworld, traj[end], gw_problem.goal) == true
 @test plan == @pddl("down", "down", "right", "right", "up", "up")
 
-planner = AStarPlanner(heuristic=GoalCountHeuristic())
-plan, traj = planner(doors_keys_gems, dkg_state, dkg_problem.goal)
-@test satisfy(doors_keys_gems, traj[end], dkg_problem.goal) == true
-@test plan == @pddl("(down)", "(pickup key1)", "(down)", "(unlock key1 right)",
-                    "(right)", "(right)", "(up)", "(up)", "(pickup gem1)")
+# planner = AStarPlanner(heuristic=GoalCountHeuristic())
+# plan, traj = planner(doors_keys_gems, dkg_state, dkg_problem.goal)
+# @test satisfy(doors_keys_gems, traj[end], dkg_problem.goal) == true
+# @test plan == @pddl("(down)", "(pickup key1)", "(down)", "(unlock key1 right)",
+#                     "(right)", "(right)", "(up)", "(up)", "(pickup gem1)")
 
 planner = AStarPlanner(heuristic=HAdd())
 plan, traj = planner(blocksworld, bw_state, bw_problem.goal)
@@ -69,11 +68,11 @@ plan, traj = planner(gridworld, gw_state, gw_problem.goal)
 @test satisfy(gridworld, traj[end], gw_problem.goal) == true
 @test plan == @pddl("down", "down", "right", "right", "up", "up")
 
-planner = ProbAStarPlanner(heuristic=GoalCountHeuristic())
-plan, traj = planner(doors_keys_gems, dkg_state, dkg_problem.goal)
-@test satisfy(doors_keys_gems, traj[end], dkg_problem.goal) == true
-@test plan == @pddl("(down)", "(pickup key1)", "(down)", "(unlock key1 right)",
-                    "(right)", "(right)", "(up)", "(up)", "(pickup gem1)")
+# planner = ProbAStarPlanner(heuristic=GoalCountHeuristic())
+# plan, traj = planner(doors_keys_gems, dkg_state, dkg_problem.goal)
+# @test satisfy(doors_keys_gems, traj[end], dkg_problem.goal) == true
+# @test plan == @pddl("(down)", "(pickup key1)", "(down)", "(unlock key1 right)",
+#                     "(right)", "(right)", "(up)", "(up)", "(pickup gem1)")
 
 planner = ProbAStarPlanner(heuristic=HAdd())
 plan, traj = planner(blocksworld, bw_state, bw_problem.goal)

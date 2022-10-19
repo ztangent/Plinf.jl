@@ -5,11 +5,9 @@ using DataStructures: OrderedDict
 
 "Convert PDDL state to array of wall locations."
 function state_to_array(state::State)
-    width, height = state[pddl"width"], state[pddl"height"]
-    array = zeros(Int64, (width, height))
-    for x=1:width, y=1:height
-        if state[@julog(wall($x, $y))] array[y, x] = 1 end
-    end
+    array = copy(state[pddl"(walls)"])
+    height, width = size(array)
+    array = reverse(array, dims=1)
     return array, (width, height)
 end
 
@@ -61,8 +59,8 @@ function render_door!(x::Real, y::Real, scale::Real; color=:gray, alpha=1,
     color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
     inner_col = HSV(color.h, 0.8*color.s, min(1.25*color.v, 1))
     door = make_door(x, y, scale)
-    plot!(plt, door, alpha=alpha, linealpha=[0, 1, 0, 0], legend=false,
-          color=[color, inner_col, :black, :black])
+    plot!(plt, door, alpha=alpha, linealpha=[0 1 0 0], legend=false,
+          color=[color inner_col :black :black])
 end
 
 "Make a key using Plots.jl shapes."
@@ -81,8 +79,8 @@ function render_key!(x::Real, y::Real, scale::Real; color=:goldenrod1, alpha=1,
     plt = (plt == nothing) ? plot!() : plt
     key = make_key(x, y, scale)
     shadow = make_key(x+0.05*scale, y-0.05*scale, scale)
-    plot!(plt, [shadow; key], alpha=alpha, linealpha=0, legend=false,
-          color=[fill(:black, 4); fill(color, 4)])
+    plot!(plt, [shadow key], alpha=alpha, linealpha=0, legend=false,
+          color=[fill(:black, 1, 4) fill(color, 1, 4)])
 end
 
 "Make a gem using Plots.jl shapes."
@@ -101,8 +99,8 @@ function render_gem!(x::Real, y::Real, scale::Real; color=:magenta, alpha=1,
     outer, inner = make_gem(x, y, scale)
     color = isa(color, Symbol) ? HSV(Colors.parse(Colorant, color)) : HSV(color)
     inner_col = HSV(color.h, 0.6*color.s, min(1.5*color.v, 1))
-    plot!(plt, [outer, inner], color=[color, inner_col],
-          alpha=alpha, linealpha=[1, 0], legend=false)
+    plot!(plt, [outer, inner], color=[color inner_col],
+          alpha=alpha, linealpha=[1 0], legend=false)
 end
 
 ## Gridworld rendering functions ##
@@ -111,7 +109,7 @@ end
 function render_pos!(state::State, plt=nothing;
                      radius=0.25, color=:red, alpha=1, dir=nothing, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
-    x, y = state[pddl"xpos"], state[pddl"ypos"]
+    x, y = get_agent_pos(state, flip_y=true)
     if dir in [:up, :down, :right, :left]
         marker = make_triangle(x, y, radius*1.5, dir)
         xscale, yscale = (dir in [:up, :down]) ? (0.8, 1.0) : (1.0, 0.8)
@@ -125,22 +123,26 @@ end
 "Render doors, keys and gems present in the given state."
 function render_objects!(state::State, plt=nothing;
                          gem_colors=cgrad(:plasma)[1:3:30], kwargs...)
-    obj_queries =
-        @julog [door(X, Y), and(key(O), at(O, X, Y)), and(gem(O), at(O, X, Y))]
+    # Set up object colors and renderers for each type
+    obj_types = [:door, :key, :gem]
     obj_colors = [:gray, :goldenrod1, gem_colors]
+    obj_filters = [
+        o -> state[Compound(:locked, Term[o])],
+        o -> !state[Compound(:has, Term[o])],
+        o -> !state[Compound(:has, Term[o])]
+    ]
     obj_renderers = [
         (l, c) -> render_door!(l[1], l[2], 0.7, plt=plt),
         (l, c) -> render_key!(l[1], l[2], 0.4, plt=plt),
         (l, c) -> render_gem!(l[1], l[2], 0.3, color=c, plt=plt)
     ]
-    for (query, colors, rndr!) in zip(obj_queries, obj_colors, obj_renderers)
-        # TODO: Avoid referencing domain as a global variable
-        subst = satisfiers(domain, state, query)
-        sort!(subst, by=s->get(s, @julog(O), Const(0)).name)
-        locs = [(s[@julog(X)].name, s[@julog(Y)].name) for s in subst]
+    # Render each object not in inventory
+    for (type, colors, filt, rndr!) in zip(obj_types, obj_colors,
+                                           obj_filters, obj_renderers)
+        objs = filter!(filt, sort!(PDDL.get_objects(state, type), by=string))
+        locs = [get_obj_loc(state, o, flip_y=true) for o in objs]
         if isa(colors, AbstractDict)
-            obj_terms = [s[@julog(O)] for s in subst]
-            colors = [colors[o] for o in obj_terms]
+            colors = [colors[o] for o in objs]
         elseif !isa(colors, AbstractArray)
             colors = fill(colors, length(locs))
         end
@@ -156,29 +158,32 @@ function render_inventory!(state::State, plt=nothing;
         plt = plot(size=(600,100), framestyle=:box, aspect_ratio=1, grid=true,
                    margin=0*Plots.mm, top_margin=2*Plots.mm)
     end
-    obj_queries = @julog [and(key(O), has(O)), and(gem(O), has(O))]
+    # Set up object colors and renderers for each type
+    obj_types = [:key, :gem]
     obj_colors = [:goldenrod1, gem_colors]
     obj_renderers = [
         (l, c) -> render_key!(l[1], l[2], 0.4, plt=plt),
         (l, c) -> render_gem!(l[1], l[2], 0.3, color=c, plt=plt)
     ]
-    for (query, colors, rndr!) in zip(obj_queries, obj_colors, obj_renderers)
-        # TODO: Avoid referencing domain as a global variable
-        subst = satisfiers(domain, state, query)
-        sort!(subst, by=s->get(s, @julog(O), Const(0)).name)
+    # Render each object in inventory
+    offset = 0
+    for (type, colors, rndr!) in zip(obj_types, obj_colors, obj_renderers)
+        objs = sort!(PDDL.get_objects(state, type), by=string)
+        filter!(o -> state[Compound(:has, Term[o])], objs)
         if isa(colors, AbstractDict)
-            obj_terms = [s[@julog(O)] for s in subst]
-            colors = [colors[o] for o in obj_terms]
+            colors = [colors[o] for o in objs]
         elseif !isa(colors, AbstractArray)
-            colors = fill(colors, length(subst))
+            colors = fill(colors, length(objs))
         end
-        for (i, col) in enumerate(colors) rndr!((i, 0.5), col) end
+        for (i, col) in enumerate(colors) rndr!((offset+i, 0.5), col) end
+        offset += length(objs)
     end
-    plot!(plt, xticks=(collect(0:state[pddl"width"]+1) .- 0.5, []),
-               yticks=([0, 1.0], []))
+    # Render inventory grid
+    width = size(state[pddl"(walls)"], 2)
+    plot!(plt, xticks=(collect(0:width+1) .- 0.5, []), yticks=([0, 1.0], []))
     xgrid!(plt, :on, :black, 1, :dash, 0.75)
     annotate!(0.5, 1.25, Plots.text("Inventory", 12, :black, :left))
-    xlims!(plt, 0.5, state[pddl"width"]+0.5)
+    xlims!(plt, 0.5, width+0.5)
     ylims!(plt, 0, 1)
     return plt
 end
@@ -191,25 +196,27 @@ function render!(state::State, plt=nothing; start=nothing, plan=nothing,
     plt = (plt == nothing) ? plot!() : plt
     # Plot base grid
     array, (w, h) = state_to_array(state)
-    plot!(plt, xticks=(collect(0:size(array)[1]+1) .- 0.5, []),
-               yticks=(collect(0:size(array)[2]+1) .- 0.5, []))
+    plot!(plt, xticks=(collect(0:w+1) .- 0.5, []),
+               yticks=(collect(0:h+1) .- 0.5, []))
     xgrid!(plt, :on, :black, 2, :dashdot, 0.75)
     ygrid!(plt, :on, :black, 2, :dashdot, 0.75)
     cmap = cgrad([RGBA(1,1,1,0), RGBA(0,0,0,1)])
     heatmap!(plt, array, aspect_ratio=1, color=cmap, colorbar_entry=false)
     # Plot start position
     if isa(start, Tuple{Int,Int})
-        annotate!(start[1], start[2], Plots.text("start", 16, :red, :center))
+        annotate!(start[1], h-start[2]+1, Plots.text("start", 16, :red, :center))
     end
     # Plot objects
     if show_objs render_objects!(state, plt; gem_colors=gem_colors) end
     # Plot trace of plan
-    if (plan != nothing && start != nothing) render!(plan, start, plt) end
+    if (plan != nothing && start != nothing)
+        render_plan!(state, plan, start, plt)
+    end
     # Plot current position
     if show_pos render_pos!(state, plt) end
     # Resize limits
-    xlims!(plt, 0.5, size(array)[1]+0.5)
-    ylims!(plt, 0.5, size(array)[2]+0.5)
+    xlims!(plt, 0.5, w+0.5)
+    ylims!(plt, 0.5, h+0.5)
     if show_inventory
         i_plt = render_inventory!(state; gem_colors=gem_colors)
         sz = [plt[:size][1], plt[:size][2] + i_plt[:size][2]]
@@ -223,11 +230,14 @@ function render(state::State; kwargs...)
     return render!(state, plot(size=(600,600), framestyle=:box); kwargs...)
 end
 
-function render!(plan::Vector{Term}, start::Tuple{Int,Int}, plt=nothing;
-                 alpha::Float64=1.0, color=:red, radius=0.1,
-                 fade=false, trunc=nothing, kwargs...)
+function render_plan!(state::State, plan, start::Tuple{Int,Int}, plt=nothing;
+                      alpha::Float64=1.0, color=:red, radius=0.1,
+                      fade=false, trunc=nothing, kwargs...)
     # Get last plot if not provided
     plt = (plt == nothing) ? plot!() : plt
+    # Transform coordinate system
+    height = size(state[pddl"walls"], 1)
+    start = (start[1], height-start[2]+1)
     traj = plan_to_traj(plan, start)
     if trunc != nothing && length(plan) >= trunc
         plan, traj = plan[end-trunc+1:end], traj[end-trunc:end-1] end
@@ -249,7 +259,7 @@ function render!(traj::Vector{<:State}, plt=nothing;
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      for state in traj
-         x, y = state[pddl"xpos"], state[pddl"ypos"]
+         x, y = get_agent_pos(state, flip_y=true)
          dot = make_circle(x, y, radius)
          plot!(plt, dot, color=color, linealpha=0, alpha=alpha, legend=false)
      end
@@ -286,7 +296,7 @@ function render_traces!(traces, weights=nothing, plt=nothing;
             env_traj = env_traj[min(length(env_traj), t_cur+1):end]
         end
         for state in env_traj
-            pt = (state[pddl"xpos"], state[pddl"ypos"])
+            pt = get_agent_pos(state, flip_y=true)
             goal_pt_weights[pt] = get(goal_pt_weights, pt, 0.0) + exp(w)
         end
     end
@@ -317,11 +327,10 @@ function anim_traj(traj::AbstractVector{<:State}, canvas=nothing, animation=noth
         plt = deepcopy(canvas)
         if !isnothing(plan) # Render past actions if provided
             part_plan = plan[1:max(1,min(t-1, length(plan)))]
-            render!(part_plan, start_pos, plt; fade=true, trunc=6, color=:black)
-            i = findlast(a -> a.name in [:up, :down, :left, :right, :unlock],
-                         part_plan)
+            render_plan!(state, part_plan, start_pos, plt;
+                         fade=true, trunc=6, color=:black)
+            i = findlast(a -> a.name in [:up, :down, :left, :right], part_plan)
             dir = i == nothing ? start_dir : part_plan[i].name
-            if (dir == :unlock) dir = part_plan[i].args[2].name end
         end
         render_pos!(state, plt; dir=dir, kwargs...) # Render position
         if show_objs # Render objcets
@@ -388,7 +397,8 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
     sort!(filter!(p -> p[1][1] == :state, node_choices))
     # Render each node expanded in sequence
     for state in values(node_choices)
-        dot = make_circle(state[pddl"xpos"], state[pddl"ypos"], node_radius)
+        x, y = get_agent_pos(state, flip_y=true)
+        dot = make_circle(x, y, node_radius)
         plt = plot!(plt, dot, color=search_color, alpha=search_alpha,
                     linealpha=0, legend=false)
         frame(animation, plt)
@@ -528,10 +538,10 @@ function render_cb(t::Int, state, traces, weights;
     dir = start_dir # Set agent direction to start dir
     if !isnothing(plan) # Render past actions if provided
         plan = plan[1:max(1,min(t-1, length(plan)))]
-        render!(plan, start_pos, plt; fade=true, trunc=6, color=:black)
-        i = findlast(a -> a.name in [:up, :down, :left, :right, :unlock], plan)
+        render_plan!(state, plan, start_pos, plt;
+                     fade=true, trunc=6, color=:black)
+        i = findlast(a -> a.name in [:up, :down, :left, :right], plan)
         dir = i == nothing ? start_dir : plan[i].name
-        if (dir == :unlock) dir = plan[i].args[2].name end
     end
     render_objects!(state, plt; kwargs...) # Render objects in gridworld
     render_pos!(state, plt; dir=dir, kwargs...)  # Render agent's position
@@ -628,7 +638,7 @@ function plot_storyboard(frames::Vector, goal_probs=nothing, times=Int[];
           left_margin=20*Plots.mm, right_margin=20*Plots.mm,
           bottom_margin=5*Plots.mm)
     if time_lims == nothing
-        xlims!(l_plt, 1, size(goal_probs)[2])
+        xlims!(l_plt, 1, size(goal_probs, 2))
     else
         xlims!(l_plt, time_lims[1], time_lims[2])
     end

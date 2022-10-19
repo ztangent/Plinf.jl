@@ -68,8 +68,10 @@ function update_values!(planner::RTDPlanner, policy::Policy,
     qs = map(actions) do act
         next_state = transition(domain, state, act)
         r = get_reward(spec, domain, state, act, next_state)
-        h_val = planner.heuristic(domain, next_state, spec)
-        return get_discount(spec) * get!(policy.V, hash(next_state), -h_val) + r
+        next_value = get!(policy.V, hash(next_state)) do
+            -planner.heuristic(domain, next_state, spec)
+        end
+        return get_discount(spec) * next_value + r
     end
     policy.Q[state_id] = Dict{Term,Float64}(zip(actions, qs))
     policy.V[state_id] = planner.act_noise == 0 ?
@@ -83,8 +85,10 @@ function default_qvals(planner::RTDPlanner, policy::Policy,
     qs = map(actions) do act
         next_state = transition(domain, state, act)
         r = get_reward(spec, domain, state, act, next_state)
-        h_val = planner.heuristic(domain, next_state, spec)
-        return get_discount(spec) * get(policy.V, hash(next_state), -h_val) + r
+        next_value = get!(policy.V, hash(next_state)) do
+            -planner.heuristic(domain, next_state, spec)
+        end
+        return get_discount(spec) * next_value + r
     end
     return Dict{Term,Float64}(zip(actions, qs))
 end
@@ -99,8 +103,9 @@ end
     count = 0
     while !is_goal(spec, domain, state) && count < max_length
         count += 1
-        qs = get(policy.Q, hash(state),
-                 default_qvals(planner, policy, domain, state, spec))
+        qs = get(policy.Q, hash(state)) do
+            default_qvals(planner, policy, domain, state, spec)
+        end
         actions = collect(keys(qs))
         probs = softmax(values(qs) ./ act_noise)
         act = @trace(labeled_cat(actions, probs), (:act, count))
@@ -131,8 +136,9 @@ get_step(::RTDPlanner)::GenerativeFunction = rtdp_step
                         domain::Domain, state::State, spec::Specification)
     policy = ps.policy === nothing ?
         solve(planner, domain, state, spec) : ps.policy
-    qs = get(policy.Q, hash(state),
-             default_qvals(planner, policy, domain, state, spec))
+    qs = get(policy.Q, hash(state)) do
+        default_qvals(planner, policy, domain, state, spec)
+    end
     actions = collect(keys(qs))
     qvalues = collect(values(qs))
     return PolicyState(policy, planner.act_noise, actions, qvalues)

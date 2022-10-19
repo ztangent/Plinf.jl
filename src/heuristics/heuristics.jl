@@ -44,5 +44,6 @@ end
 
 include("utils.jl")
 include("basic.jl")
+include("planner.jl")
 include("hsp.jl")
 include("ff.jl")
