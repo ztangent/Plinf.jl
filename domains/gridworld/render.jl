@@ -5,11 +5,9 @@ using DataStructures: OrderedDict
 
 "Convert gridworld PDDL state to array for plotting."
 function state_to_array(state::State)
-    width, height = state[pddl"width"], state[pddl"height"]
-    array = zeros(Int64, (width, height))
-    for x=1:width, y=1:height
-        if state[@julog(wall($x, $y))] array[y, x] = 1 end
-    end
+    array = copy(state[pddl"(walls)"])
+    height, width = size(array)
+    array = reverse(array, dims=1)
     return array, (width, height)
 end
 
@@ -43,30 +41,32 @@ function render!(state::State, plt=nothing;
     plt = (plt == nothing) ? plot!() : plt
     # Plot base grid
     array, (w, h) = state_to_array(state)
-    plot!(plt, xticks=(collect(0:size(array)[1]+1) .- 0.5, []),
-               yticks=(collect(0:size(array)[2]+1) .- 0.5, []))
+    plot!(plt, xticks=(collect(0:w+1) .- 0.5, []),
+               yticks=(collect(0:h+1) .- 0.5, []))
     xgrid!(plt, :on, :black, 2, :dashdot, 0.75)
     ygrid!(plt, :on, :black, 2, :dashdot, 0.75)
     cmap = cgrad([RGBA(1,1,1,0), RGBA(0,0,0,1)])
     heatmap!(plt, array, aspect_ratio=1, color=cmap, colorbar_entry=false)
     # Plot start and goal positions
     if isa(start, Tuple{Int,Int})
-        annotate!(start[1], start[2], Plots.text("start", 16, :red, :center))
+        annotate!(start[1], h-start[2]+1, Plots.text("start", 16, :red, :center))
     end
     if goals != nothing
         if isa(goals, Tuple{Int,Int}) goals = [goals] end
         if goal_colors == nothing goal_colors = cgrad(:plasma)[1:3:30] end
         for (g, col) in zip(goals, goal_colors)
-            annotate!(g[1], g[2], Plots.text("goal", 16, col, :center))
+            annotate!(g[1], h-g[2]+1, Plots.text("goal", 16, col, :center))
         end
     end
     # Plot trace of plan
-    if (plan != nothing && start != nothing) render!(plan, start, plt) end
+    if (plan != nothing && start != nothing)
+        render!(plan, (start[1], h-start[2]+1), plt)
+    end
     # Plot current position
     if show_pos render_pos!(state, plt) end
     # Resize limits
-    xlims!(plt, 0.5, size(array)[1]+0.5)
-    ylims!(plt, 0.5, size(array)[2]+0.5)
+    xlims!(plt, 0.5, w+0.5)
+    ylims!(plt, 0.5, h+0.5)
     return plt
 end
 
@@ -93,8 +93,9 @@ function render!(traj::Vector{<:State}, plt=nothing;
      # Get last plot if not provided
      plt = (plt == nothing) ? plot!() : plt
      for state in traj
+         height = size(state[pddl"walls"])[1]
          x, y = state[pddl"xpos"], state[pddl"ypos"]
-         dot = make_circle(x, y, radius)
+         dot = make_circle(x, height-y+1, radius)
          plot!(plt, dot, color=color, linealpha=0, alpha=alpha, legend=false)
      end
      return plt
@@ -104,8 +105,9 @@ end
 function render_pos!(state::State, plt=nothing;
                      radius=0.25, color=:black, alpha=1, kwargs...)
     plt = (plt == nothing) ? plot!() : plt
+    height = size(state[pddl"walls"])[1]
     x, y = state[pddl"xpos"], state[pddl"ypos"]
-    circ = make_circle(x, y, radius)
+    circ = make_circle(x, height-y+1, radius)
     plot!(plt, circ, color=color, alpha=alpha, legend=false)
 end
 
@@ -156,7 +158,9 @@ function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
     sort!(filter!(p -> p[1][1] == :state, node_choices))
     # Render each node expanded in sequence
     for state in values(node_choices)
-        dot = make_circle(state[pddl"xpos"], state[pddl"ypos"], node_radius)
+        height = size(state[pddl"walls"])[1]
+        x, y = state[pddl"xpos"], state[pddl"ypos"]
+        dot = make_circle(x, height-y+1, node_radius)
         plt = plot!(plt, dot, color=search_color, alpha=search_alpha,
                     linealpha=0, legend=false)
         frame(animation, plt)

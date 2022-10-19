@@ -2,10 +2,13 @@ using Julog, PDDL, Gen, Printf
 using Plinf
 
 include("utils.jl")
-include("generate.jl")
+include("ascii.jl")
 include("render.jl")
 
 #--- Initial Setup ---#
+
+# Register PDDL array theory
+PDDL.Arrays.@register()
 
 # Load domain and problem
 path = joinpath(dirname(pathof(Plinf)), "..", "domains", "gridworld")
@@ -56,7 +59,7 @@ anim = anim_traj(trajs, plt; alpha=0.1)
 #--- Goal Inference Setup ---#
 
 # Specify possible goals
-goal_set = [(1, 8), (8, 8), (8, 1)]
+goal_set = [(1, 1), (8, 1), (8, 8)]
 goals = [pos_to_terms(g) for g in goal_set]
 goal_colors = [:orange, :magenta, :blue]
 goal_names = [string(g) for g in goal_set]
@@ -80,7 +83,7 @@ agent_init = AgentInit(agent_planner, goal_prior)
 agent_config = AgentConfig(domain, agent_planner, act_noise=act_noise)
 
 # Assume Gaussian observation noise around agent's location
-obs_terms = @julog([xpos, ypos])
+obs_terms = @pddl("(xpos)", "(ypos)")
 obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
 
 # Configure world model with planner, goal prior, initial state, and obs params
@@ -96,9 +99,9 @@ if likely_traj
     traj = traj[1:min(20, length(traj))]
 else
     # Construct plan that is highly unlikely under the prior
-    _, seg1 = AStarPlanner()(domain, state, pos_to_terms((4, 4)))
-    _, seg2 = AStarPlanner()(domain, seg1[end], pos_to_terms((3, 4)))
-    _, seg3 = AStarPlanner()(domain, seg2[end], pos_to_terms((5, 8)))
+    _, seg1 = AStarPlanner()(domain, state, pos_to_terms((4, 5)))
+    _, seg2 = AStarPlanner()(domain, seg1[end], pos_to_terms((3, 5)))
+    _, seg3 = AStarPlanner()(domain, seg2[end], pos_to_terms((5, 1)))
     traj = [seg1; seg2[2:end]; seg3[2:end]][1:end]
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
@@ -108,7 +111,7 @@ anim = anim_traj(traj, plt)
 #--- Offline Goal Inference ---#
 
 # Run importance sampling to infer the likely goal
-n_samples = 30
+n_samples = 60
 traces, weights, lml_est =
     world_importance_sampler(world_init, world_config,
                              traj, obs_terms, n_samples;
