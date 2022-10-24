@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently only have crab, rice, nori, cucumber, avocado, a sashimi knife, a chopping board, a stove and a plate.
+Goal:
+A california roll consisting of rice, crab, nori, and avocado.

@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently only have a ham, bread, cheese, beef, chicken, onion, lettuce, tomato, chopping board, pan, frying basket, deep fryer, knife, stove and a plate.
+Goal:
+A classic ham sandwich consisting of sliced ham, sliced cheese, and sliced bread.

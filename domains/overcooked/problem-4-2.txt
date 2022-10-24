@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently only have dough, tomato, cheese, onion, mushroom, olives a knife, a chopping board, a stove, a tray, an oven and a plate.
+Goal:
+A veggie pizza made of mushroom, onion, olives, mozarella cheese, tomato sauce and pizza dough all baked in an oven.

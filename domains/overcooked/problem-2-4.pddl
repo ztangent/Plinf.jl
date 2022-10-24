@@ -2,13 +2,13 @@
 (define (problem overcooked-problem-2)
 	(:domain overcooked)
 	(:objects
-		tuna salmon rice nori cucumber - ftype ; Food types
+		crab rice nori cucumber - ftype ; Food types
 		chopping-board pot plate - rtype ; Receptacle types
 		sashimi-knife - ttype ; Tool types
 		stove - atype ; Appliance types
 		slice - prepare-method ; Preparation methods
 		boil - cook-method ; Cooking methods
-		tuna1 salmon1 rice1 nori1 cucumber1 - food ; Food objects
+		crab1 rice1 nori1 cucumber1 - food ; Food objects
 		board1 pot1 plate1 - receptacle ; Receptacle objects
 		s-knife1 - tool ; Tool objects
 		stove1 - appliance ; Appliance objects
@@ -16,8 +16,7 @@
 	)
 	(:init
 		; Type declarations
-		(food-type tuna tuna1)
-		(food-type salmon salmon1)
+		(food-type crab crab1)
 		(food-type rice rice1)
 		(food-type nori nori1)
 		(food-type cucumber cucumber1)
@@ -27,14 +26,13 @@
 		(tool-type sashimi-knife s-knife1)
 		(appliance-type stove stove1)
 		; Method declarations
-		(has-prepare-method slice chopping-board sashimi-knife)
+		(has-prepare-method slice chopping-board s-knife)
 		(has-cook-method boil pot stove)
 		; Initial agent state
 		(handempty)
 		(agent-at-loc start-loc)
 		; Initial food locations
-		(object-at-loc tuna1 food-loc)
-		(object-at-loc salmon1 food-loc)
+		(object-at-loc crab1 food-loc)
 		(object-at-loc rice1 food-loc)
 		(object-at-loc nori1 food-loc)
 		(object-at-loc cucumber1 food-loc)
@@ -49,15 +47,17 @@
 		(occupied stove1)
 	)
 	(:goal
-		(exists (?nori - food ?rice - food ?tuna - food ?salmon - food ?plate - receptacle)
+		(exists (?nori - food ?rice - food ?crab - food ?cucumber - food ?plate - receptacle ?pot - receptacle)
 	   (and (food-type nori ?nori)
 	        (food-type rice ?rice)
-	        (food-type tuna ?tuna)
+	        (food-type crab ?crab)
+			(food-type cucumber ?cucumber)
 			(receptacle-type plate ?plate)
-	        (prepared slice ?tuna)
+			(receptacle-type pot ?pot)
+	        (prepared slice ?crab)
 	        (cooked boil ?rice)
 	        (in-receptacle ?nori ?plate)
 	        (in-receptacle ?rice ?plate)
-	        (in-receptacle ?tuna ?plate)))
+	        (in-receptacle ?crab ?plate)))
 	)
 )

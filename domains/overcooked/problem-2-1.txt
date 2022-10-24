@@ -1,4 +1,4 @@
 Initial State:
-Someone is in the kitchen and wants to make a meal. They currently only have fish, rice, nori, cucumber, a knife, a chopping board, a stove and a plate.
+Someone is in the kitchen and wants to make a meal. They currently only have tuna, salmon, rice, nori, cucumber, a sashimi knife, a chopping board, a pot, a stove and a plate.
 Goal:
-A rolled maki sushi roll filled with fish, nori and rice.
+A rolled maki sushi roll filled with tuna, nori and rice.

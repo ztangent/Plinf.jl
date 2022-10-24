@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently only have dough, tomato, cheese, basil, sausage, olive, a knife, a chopping board, a stove, a tray, an oven and a plate.
+Goal:
+A margherita pizza made of fresh basil, mozarella cheese, sliced tomato, and pizza dough all baked in an oven.

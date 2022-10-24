@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently only have a bread, cheese, onion, potato, lettuce, tomato, pineapple, chopping board, pan, frying basket, deep fryer, knife, stove and a plate.
+Goal:
+A classic grilled cheese made of sliced cheese and sliced bread combined and then grilled.

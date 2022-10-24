@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently only have a bread, tuna, cheese, beef, chicken, onion, potato, lettuce, tomato, mayo, chopping board, pan, frying basket, deep fryer, knife, stove and a plate.
+Goal:
+A tuna salad sandwich made of tuna mixed with mayo on sliced bread.
