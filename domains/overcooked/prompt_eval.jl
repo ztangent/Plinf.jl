@@ -37,7 +37,7 @@ function construct_prompt_examples(
     problem_str::String, description::String;
     n_examples::Int=1, example_type::Symbol=:pddl_eng
 )
-    @assert n_examples <= end
+    @assert n_examples <= 1
    # Extract goal expression from problem file
     m = match(r"\(:goal([\n\s\w\-;,\(\).\?]*\)\)\))[\w\s]*", problem_str)
     pddl_goal = isnothing(m) ? error(":goal block not found") : m.captures[1] 
