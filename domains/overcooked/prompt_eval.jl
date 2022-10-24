@@ -57,7 +57,8 @@ function construct_prompt_examples(
 end
 
 "Parse GPT-3 completion into PDDL and English goal descriptions."
-function parse_completion(complcollating csv in julia
+function parse_completion(completion::String, example_type::Symbol)
+    if example_type == :pddl
         m = match(r"\n([\n\s\w\-\;\,\?\(\)]*)", completion)
         if m === nothing 
             return false, "", ""
