@@ -2,13 +2,13 @@
 (define (problem overcooked-problem-4)
 	(:domain overcooked)
 	(:objects
-		dough tomato cheese ham pineapple - ftype ; Food types
+		mushroom olive onion chicken beef dough tomato cheese ham pineapple - ftype ; Food types
 		chopping-board tray plate - rtype ; Receptacle types
 		knife - ttype ; Tool types
 		oven - atype ; Appliance types
 		slice chop - prepare-method ; Preparation methods
 		bake - cook-method ; Cooking methods
-		dough1 tomato1 cheese1 ham1 pineapple1 - food ; Food objects
+		mushroom1 olive1 onion1 chicken1 beef1 dough1 tomato1 cheese1 ham1 pineapple1 - food ; Food objects
 		board1 tray1 plate1 - receptacle ; Receptacle objects
 		knife1 - tool ; Tool objects
 		oven1 - appliance ; Appliance objects
@@ -21,6 +21,11 @@
 		(food-type cheese cheese1)
 		(food-type ham ham1)
 		(food-type pineapple pineapple1)
+		(food-type mushroom mushroom1)
+		(food-type onion onion1)
+		(food-type olive olive1)
+		(food-type beef beef1)
+		(food-type chicken chicken1)
 		(receptacle-type chopping-board board1)
 		(receptacle-type plate plate1)
 		(receptacle-type tray tray1)
@@ -39,6 +44,11 @@
 		(object-at-loc cheese1 food-loc)
 		(object-at-loc ham1 food-loc)
 		(object-at-loc pineapple1 food-loc)
+		(object-at-loc mushroom1 food-loc)
+		(object-at-loc olive1 food-loc)
+		(object-at-loc onion1 food-loc)
+		(object-at-loc beef1 food-loc)
+		(object-at-loc chicken food-loc)
 		; Receptacle, tool, and appliance locations
 		(object-at-loc board1 chop-loc)
 		(object-at-loc knife1 chop-loc)
@@ -57,10 +67,6 @@
 			 (receptacle-type plate ?plate)
 			 (prepared slice ?ham)
 			 (prepared chop ?pineapple)
-			;  (cooked bake ?dough)
-			;  (cooked bake ?tomato) 
-			;  (cooked bake ?cheese)
-			;  (cooked bake ?sausage)
              (cooked-with bake ?tomato ?dough)
              (cooked-with bake ?dough ?cheese)
              (cooked-with bake ?cheese ?ham)

@@ -1,4 +1,4 @@
 Initial State:
-Someone is in the kitchen and wants to make a meal. They currently only have lettuce, tomato, avocado, cheese, bacon, chicken, a knife, a chopping board, and a plate.
+Someone is in the kitchen and wants to make a meal. They currently have tomato, olives, feta cheese, onion, cucumber, a knife, a chopping board, and a plate.
 Goal:
-A fresh Cobb salad with chopped lettuce, chopped egg, sliced tomato, sliced avocado, and crumbled bacon.
+A Greek salad made of chopped tomato, olives, onion, cucumber, and crumbled feta cheese.

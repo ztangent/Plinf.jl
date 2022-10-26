@@ -2,15 +2,15 @@
 (define (problem overcooked-problem-3)
 	(:domain overcooked)
 	(:objects
-		bread mayo cheese beef chicken onion potato bacon lettuce tomato pineapple - ftype ; Food types
-		chopping-board basket pan plate - rtype ; Receptacle types
-		knife - ttype ; Tool types
+		bread cheese tuna beef chicken onion potato lettuce tomato pineapple mayo - ftype ; Food types
+		chopping-board basket pan plate mixing-bowl - rtype ; Receptacle types
+		knife spoon - ttype ; Tool types
 		stove deep-fryer - atype ; Appliance types
-		slice chop mince - prepare-method ; Preparation methods
+		slice chop mince mix - prepare-method ; Preparation methods
 		grill fry - cook-method ; Cooking methods
-		bread1 cheese1 beef1 chicken1 onion1 potato1 bacon1 lettuce1 tomato1 pineapple1 mayo1 - food ; Food objects
-	    board1 basket1 pan1 plate1 - receptacle ; Receptacle objects
-		knife1 - tool ; Tool objects
+		bread1 cheese1 tuna1 beef1 chicken1 onion1 potato1 lettuce1 tomato1 pineapple1 mayo1 - food ; Food objects
+	    board1 basket1 pan1 plate1 bowl1 - receptacle ; Receptacle objects
+		knife1 spoon1 - tool ; Tool objects
 		stove1 fryer1 - appliance ; Appliance objects
 		start-loc food-loc chop-loc fryer-loc stove-loc plate-loc - location ; Locations
 	)
@@ -18,17 +18,18 @@
 		; Type declarations
 		(food-type bread bread1)
 		(food-type beef beef1)
+		(food-type tuna tuna1)
 		(food-type cheese cheese1)
 		(food-type onion onion1)
 		(food-type potato potato1)
 		(food-type chicken chicken1)
-		(food-type bacon bacon1)
 		(food-type lettuce lettuce1)
 		(food-type tomato tomato1)
 		(food-type pineapple pineapple1)
 		(food-type mayo mayo1)
 		(receptacle-type chopping-board board1)
 		(receptacle-type plate plate1)
+		(receptacle-type mixing-bowl bowl1)
 		(receptacle-type pan pan1)
 		(tool-type knife knife1)
 		(appliance-type stove stove1)
@@ -40,17 +41,18 @@
 		(has-cook-method grill pan stove)
 		(has-cook-method fry pan stove)
 		(has-cook-method fry basket deep-fryer)
+		(has-combine-method mix mixing-bowl spoon)
 		; Initial agent state
 		(handempty)
 		(agent-at-loc start-loc)
 		; Initial food locations
 		(object-at-loc bread1 food-loc)
+		(object-at-loc tuna1 food-loc)
 		(object-at-loc cheese1 food-loc)
 		(object-at-loc beef1 food-loc)
 		(object-at-loc onion1 food-loc)
 		(object-at-loc potato1 food-loc)
 		(object-at-loc chicken1 food-loc)
-		(object-at-loc bacon1 food-loc)
 		(object-at-loc lettuce1 food-loc)
 		(object-at-loc tomato1 food-loc)
 		(object-at-loc pineapple1 food-loc)
@@ -67,20 +69,23 @@
 		(occupied stove1)
 	)
 	(:goal
-(exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?mayo - food ?plate - receptacle)
-        (and (food-type bacon ?bacon)
+(exists (?bread - food ?tuna - food ?cheese - food ?lettuce - food ?tomato - food ?mayo - food ?plate - receptacle ?mixing-bowl - receptacle)
+        (and (food-type tuna ?tuna)
              (food-type bread ?bread)
-             (food-type lettuce ?lettuce)
-			 (food-type tomato ?tomato)
-			 (food-type mayo ?mayo)
+             (food-type cheese ?cheese)
+			 (food-type lettuce ?lettuce)
+             (food-type bread ?tomato)
+             (food-type cheese ?mayo)
 			 (receptacle-type plate ?plate)
-             (cooked fry ?bacon)
-             (prepared slice ?lettuce)
+             (combined-with ?tuna ?mayo)
+             (prepared slice ?cheese)
 			 (prepared slice ?tomato)
+			 (prepared slice ?lettuce)
              (in-receptacle ?bread ?plate)
-             (in-receptacle ?bacon ?plate)
-			 (in-receptacle ?tomato ?plate)
+             (in-receptacle ?tuna ?plate)
+			 (in-receptacle ?lettuce ?plate)
+             (in-receptacle ?tomato ?plate)
 			 (in-receptacle ?mayo ?plate)
-             (in-receptacle ?lettuce ?plate)))
+             (in-receptacle ?cheese ?plate)))
 	)
 )

@@ -1,4 +1,4 @@
 Initial State:
-Someone is in the kitchen and wants to make a meal. They currently only have dough, tomato, cheese, sausage, chicken, olive, a knife, a chopping board, a stove, a tray, an oven and a plate.
+Someone is in the kitchen and wants to make a meal. They currently have eggs, flour, tomato, cheese, sausage, olive, a knife, a chopping board, a stove, a tray, an oven and a plate.
 Goal:
-A pepperoni sausage pizza made of mozarella cheese, tomato sauce, sliced pepperoni, and pizza dough all baked in an oven.
+A plain cheese pizza made with cheese, tomato, and pizza dough all baked in an oven.

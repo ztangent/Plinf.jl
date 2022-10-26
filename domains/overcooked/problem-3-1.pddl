@@ -2,13 +2,13 @@
 (define (problem overcooked-problem-3)
 	(:domain overcooked)
 	(:objects
-		hamburger-bun cheese beef chicken onion potato bacon lettuce tomato pineapple - ftype ; Food types
+		bread cheese onion potato lettuce tomato pineapple - ftype ; Food types
 		chopping-board basket pan plate - rtype ; Receptacle types
 		knife - ttype ; Tool types
 		stove deep-fryer - atype ; Appliance types
 		slice chop mince - prepare-method ; Preparation methods
 		grill fry - cook-method ; Cooking methods
-		hamburger-bun1 cheese1 beef1 chicken1 onion1 potato1 bacon1 lettuce1 tomato1 pineapple1 - food ; Food objects
+		bread1 cheese1 onion1 potato1 lettuce1 tomato1 pineapple1 - food ; Food objects
 	    board1 basket1 pan1 plate1 - receptacle ; Receptacle objects
 		knife1 - tool ; Tool objects
 		stove1 fryer1 - appliance ; Appliance objects
@@ -16,13 +16,10 @@
 	)
 	(:init
 		; Type declarations
-		(food-type hamburger-bun hamburger-bun1)
-		(food-type beef beef1)
+		(food-type bread bread1)
 		(food-type cheese cheese1)
 		(food-type onion onion1)
 		(food-type potato potato1)
-		(food-type chicken chicken1)
-		(food-type bacon bacon1)
 		(food-type lettuce lettuce1)
 		(food-type tomato tomato1)
 		(food-type pineapple pineapple1)
@@ -43,13 +40,10 @@
 		(handempty)
 		(agent-at-loc start-loc)
 		; Initial food locations
-		(object-at-loc hamburger-bun1 food-loc)
+		(object-at-loc bread food-loc)
 		(object-at-loc cheese1 food-loc)
-		(object-at-loc beef1 food-loc)
 		(object-at-loc onion1 food-loc)
 		(object-at-loc potato1 food-loc)
-		(object-at-loc chicken1 food-loc)
-		(object-at-loc bacon1 food-loc)
 		(object-at-loc lettuce1 food-loc)
 		(object-at-loc tomato1 food-loc)
 		(object-at-loc pineapple1 food-loc)
@@ -65,15 +59,13 @@
 		(occupied stove1)
 	)
 	(:goal
-(exists (?hamburger-bun - food ?beef - food ?cheese - food ?plate - receptacle)
-        (and (food-type beef ?beef)
-             (food-type hamburger-bun ?hamburger-bun)
+(exists (?bread - food ?cheese - food ?plate - receptacle)
+        (and (food-type bread ?bread)
              (food-type cheese ?cheese)
 			 (receptacle-type plate ?plate)
-             (cooked grill ?beef)
              (prepared slice ?cheese)
-             (in-receptacle ?hamburger-bun ?plate)
-             (in-receptacle ?beef ?plate)
+			 (cooked-with grill ?bread ?cheese)
+             (in-receptacle ?bread ?plate)
              (in-receptacle ?cheese ?plate)))
 	)
 )

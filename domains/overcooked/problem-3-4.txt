@@ -1,4 +1,4 @@
 Initial State:
-Someone is in the kitchen and wants to make a meal. They currently only have a bacon, cheese, beef, chicken, onion, potato, mayo, lettuce, tomato, pineapple, chopping board, pan, frying basket, deep fryer, knife, stove and a plate.
+Someone is in the kitchen and wants to make a meal. They currently have bread, tuna, cheese, beef, chicken, onion, potato, lettuce, tomato, mayo, chopping board, pan, frying basket, deep fryer, knife, stove and a plate.
 Goal:
-A BLT consisting of fried bacon, sliced lettuce, sliced tomato, and mayo.
+A tuna salad sandwich made of tuna mixed with mayo on sliced bread.

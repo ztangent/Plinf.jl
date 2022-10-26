@@ -1,4 +1,4 @@
 Initial State:
-Someone is in the kitchen and wants to make a meal. They currently only have  ice, milk, chocolate, a knife, a chopping board, a stove, a blender and a glass.
+Someone is in the kitchen and wants to make a meal. They currently have ice, milk, chocolate, eggs, flour, apples, honey, strawberries, watermelon, grapes, peaches, oranges, a knife, a chopping board, a stove, a blender and a glass.
 Goal:
 A freshly made chocolate shake made of milk, ice, and chocolate served in a glass.

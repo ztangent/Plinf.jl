@@ -1,4 +1,4 @@
 Initial State:
-Someone is in the kitchen and wants to make a meal. They currently only have lettuce, tomato, onion, cucumber, salad dressing a knife, a chopping board, and a plate.
+Someone is in the kitchen and wants to make a meal. They currently have lettuce, tomato, onion, cucumber, salad dressing a knife, a chopping board, and a plate.
 Goal:
 A Garden salad made of sliced lettuce, sliced tomato, sliced onion, slice cucumber, and salad dressing.

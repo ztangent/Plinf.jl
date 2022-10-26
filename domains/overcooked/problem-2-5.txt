@@ -1,4 +1,4 @@
 Initial State:
-Someone is in the kitchen and wants to make a meal. They currently only have tuna, salmon, soybeans, a sashimi-knife, a chopping board, a pot, a stove and a plate.
+Someone is in the kitchen and wants to make a meal. They currently have tuna, salmon, soybeans, crab, rice, nori, cucumber, avocado, a sashimi knife, a chopping board, a stove and a plate.
 Goal:
-Edamame made of boiled soy beans and lightly salted.
+A california roll consisting of rice, crab, nori, cucumber and avocado.

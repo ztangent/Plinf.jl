@@ -2,25 +2,24 @@
 (define (problem overcooked-problem-5)
 	(:domain overcooked)
 	(:objects
-		chocolate strawberry orange peach grape apple - ftype ; Food types
-		chopping-board mixing-bowl plate basket - rtype ; Receptacle types
-		knife - ttype ; Tool types
+		egg honey flour chocolate strawberry watermelon grape apple - ftype ; Food types
+		mixing-bowl plate basket - rtype ; Receptacle types
 		mixer oven deep-fryer - atype ; Appliance types
-		mix - combine-method ; Combine methods
-		slice - prepare-method ; Preparation methods
+		mix - combine-method ; Preparation methods
 		bake deep-fry - cook-method ; Cooking methods
-		chocolate1 strawberry1 orange1 peach1  grape1 apple1 - food ; Food objects
-		chopping-board1 mixing-bowl1 plate1 basket1 - receptacle ; Receptacle objects
-		knife1 - tool ; Tool types
+		egg1 honey1 flour1 chocolate1 strawberry1 watermelon1 grape1 apple1 - food ; Food objects
+		mixing-bowl1 plate1 basket1 - receptacle ; Receptacle objects
 		mixer1 oven1 fryer1 - appliance ; Appliance objects
 		start-loc food-loc mix-loc oven-loc fryer-loc plate-loc - location ; Locations
 	)
 	(:init
 		; Type declarations
+		(food-type honey honey1)
+		(food-type flour flour1)
+		(food-type egg egg1)
 		(food-type chocolate chocolate1)
 		(food-type strawberry strawberry1)
-		(food-type peach peach1)
-		(food-type orange orange1)
+		(food-type watermelon watermelon1)
 		(food-type grape grape1)
 		(food-type apple apple1)
 		(receptacle-type mixing-bowl mixing-bowl1)
@@ -31,17 +30,18 @@
 		(appliance-type mixer mixer1)
 		; Method declarations
 		(has-combine-method mix mixing-bowl mixer)
-		(has-prepare-method slice chopping-board knife)
 		(has-cook-method bake mixing-bowl oven)
 		(has-cook-method deep-fry basket deep-fryer)
 		; Initial agent state
 		(handempty)
 		(agent-at-loc start-loc)
 		; Initial food locations
+		(object-at-loc honey1 food-loc)
+		(object-at-loc flour1 food-loc)
+		(object-at-loc egg1 food-loc)
 		(object-at-loc chocolate1 food-loc)
 		(object-at-loc strawberry1 food-loc)
-		(object-at-loc peach1 food-loc)
-		(object-at-loc orange1 food-loc)
+		(object-at-loc watermelon1 food-loc)
 		(object-at-loc grape1 food-loc)
 		(object-at-loc apple1 food-loc)
 		; Receptacle, tool, and appliance locations
@@ -58,16 +58,17 @@
 		(occupied fryer1)
 	)
 	(:goal
-	(exists (?orange - food ?peach - food ?grape - food ?plate - receptacle)
-        (and (food-type orange ?orange)
-             (food-type peach ?peach)
-             (food-type grape ?grape)
+	(exists (?egg - food ?chocolate - food ?flour - food ?plate - receptacle)
+        (and (food-type egg ?egg)
+             (food-type flour ?flour)
+             (food-type chocolate ?chocolate)
 			 (receptacle-type plate ?plate)
-			 (prepared slice ?orange)
-			 (prepared slice ?peach)
-			 (prepared slice ?grape)
-             (in-receptacle ?orange ?plate)
-             (in-receptacle ?peach ?plate)
-             (in-receptacle ?grape ?plate)))
+             (combined-with mix ?egg ?flour)
+             (combined-with mix ?flour ?chocolate)
+             (cooked-with bake ?egg ?flour)
+             (cooked-with bake ?flour ?chocolate)
+             (in-receptacle ?egg ?plate)
+             (in-receptacle ?chocolate ?plate)
+             (in-receptacle ?flour ?plate)))
 	)
 )
