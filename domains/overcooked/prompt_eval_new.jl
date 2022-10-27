@@ -19,7 +19,11 @@ function construct_kitchen_description(
     receptacles = sort!(string.(PDDL.get_objects(state, :rtype)))
     receptacles_str = "Receptacles: " * join(receptacles, ", ")
     # List tools
+    tools = sort!(string.(PDDL.get_objects(state, :ttype)))
+    tools_str = "Tools: " * join(tools, ", ")
     # List appliances
+    appliances = sort!(string.(PDDL.get_objects(state, :atype)))
+    appliances_str = "Appliances: " * join(appliances, ", ")
     # List preparation methods
     query = pddl"(has-prepare-method ?method ?rtype ?ttype)"
     prepare_methods = String[]
@@ -34,9 +38,33 @@ function construct_kitchen_description(
         "none" :  join(sort!(prepare_methods), ", ")
     prepare_str = "Preparation Methods: " * prepare_methods
     # List combination methods
+    query = pddl"(has-combine-method ?method ?rtype ?ttype)"
+    combine_methods = String[]
+    for subst in satisfiers(domain, state, query)
+        method = subst[pddl"(?method)"]
+        rtype = subst[pddl"(?rtype)"]
+        ttype = subst[pddl"(?ttype)"]
+        str = "$method (using $ttype with $rtype)"
+        push!(combine_methods, str)
+    end
+    combine_methods = isempty(combine_methods) ?
+        "none" :  join(sort!(combine_methods), ", ")
+    combine_str = "Combinination Methods: " * combine_methods
     # List cooking methods
+    query = pddl"(has-cook-method ?method ?rtype ?ttype)"
+    cook_methods = String[]
+    for subst in satisfiers(domain, state, query)
+        method = subst[pddl"(?method)"]
+        rtype = subst[pddl"(?rtype)"]
+        ttype = subst[pddl"(?ttype)"]
+        str = "$method (using $ttype with $rtype)"
+        push!(cooking_methods, str)
+    end
+    cook_methods = isempty(cooking_methods) ?
+        "none" :  join(sort!(cooking_methods), ", ")
+    cook_str = "Cooking Methods: " * cooking_methods
     # Concatenate all lines into kitchen description
-    description = join([ingredients_str, receptacles_str, prepare_str], "\n")
+    description = join([ingredients_str, receptacles_str, tools_str, appliances_str, prepare_str, combine_str, cook_str], "\n")
     return description
 end
 
