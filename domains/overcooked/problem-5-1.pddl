@@ -10,7 +10,7 @@
 		slice - prepare-method ; Preparation methods
 		bake deep-fry - cook-method ; Cooking methods
 		chocolate1 strawberry1 orange1 peach1  grape1 apple1 - food ; Food objects
-		chopping-board1 mixing-bowl1 plate1 basket1 - receptacle ; Receptacle objects
+		board1 mixing-bowl1 plate1 basket1 - receptacle ; Receptacle objects
 		knife1 - tool ; Tool types
 		mixer1 oven1 fryer1 - appliance ; Appliance objects
 		start-loc food-loc mix-loc oven-loc fryer-loc plate-loc - location ; Locations
