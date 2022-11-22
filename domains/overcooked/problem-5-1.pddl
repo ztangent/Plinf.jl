@@ -9,11 +9,11 @@
 		mix - combine-method ; Combine methods
 		slice - prepare-method ; Preparation methods
 		bake deep-fry - cook-method ; Cooking methods
-		chocolate1 strawberry1 orange1 peach1  grape1 apple1 - food ; Food objects
+		chocolate1 strawberry1 orange1 peach1 grape1 apple1 - food ; Food objects
 		board1 mixing-bowl1 plate1 basket1 - receptacle ; Receptacle objects
 		knife1 - tool ; Tool types
 		mixer1 oven1 fryer1 - appliance ; Appliance objects
-		start-loc food-loc mix-loc oven-loc fryer-loc plate-loc - location ; Locations
+		start-loc food-loc mix-loc chop-loc oven-loc fryer-loc plate-loc - location ; Locations
 	)
 	(:init
 		; Type declarations
@@ -23,9 +23,11 @@
 		(food-type orange orange1)
 		(food-type grape grape1)
 		(food-type apple apple1)
+		(tool-type knife knife1)
 		(receptacle-type mixing-bowl mixing-bowl1)
 		(receptacle-type plate plate1)
 		(receptacle-type basket basket1)
+		(receptacle-type chopping-board board1)
 		(appliance-type oven oven1)
 		(appliance-type deep-fryer fryer1)
 		(appliance-type mixer mixer1)
@@ -45,6 +47,8 @@
 		(object-at-loc grape1 food-loc)
 		(object-at-loc apple1 food-loc)
 		; Receptacle, tool, and appliance locations
+		(object-at-loc board1 chop-loc)
+		(object-at-loc knife1 chop-loc)
 		(object-at-loc mixer1 mix-loc)
 		(object-at-loc mixing-bowl1 mix-loc)
 		(object-at-loc basket1 fryer-loc)

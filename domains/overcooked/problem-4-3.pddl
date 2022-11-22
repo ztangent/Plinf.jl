@@ -7,6 +7,7 @@
 		knife - ttype ; Tool types
 		mixer oven - atype ; Appliance types
 		slice chop - prepare-method ; Preparation methods
+		mix - combine-method ; Combine methods
 		bake - cook-method ; Cooking methods
 		egg1 flour1 tomato1 cheese1 sausage1 chicken1 beef1 - food ; Food objects
 		mixing-bowl1 board1 tray1 plate1 - receptacle ; Receptacle objects
@@ -75,7 +76,7 @@
 			 (prepared chop ?chicken)
 			 (combined-with mix ?egg ?flour)
              (cooked-with bake ?egg ?flour)
-			 (cooked-with bake ?flour ?tomato)
+			 ; (cooked-with bake ?flour ?tomato)
              (cooked-with bake ?tomato ?cheese)
              (cooked-with bake ?cheese ?sausage)
 			 (cooked-with bake ?sausage ?beef)

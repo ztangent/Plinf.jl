@@ -25,7 +25,7 @@
 		(tool-type sashimi-knife s-knife1)
 		(appliance-type stove stove1)
 		; Method declarations
-		(has-prepare-method slice chopping-board s-knife)
+		(has-prepare-method slice chopping-board sashimi-knife)
 		(has-cook-method boil pot stove)
 		; Initial agent state
 		(handempty)

@@ -7,6 +7,7 @@
 		knife - ttype ; Tool types
 		oven mixer - atype ; Appliance types
 		slice - prepare-method ; Preparation methods
+		mix - combine-method ; Combine methods
 		bake - cook-method ; Cooking methods
 		egg1 flour1 tomato1 cheese1 mushroom1 onion1 olive1 - food ; Food objects
 		board1 tray1 plate1 mixing-bowl1 - receptacle ; Receptacle objects

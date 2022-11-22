@@ -11,7 +11,7 @@
 		bake deep-fry - cook-method ; Cooking methods
 		egg1 honey1 flour1 chocolate1 strawberry1 watermelon1 grape1 apple1 peach1 orange1 ice1 milk1 - food ; Food objects
 		blender-jug1 glass1 basket1 mixing-bowl1 board1 - receptacle ; Receptacle objects
-		blender1 oven1 fryer1 mixer1- appliance ; Appliance objects
+		blender1 oven1 fryer1 mixer1 - appliance ; Appliance objects
 		knife1 - tool ; Tool objects
 		start-loc food-loc blend-loc oven-loc fryer-loc glass-loc mix-loc board-loc - location ; Locations
 	)
@@ -48,6 +48,8 @@
 		(handempty)
 		(agent-at-loc start-loc)
 		; Initial food locations
+		(object-at-loc ice1 food-loc)
+		(object-at-loc milk1 food-loc)
 		(object-at-loc honey1 food-loc)
 		(object-at-loc flour1 food-loc)
 		(object-at-loc egg1 food-loc)

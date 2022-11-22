@@ -40,7 +40,7 @@
 		(handempty)
 		(agent-at-loc start-loc)
 		; Initial food locations
-		(object-at-loc bread food-loc)
+		(object-at-loc bread1 food-loc)
 		(object-at-loc cheese1 food-loc)
 		(object-at-loc onion1 food-loc)
 		(object-at-loc potato1 food-loc)

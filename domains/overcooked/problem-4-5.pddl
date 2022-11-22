@@ -7,6 +7,7 @@
 		knife - ttype ; Tool types
 		oven mixer - atype ; Appliance types
 		slice chop - prepare-method ; Preparation methods
+		mix - combine-method ; Combine methods
 		bake - cook-method ; Cooking methods
 		mushroom1 olive1 onion1 chicken1 beef1 egg1 flour1 tomato1 cheese1 ham1 pineapple1 - food ; Food objects
 		mixing-bowl1 board1 tray1 plate1 - receptacle ; Receptacle objects
@@ -60,6 +61,8 @@
 		(object-at-loc oven1 oven-loc)
 		(object-at-loc plate1 plate-loc)
 		(object-at-loc tray1 tray-loc)
+		(object-at-loc mixer1 mix-loc)
+		(object-at-loc mixing-bowl1 mix-loc)
 		; Whether receptacles are located on appliances
 		(in-appliance mixing-bowl1 mixer1)
 		(occupied mixer1)

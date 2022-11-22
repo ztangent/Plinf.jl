@@ -1,5 +1,5 @@
 ; Salad bar with tomato and lettuce salad as goal
-(define (problem overcooked-problem-1-2)
+(define (problem overcooked-problem-1-3)
 	(:domain overcooked)
 	(:objects
 		tomato olive feta-cheese cucumber onion - ftype ; Food types

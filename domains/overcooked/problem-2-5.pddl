@@ -30,7 +30,7 @@
 		(tool-type sashimi-knife s-knife1)
 		(appliance-type stove stove1)
 		; Method declarations
-		(has-prepare-method slice chopping-board s-knife)
+		(has-prepare-method slice chopping-board sashimi-knife)
 		(has-cook-method boil pot stove)
 		; Initial agent state
 		(handempty)
@@ -55,14 +55,13 @@
 		(occupied stove1)
 	)
 	(:goal
-		(exists (?avocado - food ?tuna - food ?salmon - food ?soybean - food ?nori - food ?rice - food ?crab - food ?cucumber - food ?plate - receptacle ?pot - receptacle)
+		(exists (?avocado - food  ?nori - food ?rice - food ?crab - food ?cucumber - food ?plate - receptacle)
 	   (and (food-type nori ?nori)
 	        (food-type rice ?rice)
 	        (food-type crab ?crab)
 			(food-type cucumber ?cucumber)
 			(food-type avocado ?avocado)
 			(receptacle-type plate ?plate)
-			(receptacle-type pot ?pot)
 	        (prepared slice ?crab)
 	        (cooked boil ?rice)
 	        (in-receptacle ?nori ?plate)

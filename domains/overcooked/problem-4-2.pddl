@@ -5,8 +5,9 @@
 		egg flour tomato cheese sausage chicken olive - ftype ; Food types
 		chopping-board tray plate mixing-bowl - rtype ; Receptacle types
 		knife - ttype ; Tool types
-		oven mixer- atype ; Appliance types
+		oven mixer - atype ; Appliance types
 		slice - prepare-method ; Preparation methods
+		mix - combine-method ; Combine methods
 		bake - cook-method ; Cooking methods
 		egg1 flour1 tomato1 cheese1 sausage1 chicken1 olive1 - food ; Food objects
 		board1 tray1 plate1 mixing-bowl1 - receptacle ; Receptacle objects
@@ -29,6 +30,7 @@
 		(receptacle-type mixing-bowl mixing-bowl1)
 		(tool-type knife knife1)
 		(appliance-type oven oven1)
+		(appliance-type mixer mixer1)
 		; Method declarations
 		(has-prepare-method slice chopping-board knife)
 		(has-cook-method bake tray oven)
