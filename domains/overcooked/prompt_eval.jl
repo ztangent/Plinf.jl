@@ -4,7 +4,34 @@ using CSV, DataFrames, Dates
 include("goal_validation.jl")
 include("gpt3_complete.jl")
 
-## Helper functions ##
+## Goal parsing and validation ##
+
+"Parse a string as a PDDL goal, checking if it is a valid PDDL formula."
+function parse_goal(str::AbstractString)
+    goal = parse_pddl(str)
+    @assert goal isa Term
+    return goal
+end
+
+"Validates a generated goal string with several checks."
+function validate_goal_string(
+    str::AbstractString, domain::Domain, state::State;
+    verbose::Bool=false
+)
+    # Check if string parses to PDDL formula
+    goal = nothing
+    try
+        goal = parse_goal(str)
+    catch e
+        reason = "Parse error"
+        if verbose println("Validation Failed: $reason") end
+        return (false, reason)
+    end
+    if verbose println("Validation: Goal Parsed") end
+    return validate_goal(goal, domain, state, verbose=verbose)
+end
+
+## Prompt generation ##
 
 "Constructs a prompt header from a problem and a English language description."
 function construct_prompt_header(
@@ -216,7 +243,7 @@ for (problem_path, description_path) in zip(PROBLEMS, DESCRIPTIONS)
         println("-- Validation --")
         println("Parse Successful: $success")
         # Check if goal is valid
-        valid, reason = validate_goal(pddl_goal, domain, state; verbose=true)
+        valid, reason = validate_goal_string(pddl_goal, domain, state; verbose=true)
         println("Goal Validity: $valid")
         println("Validation Reason: $reason")
         println()

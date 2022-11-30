@@ -1,18 +1,8 @@
 using PDDL, SymbolicPlanners
 
-"Validates a goal generation with several checks."
-function validate_goal(str::AbstractString, domain::Domain, state::State;
+"Validates a generated goal with several checks."
+function validate_goal(goal::Term, domain::Domain, state::State;
                        verbose::Bool=false)
-    # Check if string parses to PDDL formula
-    goal = nothing
-    try
-        goal = parse_goal(str)
-    catch e
-        reason = "Parse error"
-        if verbose println("Validation Failed: $reason") end
-        return (false, reason)
-    end
-    if verbose println("Validation: Goal Parsed") end
     # Check if predicates and types exist in the domain
     valid = validate_predicates_and_types(goal, domain)
     if !valid
@@ -38,13 +28,6 @@ function validate_goal(str::AbstractString, domain::Domain, state::State;
     end
     if verbose println("Validation: Goal is Reachable") end
     return (true, "All checks passed")
-end
-
-"Parse a string as a PDDL goal, checking if it is a valid PDDL formula."
-function parse_goal(str::AbstractString)
-    goal = parse_pddl(str)
-    @assert goal isa Term
-    return goal
 end
 
 "Returns whether all predicates and types in a `term` are defined in `domain`."
@@ -102,12 +85,12 @@ function validate_reachability(goal::Term, domain::Domain, state::State;
     return true
 end
 
-# # Load domain and problem
-# domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
-# problem = load_problem(joinpath(@__DIR__, "problem-5-1.pddl"))
-# state = initstate(domain, problem)
+# Load domain and problem
+domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
+problem = load_problem(joinpath(@__DIR__, "problem-2-2.pddl"))
+state = initstate(domain, problem)
 
-# # Goal as string
+# Goal as string
 # str = """
 #     (exists (?lettuce - food ?tomato - food ?plate - receptacle)
 #         (and (food-type lettuce ?lettuce)

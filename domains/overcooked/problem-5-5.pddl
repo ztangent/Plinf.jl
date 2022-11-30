@@ -1,19 +1,20 @@
 ;Patisserie/Bakery with honey cakes and donuts as a goal
 (define (problem overcooked-problem-5)
 	(:domain overcooked)
+	;add plate
 	(:objects
 		egg honey flour chocolate strawberry watermelon grape apple peach orange ice milk - ftype ; Food types
-		blender-jug glass basket mixing-bowl chopping-board - rtype ; Receptacle types
+		blender-jug glass basket mixing-bowl chopping-board plate - rtype ; Receptacle types
 		blender oven deep-fryer mixer - atype ; Appliance types
 		knife - ttype ; Tool types
 		slice - prepare-method ; Preparation methods
 		blend mix - combine-method ; Combine methods
 		bake deep-fry - cook-method ; Cooking methods
 		egg1 honey1 flour1 chocolate1 strawberry1 watermelon1 grape1 apple1 peach1 orange1 ice1 milk1 - food ; Food objects
-		blender-jug1 glass1 basket1 mixing-bowl1 board1 - receptacle ; Receptacle objects
+		blender-jug1 glass1 basket1 mixing-bowl1 board1 plate1 - receptacle ; Receptacle objects
 		blender1 oven1 fryer1 mixer1 - appliance ; Appliance objects
 		knife1 - tool ; Tool objects
-		start-loc food-loc blend-loc oven-loc fryer-loc glass-loc mix-loc board-loc - location ; Locations
+		start-loc food-loc blend-loc oven-loc fryer-loc glass-loc mix-loc board-loc plate-loc - location ; Locations
 	)
 	(:init
 		; Type declarations
@@ -35,6 +36,7 @@
 		(receptacle-type basket basket1)
 		(receptacle-type mixing-bowl mixing-bowl1)
 		(receptacle-type chopping-board board1)
+		(receptacle-type plate plate1)
 		(appliance-type oven oven1)
 		(appliance-type deep-fryer fryer1)
 		(appliance-type blender blender1)
@@ -68,6 +70,7 @@
 		(object-at-loc glass1 glass-loc)
 		(object-at-loc fryer1 fryer-loc)
 		(object-at-loc board1 board-loc)
+		(object-at-loc plate1 plate-loc)
 		; Whether receptacles are located on appliances
 		(in-appliance blender-jug1 blender1)
 		(in-appliance basket1 fryer1)

@@ -1,15 +1,16 @@
 ; Pizzeria with pepperoni pizza as a goal
 (define (problem overcooked-problem-4)
 	(:domain overcooked)
+	; add basil, sausage
 	(:objects
-		mushroom olive onion chicken beef egg flour tomato cheese ham pineapple - ftype ; Food types
+		mushroom olive onion chicken beef egg flour tomato cheese ham basil sausage pineapple - ftype ; Food types
 		chopping-board tray plate mixing-bowl - rtype ; Receptacle types
 		knife - ttype ; Tool types
 		oven mixer - atype ; Appliance types
 		slice chop - prepare-method ; Preparation methods
 		mix - combine-method ; Combine methods
 		bake - cook-method ; Cooking methods
-		mushroom1 olive1 onion1 chicken1 beef1 egg1 flour1 tomato1 cheese1 ham1 pineapple1 - food ; Food objects
+		basil 1 sausage1 mushroom1 olive1 onion1 chicken1 beef1 egg1 flour1 tomato1 cheese1 ham1 pineapple1 - food ; Food objects
 		mixing-bowl1 board1 tray1 plate1 - receptacle ; Receptacle objects
 		knife1 - tool ; Tool objects
 		mixer1 oven1 - appliance ; Appliance objects
@@ -28,6 +29,8 @@
 		(food-type olive olive1)
 		(food-type beef beef1)
 		(food-type chicken chicken1)
+		(food-type basil basil1)
+		(food-type sausage sausage1)
 		(receptacle-type chopping-board board1)
 		(receptacle-type plate plate1)
 		(receptacle-type tray tray1)
@@ -55,6 +58,8 @@
 		(object-at-loc onion1 food-loc)
 		(object-at-loc beef1 food-loc)
 		(object-at-loc chicken food-loc)
+		(object-at-loc basil food-loc)
+		(object-at-loc sausage food-loc)
 		; Receptacle, tool, and appliance locations
 		(object-at-loc board1 chop-loc)
 		(object-at-loc knife1 chop-loc)
