@@ -1,5 +1,7 @@
 using PDDL, SymbolicPlanners
 
+include("planner.jl")
+
 "Validates a generated goal with several checks."
 function validate_goal(goal::Term, domain::Domain, state::State;
                        verbose::Bool=false)
@@ -66,7 +68,7 @@ end
 
 "Returns whether goal is reachable from initial state."
 function validate_reachability(goal::Term, domain::Domain, state::State;
-                               verbose::Bool=false, max_time=10.0)
+                               verbose::Bool=false, max_time=20.0)
     # Check if reachable using HMax
     heuristic = HMax()
     hval = heuristic(domain, state, goal)
@@ -76,7 +78,7 @@ function validate_reachability(goal::Term, domain::Domain, state::State;
     end
     
     # Check if a plan can be found that reaches the goal
-    planner = AStarPlanner(HAdd(), max_time=max_time)
+    planner = OvercookedPlanner(planner=AStarPlanner(HAdd()), max_time=max_time)
     sol = planner(domain, state, goal)
     if sol isa NullSolution
         if verbose println("Unreachable according to planner.") end
@@ -86,10 +88,9 @@ function validate_reachability(goal::Term, domain::Domain, state::State;
 end
 
 # Load domain and problem
-domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
-problem = load_problem(joinpath(@__DIR__, "problem-2-2.pddl"))
-state = initstate(domain, problem)
-
+# domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
+# problem = load_problem(joinpath(@__DIR__, "problem-2-2.pddl"))
+# state = initstate(domain, problem)
 # Goal as string
 # str = """
 #     (exists (?lettuce - food ?tomato - food ?plate - receptacle)
