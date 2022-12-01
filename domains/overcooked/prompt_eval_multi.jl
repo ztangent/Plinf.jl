@@ -8,21 +8,21 @@ include("goal_validation.jl")
 
 "Parse recipe string as a PDDL goal, checking if it is a valid PDDL formula."
 function parse_recipe(str::AbstractString)
-    lines = split(strip(str), "\n")
+    lines = filter(!=(""), split(strip(str), "\n"))
     terms = Term[] 
 
     # Parse English description
     description_str = lines[1]
-    m = match(r"Description: (.*)", description_str)
+    m = match(r"Description: ?(.*)", description_str)
     description = m.captures[1]
 
     # Parse ingredients
     ingredients_str = lines[2]
-    m = match(r"Ingredients: (.*)", ingredients_str)
+    m = match(r"Ingredients: ?(.*)", ingredients_str)
     ingredients = split(m.captures[1], ", ")
     final_ingredients = split(pop!(ingredients), " and ")
     append!(ingredients, final_ingredients)
-    ingredients = map(x -> replace(x, " " => "-"), ingredients)
+    ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
     food_types = map(x -> Const(Symbol(x)), ingredients)
     food_vars = map(x -> Var(Symbol(uppercasefirst(x))), ingredients)
     # Construct food type declarations
@@ -32,7 +32,7 @@ function parse_recipe(str::AbstractString)
     end
 
     # Parse receptacle
-    m = match(r"Serve: (?:in|on|upon) (?:a|an) (.+)", lines[end])
+    m = match(r"Serve: ?(?:in|on|upon) (?:a|an) (.+)", lines[end])
     receptacle = m.captures[1]
     # Construct receptacle type declaration
     r_type = Const(Symbol(receptacle))
@@ -41,7 +41,7 @@ function parse_recipe(str::AbstractString)
 
     # Loop over remaining lines
     for line in lines[3:end-1]
-        m = match(r"(\w+): (.*)", line)
+        m = match(r"(\w+): ?(.*)", line)
         step_type = m.captures[1]
         if step_type == "Prepare"
             term = parse_prepare_step(m.captures[2])
@@ -77,7 +77,7 @@ end
 function parse_prepare_step(str::AbstractString)
     method, ingredient = split(str, " the ")
     method = Const(Symbol(method))
-    ingredient = replace(ingredient, " " => "-")
+    ingredient = replace(strip(ingredient), " " => "-")
     var = Var(Symbol(uppercasefirst(ingredient)))
     return Compound(:prepared, Term[method, var])
 end
@@ -90,7 +90,7 @@ function parse_combine_step(str::AbstractString)
     ingredients = split(ingredients, ", ")
     final_ingredients = split(pop!(ingredients), " and ")
     append!(ingredients, final_ingredients)
-    ingredients = map(x -> replace(x, " " => "-"), ingredients)
+    ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
     food_vars = map(x -> Var(Symbol(uppercasefirst(x))), ingredients)
 
     # Handle single ingredient case
@@ -117,7 +117,7 @@ function parse_cook_step(str::AbstractString)
     ingredients = split(ingredients, ", ")
     final_ingredients = split(pop!(ingredients), " and ")
     append!(ingredients, final_ingredients)
-    ingredients = map(x -> replace(x, " " => "-"), ingredients)
+    ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
     food_vars = map(x -> Var(Symbol(uppercasefirst(x))), ingredients)
 
     # Handle single ingredient case
@@ -441,7 +441,7 @@ TEST_PROBLEMS = [
 TEST_PROBLEMS = [joinpath.(@__DIR__, pset) for pset in TEST_PROBLEMS]
 
 # Number of completions per prompt
-N_REPEATS = 10
+N_REPEATS = 50
 
 # Temperature of generated completion
 TEMPERATURE = 1.0
@@ -452,9 +452,9 @@ df = DataFrame(
     kitchen_name=String[],
     problem=String[],
     description=String[],
-    prompt=String[],
     temperature=Float64[],
     completion=String[],
+    logprobs=Float64[],
     pddl_goal=String[],
     eng_goal=String[],
     parse_success=Bool[],
@@ -500,25 +500,22 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         # Send prompt to GPT3 and get response
         println("---")
         println("Requesting $N_REPEATS completions through OpenAI API...")
-        response = nothing
-        while isnothing(response)
-            try
-                response = gpt3_complete(prompt, N_REPEATS, stop="Description:",
-                                         temperature=TEMPERATURE, verbose=true)
-            catch e
-                println("Error with API request, waiting 2 seconds to retry...")
-                sleep(2.0)
-            end
-        end
+        completions = gpt3_batch_complete(
+            prompt, N_REPEATS, 10;
+            stop="Description:", temperature=TEMPERATURE,
+            verbose=true, persistent=true
+        )
         println("---")
 
         # Iterate over multiple completions
-        for (i, choice) in enumerate(response.choices)
+        for (i, completion_obj) in enumerate(completions)
             # Extract completion text
-            completion = choice.text 
+            completion = completion_obj.text 
             completion = strip("Description:" * completion)
             println("-- Completion $i--")
             println(completion)
+            # Extract log probability (stop sequence has 2 tokens)
+            logprobs = extract_logprobs(completion_obj, 2)
             # Try to parse to PDDL and English description
             result = try_parse_recipe(completion)
             if isnothing(result)
@@ -542,8 +539,8 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
                 :kitchen_name => kitchen_name,            
                 :problem => basename(problem_path),
                 :description => kitchen_desc,
-                :prompt => prompt,
                 :completion => completion,
+                :logprobs => logprobs,
                 :pddl_goal => pddl_goal,
                 :eng_goal => eng_goal,
                 :temperature => TEMPERATURE,
