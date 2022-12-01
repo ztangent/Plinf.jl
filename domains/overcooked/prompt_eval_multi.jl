@@ -463,7 +463,10 @@ df = DataFrame(
 )
 df_types = eltype.(eachcol(df))
 datetime = Dates.format(Dates.now(), "yyyy-mm-ddTHH-MM-SS")
-df_path = joinpath(@__DIR__, "prompt_eval_multi_$(datetime).csv")
+n_per_kitchen = length(PROMPT_PROBLEMS[1]) 
+df_path = "prompt_eval_multi_" * "temp_$(TEMPERATURE)_" *
+          "nperkitchen_$(n_per_kitchen)" * "_$(datetime).csv"
+df_path = joinpath(@__DIR__, df_path)
 
 # Load domain
 domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
