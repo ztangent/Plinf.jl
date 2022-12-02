@@ -75,9 +75,16 @@ function parse_recipe(str::AbstractString)
 end
 
 function parse_prepare_step(str::AbstractString)
-    method, ingredient = split(str, " the ")
+    method, ingredients = split(str, " the ")
+    # Parse method    
     method = Const(Symbol(method))
-    ingredient = replace(strip(ingredient), " " => "-")
+    # Parse ingredients
+    ingredients = split(ingredients, ", ")
+    final_ingredients = split(pop!(ingredients), " and ")
+    append!(ingredients, final_ingredients)
+    ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
+    @assert length(ingredients) == 1
+    ingredient = ingredients[1]
     var = Var(Symbol(uppercasefirst(ingredient)))
     return Compound(:prepared, Term[method, var])
 end
@@ -450,6 +457,8 @@ TEMPERATURE = 1.0
 df = DataFrame(
     kitchen_id=Int[],
     kitchen_name=String[],
+    n_train_kitchens=Int[],
+    n_train_recipes_per_kitchen=Int[],
     problem=String[],
     description=String[],
     temperature=Float64[],
@@ -487,6 +496,8 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         train_idxs = filter(!=(idx), 1:length(PROMPT_PROBLEMS))
         train_names = KITCHEN_NAMES[train_idxs]
         train_problems = PROMPT_PROBLEMS[train_idxs]
+        n_train_kitchens = length(train_problems)
+        n_train_recipes_per_kitchen = length(train_problems[1]) 
         context = construct_multikitchen_prompt(domain, train_problems, train_names)
 
         # Construct kitchen description for test problem
@@ -539,7 +550,9 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
             println()
             row = Dict(
                 :kitchen_id => idx,
-                :kitchen_name => kitchen_name,            
+                :kitchen_name => kitchen_name,
+                :n_train_kitchens => n_train_kitchens,
+                :n_train_recipes_per_kitchen => n_train_recipes_per_kitchen,
                 :problem => basename(problem_path),
                 :description => kitchen_desc,
                 :completion => completion,
