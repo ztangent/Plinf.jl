@@ -32,8 +32,9 @@ function parse_recipe(str::AbstractString)
     end
 
     # Parse receptacle
-    m = match(r"Serve: ?(?:in|on|upon) (?:a|an) (.+)", lines[end])
+    m = match(r"Serve: ?(?:in|on|upon) (?:a|an) ([\w\- ]+)", lines[end])
     receptacle = m.captures[1]
+    receptacle = replace(strip(receptacle), " " => "-")
     # Construct receptacle type declaration
     r_type = Const(Symbol(receptacle))
     r_var = Var(Symbol(uppercasefirst(receptacle)))
