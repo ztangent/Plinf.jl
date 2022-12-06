@@ -45,13 +45,13 @@ validity_cols =
     [:valid, :pddl_parse_error,
      :non_existent_predicates, :non_existent_objects, :goal_unreachable]
 validity_sem_ops = reduce(vcat, ([col => mean, col => sem] for col in validity_cols))
-valdity_ops = [col => mean for col in validity_cols]
+validity_ops = [col => mean for col in validity_cols]
      
 #  Compute validity metrics for each problem and condition
-prob_validity_df = combine(problem_gdf, mean_ops...)
+prob_validity_df = combine(problem_gdf, validity_ops...)
 
 #  Compute average validity metrics for each condition
-mean_validity_df = combine(condition_gdf, mean_ops...)
+mean_validity_df = combine(condition_gdf, validity_ops...)
 
 ## Diversity Metrics ##
 
