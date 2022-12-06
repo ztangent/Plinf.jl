@@ -4,14 +4,14 @@
 	(:objects
 		bread cheese tuna beef chicken onion potato lettuce tomato pineapple mayo - ftype ; Food types
 		chopping-board basket pan plate mixing-bowl - rtype ; Receptacle types
-		knife spoon - ttype ; Tool types
+		knife  - ttype ; Tool types
 		stove deep-fryer mixer - atype ; Appliance types
 		slice chop mince - prepare-method ; Preparation methods
 		mix - combine-method ; Combine methods
 		grill fry - cook-method ; Cooking methods
 		bread1 cheese1 tuna1 beef1 chicken1 onion1 potato1 lettuce1 tomato1 pineapple1 mayo1 - food ; Food objects
 	    board1 basket1 pan1 plate1 mixing-bowl1 - receptacle ; Receptacle objects
-		knife1 spoon1 - tool ; Tool objects
+		knife1 - tool ; Tool objects
 		stove1 fryer1 mixer1 - appliance ; Appliance objects
 		start-loc food-loc chop-loc fryer-loc stove-loc plate-loc mix-loc - location ; Locations
 	)

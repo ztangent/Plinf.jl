@@ -2,18 +2,17 @@
 (define (problem overcooked-problem-1-1)
 	(:domain overcooked)
 	(:objects
-		tomato lettuce cucumber - ftype ; Food types
+	    lettuce cucumber - ftype ; Food types
 		chopping-board plate - rtype ; Receptacle types
 		knife - ttype ; Tool types
 		slice - prepare-method ; Preparation methods
-		tomato1 lettuce1 cucumber1 - food ; Food objects
+	    lettuce1 cucumber1 - food ; Food objects
 		board1 plate1 - receptacle ; Receptacle objects
 		knife1 - tool ; Tool objects
 		start-loc food-loc chop-loc plate-loc - location ; Locations
 	)
 	(:init
 		; Type declarations
-		(food-type tomato tomato1)
 		(food-type lettuce lettuce1)
 		(food-type cucumber cucumber1)
 		(receptacle-type chopping-board board1)
@@ -25,7 +24,6 @@
 		(handempty)
 		(agent-at-loc start-loc)
 		; Initial food locations
-		(object-at-loc tomato1 food-loc)
 		(object-at-loc lettuce1 food-loc)
 		(object-at-loc cucumber1 food-loc)
 		; Initial receptacle and tool locations
