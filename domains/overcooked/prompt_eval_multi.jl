@@ -147,7 +147,9 @@ end
 "Tries to parse a recipe to PDDL, returns nothing upon failure."
 function try_parse_recipe(str::AbstractString)
     try
-        return parse_recipe(str)
+        term, description = parse_recipe(str)
+        term = parse_pddl(write_pddl(term)) # Reparse to check for errors
+        return term, description
     catch e
         return nothing
     end

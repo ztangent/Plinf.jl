@@ -24,9 +24,27 @@ df_types = eltype.(eachcol(df))
 condition_cols = [:kitchen_name, :temperature, :n_train_recipes_per_kitchen]
 
 # Load dataframe
-df_path = "prompt_eval_multi_temp_1.0_nperkitchen_3_2022-12-02T14-50-22.csv"
+df_path = "prompt_eval_multi_temp_0.25_nperkitchen_3_2022-12-06T22-23-49.csv"
 df_path = joinpath(@__DIR__, df_path)
 df = CSV.read(df_path, DataFrame, types=df_types)
+
+# Post-hoc fix for errors in parse validation
+# Make sure to compile parse_recipe and try_parse_recipe in prompt_eval_multi.jl before running this
+function fix_parse_error(completion::String)
+    result = try_parse_recipe(completion)
+    if isnothing(result)
+        pddl_goal, eng_goal = "", ""
+        parse_success = false
+    else
+        pddl_goal, eng_goal = result
+        pddl_goal = write_pddl(pddl_goal)
+        parse_success = true
+    end
+    return pddl_goal, eng_goal, parse_success
+end
+
+transform!(df, :completion => ByRow(fix_parse_error) => [:pddl_goal, :eng_goal, :parse_success])
+transform!(df, [:parse_success, :reason] => ByRow((x, y) -> x ? y : "Parse error") => :reason)
 
 # Compute various extra information
 transform!(df, :reason => (x -> x .== "Parse error") => :pddl_parse_error)
@@ -99,7 +117,7 @@ transform!(prob_df, [:frac_unique_valid, :valid_mean] => ((x, y) -> x./y) => :fr
 
 # Merge validity and diversity results for each condition
 mean_df = innerjoin(mean_validity_df, mean_diversity_df, on=condition_cols)
-transform!(joined_df, [:frac_unique_valid, :valid_mean] => ((x, y) -> x./y) => :frac_unique_out_of_valid)
+transform!(mean_df, [:frac_unique_valid, :valid_mean] => ((x, y) -> x./y) => :frac_unique_out_of_valid)
 
 # Write out files
 prob_df_path = joinpath(@__DIR__, "analysis_multi_per_problem.csv")
