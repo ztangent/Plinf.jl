@@ -65,6 +65,7 @@
     (cooked-with ?m - cook-method ?f1 ?f2 - food)
   )
 
+  ;; ACTIONS ;;
   ; Move from location ?l1 to location ?l2
   (:action move
    :parameters (?l1 ?l2 - location)
@@ -179,5 +180,5 @@
                                                   (not (= ?f ?f2)))
                                              (cooked-with ?m ?f ?f2))))))
   )
-
+  ;; END ACTIONS ;;
 )
