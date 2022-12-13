@@ -416,7 +416,7 @@ prompt = construct_multikitchen_prompt(
         [joinpath(@__DIR__, "problem-4-4.pddl"), joinpath(@__DIR__, "problem-4-5.pddl")],
         [joinpath(@__DIR__, "problem-5-4.pddl"), joinpath(@__DIR__, "problem-5-5.pddl")],
     ],
-    ["salad bar", "sushi bar", "delicatassen", "pizzeria", "patisserie"]
+    ["salad bar", "sushi bar", "delicatessen", "pizzeria", "patisserie"]
 )
 
 ## Script options ##
@@ -425,18 +425,18 @@ prompt = construct_multikitchen_prompt(
 KITCHEN_NAMES = [
     "salad bar", 
     "sushi bar",
-    "delicatassen",
+    "delicatessen",
     "pizzeria",
     "patisserie"
 ]
 
 # Paths to problems used in prompt generation
 PROMPT_PROBLEMS = [
-    ["problem-1-3.pddl", "problem-1-4.pddl", "problem-1-5.pddl"],
-    ["problem-2-3.pddl", "problem-2-4.pddl", "problem-2-5.pddl"],
-    ["problem-3-3.pddl", "problem-3-4.pddl", "problem-3-5.pddl"],
-    ["problem-4-3.pddl", "problem-4-4.pddl", "problem-4-5.pddl"],
-    ["problem-5-3.pddl", "problem-5-4.pddl", "problem-5-5.pddl"],
+["problem-1-2.pddl", "problem-1-3.pddl", "problem-1-4.pddl", "problem-1-5.pddl"],
+["problem-2-2.pddl", "problem-2-3.pddl", "problem-2-4.pddl", "problem-2-5.pddl"],
+["problem-3-2.pddl", "problem-3-3.pddl", "problem-3-4.pddl", "problem-3-5.pddl"],
+["problem-4-2.pddl", "problem-4-3.pddl", "problem-4-4.pddl", "problem-4-5.pddl"],
+["problem-5-2.pddl", "problem-5-3.pddl", "problem-5-4.pddl", "problem-5-5.pddl"],
 ]
 PROMPT_PROBLEMS = [joinpath.(@__DIR__, pset) for pset in PROMPT_PROBLEMS]
 
