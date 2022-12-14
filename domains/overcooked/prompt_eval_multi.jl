@@ -377,7 +377,11 @@ function find_connected_components(graph::BitMatrix)
     return all_components
 end    
 
-function construct_multikitchen_prompt(domain::Domain, problem_sets, kitchen_names)
+
+
+function construct_multikitchen_prompt(
+    domain::Domain, problem_sets, kitchen_names, instruction=""
+)
     prompt = ""
     for (problem_paths, name) in zip(problem_sets, kitchen_names)
         reference_problem = load_problem(problem_paths[end])
@@ -388,7 +392,8 @@ function construct_multikitchen_prompt(domain::Domain, problem_sets, kitchen_nam
             desc = load_english_recipe_description(desc_path)
             return construct_recipe_description(domain, prob, desc)
         end
-        str = "KITCHEN: $(uppercase(name))\n\n" * kitchen * "\n\nRECIPES\n\n" * join(recipes, "\n\n")
+        str = "KITCHEN: $(uppercase(name))\n\n" * kitchen * "\n\n" * instruction *
+              "RECIPES\n\n" * join(recipes, "\n\n")
         prompt *= str * "\n\n"
     end
     return prompt
@@ -424,6 +429,11 @@ prompt = construct_multikitchen_prompt(
 )
 
 ## Script options ##
+
+# Recipe generation instruction (defaults to empty string)
+INSTRUCTION =
+    "Below is a list of recipes that can be made using only the " *
+    "ingredients, receptacles, tools, appliances, and methods in this kitchen.\n\n"
 
 # Kitchen names
 KITCHEN_NAMES = [
@@ -467,6 +477,7 @@ df = DataFrame(
     kitchen_name=String[],
     n_train_kitchens=Int[],
     n_train_recipes_per_kitchen=Int[],
+    recipe_instruction=String[],
     problem=String[],
     description=String[],
     temperature=Float64[],
@@ -506,14 +517,14 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         train_problems = PROMPT_PROBLEMS[train_idxs]
         n_train_kitchens = length(train_problems)
         n_train_recipes_per_kitchen = length(train_problems[1]) 
-        context = construct_multikitchen_prompt(domain, train_problems, train_names)
+        context = construct_multikitchen_prompt(domain, train_problems, train_names, INSTRUCTION)
 
         # Construct kitchen description for test problem
         kitchen_desc = construct_kitchen_description(domain, problem)
 
         # Construct prompt from context and kitchen description
         prompt = (context * "KITCHEN: $(uppercase(kitchen_name))\n\n" *
-                  kitchen_desc * "\n\nRECIPES\n\nDescription:")
+                  kitchen_desc * "\n\n" * INSTRUCTION * "RECIPES\n\nDescription:")
         
         println() 
         println("Prompt:\n")
@@ -561,6 +572,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
                 :kitchen_name => kitchen_name,
                 :n_train_kitchens => n_train_kitchens,
                 :n_train_recipes_per_kitchen => n_train_recipes_per_kitchen,
+                :recipe_instruction => INSTRUCTION,
                 :problem => basename(problem_path),
                 :description => kitchen_desc,
                 :completion => completion,

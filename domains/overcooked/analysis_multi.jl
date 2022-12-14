@@ -7,6 +7,7 @@ df = DataFrame(
     kitchen_name=String[],
     n_train_kitchens=Int[],
     n_train_recipes_per_kitchen=Int[],
+    recipe_instruction=String[],
     problem=String[],
     description=String[],
     temperature=Float64[],
@@ -23,10 +24,22 @@ df_types = eltype.(eachcol(df))
 # Define columns that correspond to experimental conditions
 condition_cols = [:kitchen_name, :temperature, :n_train_recipes_per_kitchen]
 
+# Read all CSV files that match format and concatenate them 
+csv_paths = readdir(@__DIR__)
+for path in csv_paths
+    m = match(r"prompt_eval_multi_temp_.*\.csv", path)
+    if isnothing(m)
+        continue
+    end
+    path = joinpath(@__DIR__, path)
+    next_df = CSV.read(path, DataFrame, types=df_types)
+    df = vcat(df, next_df)
+end
+
 # Load dataframe
-df_path = "prompt_eval_multi_temp_0.25_nperkitchen_3_2022-12-06T22-23-49.csv"
-df_path = joinpath(@__DIR__, df_path)
-df = CSV.read(df_path, DataFrame, types=df_types)
+# df_path = "prompt_eval_multi_temp_0.25_nperkitchen_3_2022-12-06T22-23-49.csv"
+# df_path = joinpath(@__DIR__, df_path)
+# df = CSV.read(df_path, DataFrame, types=df_types)
 
 # Post-hoc fix for errors in parse validation
 # Make sure to compile parse_recipe and try_parse_recipe in prompt_eval_multi.jl before running this
