@@ -1,7 +1,6 @@
 ; Pizzeria
 (define (problem overcooked-problem-4-5)
     (:domain overcooked)
-    ; add basil, sausage
     (:objects
         mushroom olive onion chicken beef egg flour tomato cheese ham basil sausage pineapple - ftype ; Food types
         chopping-board tray plate mixing-bowl - rtype ; Receptacle types
@@ -10,7 +9,7 @@
         slice chop - prepare-method ; Preparation methods
         mix - combine-method ; Combine methods
         bake - cook-method ; Cooking methods
-        basil 1 sausage1 mushroom1 olive1 onion1 chicken1 beef1 egg1 flour1 tomato1 cheese1 ham1 pineapple1 - food ; Food objects
+        basil1 sausage1 mushroom1 olive1 onion1 chicken1 beef1 egg1 flour1 tomato1 cheese1 ham1 pineapple1 - food ; Food objects
         mixing-bowl1 board1 tray1 plate1 - receptacle ; Receptacle objects
         knife1 - tool ; Tool objects
         mixer1 oven1 - appliance ; Appliance objects

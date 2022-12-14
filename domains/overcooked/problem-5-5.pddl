@@ -46,6 +46,7 @@
         (has-combine-method mix mixing-bowl mixer)
         (has-combine-method blend blender-jug blender)
         (has-cook-method deep-fry basket deep-fryer)
+        (has-cook-method bake mixing-bowl oven)
         ; Initial agent state
         (handempty)
         (agent-at-loc start-loc)
