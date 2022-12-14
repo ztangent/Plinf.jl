@@ -42,7 +42,7 @@
         (object-at-loc plate1 plate-loc)
     )
     (:goal
-        (exists (?lettuce - food ?onion - food ?tomato - food ?cucumber - food ?olive - food ?feta-cheese - food ?knife - tool ?glove - tool ?plate - receptacle)
+        (exists (?onion - food ?tomato - food ?cucumber - food ?olive - food ?feta-cheese - food ?knife - tool ?glove - tool ?plate - receptacle)
                 (and (food-type olive ?olive)
                      (food-type tomato ?tomato)
                      (food-type cucumber ?cucumber)
@@ -54,7 +54,6 @@
                      (prepared chop ?cucumber)
                      (prepared chop ?onion)
                      (prepared crumble ?feta-cheese)
-                     (in-receptacle ?lettuce ?plate)
                      (in-receptacle ?olive ?plate)
                      (in-receptacle ?feta-cheese ?plate)
                      (in-receptacle ?cucumber ?plate)

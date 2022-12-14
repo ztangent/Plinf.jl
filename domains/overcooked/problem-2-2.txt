@@ -1,4 +1,4 @@
 Initial State:
-Someone is in the kitchen and wants to make a meal. They currently have tuna, salmon, soybeans, a sashimi-knife, a chopping board, a pot, a stove and a plate.
+Someone is in the kitchen and wants to make a meal. They currently have tuna, salmon, rice, a knife, a chopping board, a pan, a stove and a plate.
 Goal:
-Edamame made of boiled soy beans and lightly salted.
+Seared tuna tataki made of grilled ahi tuna.

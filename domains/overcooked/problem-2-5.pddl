@@ -3,15 +3,15 @@
     (:domain overcooked)
     (:objects
         tuna salmon avocado soybean crab rice nori cucumber - ftype ; Food types
-        chopping-board pot plate - rtype ; Receptacle types
-        sashimi-knife - ttype ; Tool types
+        chopping-board pot plate grill-pan - rtype ; Receptacle types
+        knife sashimi-knife - ttype ; Tool types
         stove - atype ; Appliance types
         slice - prepare-method ; Preparation methods
-        boil - cook-method ; Cooking methods
+        boil grill - cook-method ; Cooking methods
         tuna1 salmon1 soybean1 avocado1 crab1 rice1 nori1 cucumber1 - food ; Food objects
-        board1 pot1 plate1 - receptacle ; Receptacle objects
-        s-knife1 - tool ; Tool objects
-        stove1 - appliance ; Appliance objects
+        board1 pot1 plate1 pan1 - receptacle ; Receptacle objects
+        knife1 s-knife1 - tool ; Tool objects
+        stove1 stove2 - appliance ; Appliance objects
         start-loc food-loc chop-loc stove-loc plate-loc - location ; Locations
     )
     (:init
@@ -26,12 +26,17 @@
         (food-type soybean soybean1)
         (receptacle-type chopping-board board1)
         (receptacle-type pot pot1)
+        (receptacle-type grill-pan pan1)
         (receptacle-type plate plate1)
+        (tool-type knife knife1)
         (tool-type sashimi-knife s-knife1)
         (appliance-type stove stove1)
+        (appliance-type stove stove2)
         ; Method declarations
         (has-prepare-method slice chopping-board sashimi-knife)
+        (has-prepare-method slice chopping-board knife)
         (has-cook-method boil pot stove)
+        (has-cook-method grill grill-pan stove)
         ; Initial agent state
         (handempty)
         (agent-at-loc start-loc)
@@ -46,13 +51,18 @@
         (object-at-loc soybean1 food-loc)
         ; Receptacle, tool, and appliance locations
         (object-at-loc board1 chop-loc)
+        (object-at-loc knife1 chop-loc)
         (object-at-loc s-knife1 chop-loc)
         (object-at-loc pot1 stove-loc)
+        (object-at-loc pan1 stove-loc)
         (object-at-loc stove1 stove-loc)
+        (object-at-loc stove2 stove-loc)
         (object-at-loc plate1 plate-loc)
         ; Whether receptacles are located on appliances
         (in-appliance pot1 stove1)
+        (in-appliance pan1 stove2)
         (occupied stove1)
+        (occupied stove2)
     )
     (:goal
         (exists (?avocado - food  ?nori - food ?rice - food ?crab - food ?cucumber - food ?plate - receptacle)

@@ -3,11 +3,11 @@
     (:domain overcooked)
     (:objects
         hamburger-bun cheese beef chicken onion potato bacon lettuce tomato pineapple - ftype ; Food types
-        chopping-board basket pan plate - rtype ; Receptacle types
+        chopping-board basket grill-pan plate - rtype ; Receptacle types
         knife - ttype ; Tool types
         stove deep-fryer - atype ; Appliance types
         slice chop mince - prepare-method ; Preparation methods
-        grill fry - cook-method ; Cooking methods
+        grill deep-fry - cook-method ; Cooking methods
         hamburger-bun1 cheese1 beef1 chicken1 onion1 potato1 bacon1 lettuce1 tomato1 pineapple1 - food ; Food objects
         board1 basket1 pan1 plate1 - receptacle ; Receptacle objects
         knife1 - tool ; Tool objects
@@ -28,7 +28,8 @@
         (food-type pineapple pineapple1)
         (receptacle-type chopping-board board1)
         (receptacle-type plate plate1)
-        (receptacle-type pan pan1)
+        (receptacle-type grill-pan pan1)
+        (receptacle-type basket basket1)
         (tool-type knife knife1)
         (appliance-type stove stove1)
         (appliance-type deep-fryer fryer1)
@@ -36,9 +37,8 @@
         (has-prepare-method slice chopping-board knife)
         (has-prepare-method mince chopping-board knife)
         (has-prepare-method chop chopping-board knife)
-        (has-cook-method grill pan stove)
-        (has-cook-method fry pan stove)
-        (has-cook-method fry basket deep-fryer)
+        (has-cook-method grill grill-pan stove)
+        (has-cook-method deep-fry basket deep-fryer)
         ; Initial agent state
         (handempty)
         (agent-at-loc start-loc)
@@ -60,20 +60,27 @@
         (object-at-loc stove1 stove-loc)
         (object-at-loc plate1 plate-loc)
         (object-at-loc fryer1 fryer-loc)
+        (object-at-loc basket1 fryer-loc)
         ; Whether receptacles are located on appliances
         (in-appliance pan1 stove1)
+        (in-appliance basket1 fryer1)
         (occupied stove1)
+        (occupied fryer1)
     )
     (:goal
-        (exists (?hamburger-bun - food ?beef - food ?cheese - food ?plate - receptacle)
+        (exists (?hamburger-bun - food ?beef - food ?cheese - food ?potato - food ?plate - receptacle)
                 (and (food-type beef ?beef)
                      (food-type hamburger-bun ?hamburger-bun)
                      (food-type cheese ?cheese)
+                     (food-type potato ?potato)
                      (receptacle-type plate ?plate)
                      (cooked grill ?beef)
                      (prepared slice ?cheese)
+                     (prepared slice ?potato)
+                     (cooked deep-fry ?potato)
                      (in-receptacle ?hamburger-bun ?plate)
                      (in-receptacle ?beef ?plate)
-                     (in-receptacle ?cheese ?plate)))
+                     (in-receptacle ?cheese ?plate)
+                     (in-receptacle ?potato ?plate)))
     )
 )

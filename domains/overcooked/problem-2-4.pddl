@@ -49,7 +49,7 @@
         (occupied stove1)
     )
     (:goal
-        (exists (?nori - food ?rice - food ?tuna - food ?salmon - food ?plate - receptacle)
+        (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
                      (food-type tuna ?tuna)

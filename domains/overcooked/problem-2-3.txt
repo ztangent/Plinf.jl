@@ -1,4 +1,4 @@
 Initial State:
 Someone is in the kitchen and wants to make a meal. They currently only tuna, salmon, rice, a sashimi knife, a chopping board, a stove and a plate.
 Goal:
-A piece of nigiri made of boiled rice topped with raw salmon.
+A piece of nigiri made of boiled rice topped with raw sliced salmon.

@@ -4,13 +4,13 @@
     (:objects
         egg honey flour chocolate strawberry apple - ftype ; Food types
         mixing-bowl plate basket - rtype ; Receptacle types
-        mixer oven deep-fryer - atype ; Appliance types
+        mixer deep-fryer - atype ; Appliance types
         mix - combine-method ; Preparation methods
-        bake deep-fry - cook-method ; Cooking methods
+        deep-fry - cook-method ; Cooking methods
         egg1 honey1 flour1 chocolate1 strawberry1 apple1 - food ; Food objects
         mixing-bowl1 plate1 basket1 - receptacle ; Receptacle objects
-        mixer1 oven1 fryer1 - appliance ; Appliance objects
-        start-loc food-loc mix-loc oven-loc fryer-loc plate-loc - location ; Locations
+        mixer1 fryer1 - appliance ; Appliance objects
+        start-loc food-loc mix-loc fryer-loc plate-loc - location ; Locations
     )
     (:init
         ; Type declarations
@@ -23,12 +23,10 @@
         (receptacle-type mixing-bowl mixing-bowl1)
         (receptacle-type plate plate1)
         (receptacle-type basket basket1)
-        (appliance-type oven oven1)
         (appliance-type deep-fryer fryer1)
         (appliance-type mixer mixer1)
         ; Method declarations
         (has-combine-method mix mixing-bowl mixer)
-        (has-cook-method bake mixing-bowl oven)
         (has-cook-method deep-fry basket deep-fryer)
         ; Initial agent state
         (handempty)
@@ -44,7 +42,6 @@
         (object-at-loc mixer1 mix-loc)
         (object-at-loc mixing-bowl1 mix-loc)
         (object-at-loc basket1 fryer-loc)
-        (object-at-loc oven1 oven-loc)
         (object-at-loc plate1 plate-loc)
         (object-at-loc fryer1 fryer-loc)
         ; Whether receptacles are located on appliances

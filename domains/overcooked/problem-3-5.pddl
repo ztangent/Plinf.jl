@@ -3,12 +3,12 @@
     (:domain overcooked)
 ;Add tuna, mixer, mixing bowl, spoon, mix
     (:objects
-        hamburger bun bread mayo cheese beef chicken onion tuna potato bacon lettuce tomato ham pineapple - ftype ; Food types
-        chopping-board basket pan plate mixing-bowl - rtype ; Receptacle types
+        hamburger-bun bread mayonnaise cheese beef chicken onion tuna potato bacon lettuce tomato ham pineapple - ftype ; Food types
+        chopping-board basket pan plate mixing-bowl grill-pan - rtype ; Receptacle types
         knife - ttype ; Tool types
-        stove deep-fryer - atype ; Appliance types
+        stove deep-fryer mixer - atype ; Appliance types
         slice chop mince - prepare-method ; Preparation methods
-        grill fry - cook-method ; Cooking methods
+        grill deep-fry - cook-method ; Cooking methods
         mix - combine-method ; Combine methods
         hamburger-bun1 ham1 pineapple1  bread1 cheese1 beef1 chicken1 onion1 tuna1 potato1 bacon1 lettuce1 tomato1 mayo1 - food ; Food objects
         board1 basket1 pan1 plate1 mixing-bowl1 - receptacle ; Receptacle objects
@@ -28,13 +28,13 @@
         (food-type lettuce lettuce1)
         (food-type tomato tomato1)
         (food-type pineapple pineapple1)
-        (food-type mayo mayo1)
+        (food-type mayonnaise mayo1)
         (food-type ham ham1)
         (food-type hamburger-bun hamburger-bun1)
         (food-type tuna tuna1)
         (receptacle-type chopping-board board1)
         (receptacle-type plate plate1)
-        (receptacle-type pan pan1)
+        (receptacle-type grill-pan pan1)
         (receptacle-type mixing-bowl mixing-bowl1)
         (tool-type knife knife1)
         (appliance-type stove stove1)
@@ -44,9 +44,8 @@
         (has-prepare-method slice chopping-board knife)
         (has-prepare-method mince chopping-board knife)
         (has-prepare-method chop chopping-board knife)
-        (has-cook-method grill pan stove)
-        (has-cook-method fry pan stove)
-        (has-cook-method fry basket deep-fryer)
+        (has-cook-method grill grill-pan stove)
+        (has-cook-method deep-fry basket deep-fryer)
         (has-combine-method mix mixing-bowl mixer)
         ; Initial agent state
         (handempty)
@@ -83,20 +82,20 @@
         
     )
     (:goal
-        (exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?mayo - food ?plate - receptacle)
+        (exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)
                      (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato)
-                     (food-type mayo ?mayo)
+                     (food-type mayonnaise ?mayonnaise)
                      (receptacle-type plate ?plate)
-                     (cooked fry ?bacon)
+                     (cooked grill ?bacon)
                      (prepared slice ?lettuce)
                      (prepared slice ?tomato)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?bacon ?plate)
                      (in-receptacle ?tomato ?plate)
-                     (in-receptacle ?mayo ?plate)
+                     (in-receptacle ?mayonnaise ?plate)
                      (in-receptacle ?lettuce ?plate)))
     )
 )
