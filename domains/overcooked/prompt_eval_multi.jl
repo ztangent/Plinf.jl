@@ -19,9 +19,7 @@ function parse_recipe(str::AbstractString)
     # Parse ingredients
     ingredients_str = lines[2]
     m = match(r"Ingredients: ?(.*)", ingredients_str)
-    ingredients = split(m.captures[1], ", ")
-    final_ingredients = split(pop!(ingredients), " and ")
-    append!(ingredients, final_ingredients)
+    ingredients = split_ingredient_list(m.captures[1])
     ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
     food_types = map(x -> Const(Symbol(x)), ingredients)
     food_vars = map(x -> Var(Symbol(uppercasefirst(x))), ingredients)
@@ -75,14 +73,24 @@ function parse_recipe(str::AbstractString)
     return goal, description
 end
 
+function split_ingredient_list(str::AbstractString)
+    ingredients = split(str, ", ")
+    final_ingredients_str = pop!(ingredients)
+    if final_ingredients_str[1:4] == "and " # Handle Oxford comma
+        final_ingredients = [final_ingredients_str[5:end]]
+    else
+        final_ingredients = split(final_ingredients_str, " and ")
+    end
+    append!(ingredients, final_ingredients)
+    return ingredients
+end
+
 function parse_prepare_step(str::AbstractString)
     method, ingredients = split(str, " the ")
     # Parse method    
     method = Const(Symbol(method))
     # Parse ingredients
-    ingredients = split(ingredients, ", ")
-    final_ingredients = split(pop!(ingredients), " and ")
-    append!(ingredients, final_ingredients)
+    ingredients = split_ingredient_list(ingredients)
     ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
     @assert length(ingredients) == 1
     ingredient = ingredients[1]
@@ -95,9 +103,7 @@ function parse_combine_step(str::AbstractString)
     # Parse method    
     method = Const(Symbol(method))
     # Parse ingredients
-    ingredients = split(ingredients, ", ")
-    final_ingredients = split(pop!(ingredients), " and ")
-    append!(ingredients, final_ingredients)
+    ingredients = split_ingredient_list(ingredients)
     ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
     food_vars = map(x -> Var(Symbol(uppercasefirst(x))), ingredients)
 
@@ -122,9 +128,7 @@ function parse_cook_step(str::AbstractString)
     # Parse method    
     method = Const(Symbol(method))
     # Parse ingredients
-    ingredients = split(ingredients, ", ")
-    final_ingredients = split(pop!(ingredients), " and ")
-    append!(ingredients, final_ingredients)
+    ingredients = split_ingredient_list(ingredients)
     ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
     food_vars = map(x -> Var(Symbol(uppercasefirst(x))), ingredients)
 
@@ -225,7 +229,7 @@ function construct_kitchen_description(
     end
     combine_methods = isempty(combine_methods) ?
         "none" :  join(sort!(combine_methods), ", ")
-    combine_str = "Combinination Methods: " * combine_methods
+    combine_str = "Combination Methods: " * combine_methods
     # List cooking methods
     query = pddl"(has-cook-method ?method ?rtype ?atype)"
     cook_methods = String[]
@@ -416,7 +420,7 @@ prompt = construct_multikitchen_prompt(
         [joinpath(@__DIR__, "problem-4-4.pddl"), joinpath(@__DIR__, "problem-4-5.pddl")],
         [joinpath(@__DIR__, "problem-5-4.pddl"), joinpath(@__DIR__, "problem-5-5.pddl")],
     ],
-    ["salad bar", "sushi bar", "delicatessen", "pizzeria", "patisserie"]
+    ["salad bar", "sushi bar", "delicatassen", "pizzeria", "patisserie"]
 )
 
 ## Script options ##
@@ -425,18 +429,19 @@ prompt = construct_multikitchen_prompt(
 KITCHEN_NAMES = [
     "salad bar", 
     "sushi bar",
-    "delicatessen",
+    "delicatassen",
     "pizzeria",
     "patisserie"
 ]
 
 # Paths to problems used in prompt generation
+# Make sure to include problem X-5 as the last in each set
 PROMPT_PROBLEMS = [
-["problem-1-2.pddl", "problem-1-3.pddl", "problem-1-4.pddl", "problem-1-5.pddl"],
-["problem-2-2.pddl", "problem-2-3.pddl", "problem-2-4.pddl", "problem-2-5.pddl"],
-["problem-3-2.pddl", "problem-3-3.pddl", "problem-3-4.pddl", "problem-3-5.pddl"],
-["problem-4-2.pddl", "problem-4-3.pddl", "problem-4-4.pddl", "problem-4-5.pddl"],
-["problem-5-2.pddl", "problem-5-3.pddl", "problem-5-4.pddl", "problem-5-5.pddl"],
+    ["problem-1-3.pddl", "problem-1-4.pddl", "problem-1-5.pddl"],
+    ["problem-2-3.pddl", "problem-2-4.pddl", "problem-2-5.pddl"],
+    ["problem-3-3.pddl", "problem-3-4.pddl", "problem-3-5.pddl"],
+    ["problem-4-3.pddl", "problem-4-4.pddl", "problem-4-5.pddl"],
+    ["problem-5-3.pddl", "problem-5-4.pddl", "problem-5-5.pddl"], 
 ]
 PROMPT_PROBLEMS = [joinpath.(@__DIR__, pset) for pset in PROMPT_PROBLEMS]
 
