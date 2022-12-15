@@ -76,7 +76,8 @@ end
 function split_ingredient_list(str::AbstractString)
     ingredients = split(str, ", ")
     final_ingredients_str = pop!(ingredients)
-    if final_ingredients_str[1:4] == "and " # Handle Oxford comma
+    n_chars = length(final_ingredients_str)
+    if n_chars > 4 && final_ingredients_str[1:4] == "and " # Handle Oxford comma
         final_ingredients = [final_ingredients_str[5:end]]
     else
         final_ingredients = split(final_ingredients_str, " and ")
@@ -88,7 +89,7 @@ end
 function parse_prepare_step(str::AbstractString)
     method, ingredients = split(str, " the ")
     # Parse method    
-    method = Const(Symbol(method))
+    method = Const(Symbol(replace(method, " " => "-")))
     # Parse ingredients
     ingredients = split_ingredient_list(ingredients)
     ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
@@ -101,7 +102,7 @@ end
 function parse_combine_step(str::AbstractString)
     method, ingredients = split(str, " the ")
     # Parse method    
-    method = Const(Symbol(method))
+    method = Const(Symbol(replace(method, " " => "-")))
     # Parse ingredients
     ingredients = split_ingredient_list(ingredients)
     ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
@@ -126,7 +127,7 @@ end
 function parse_cook_step(str::AbstractString)
     method, ingredients = split(str, " the ")
     # Parse method    
-    method = Const(Symbol(method))
+    method = Const(Symbol(replace(method, " " => "-")))
     # Parse ingredients
     ingredients = split_ingredient_list(ingredients)
     ingredients = map(x -> replace(x, " " => "-"), strip.(ingredients))
@@ -439,7 +440,7 @@ INSTRUCTION =
 KITCHEN_NAMES = [
     "salad bar", 
     "sushi bar",
-    "delicatassen",
+    "delicatessen",
     "pizzeria",
     "patisserie"
 ]
