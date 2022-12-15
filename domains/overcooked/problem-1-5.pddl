@@ -62,6 +62,7 @@
         (object-at-loc glove1 chop-loc)
         ; Initial appliance locations
         (object-at-loc stove1 stove-loc)
+        (object-at-loc stove2 stove-loc)
         ;Maybe glove fixed to agent location
         (object-at-loc plate1 plate-loc)
         (object-at-loc pot1 stove-loc)
