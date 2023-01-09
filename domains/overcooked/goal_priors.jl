@@ -1,6 +1,17 @@
-using Gen, PDDL
+using Gen, PDDL, Random
 
-@gen function dish_prior(
+@gen function initial_state_recipe_prior(state::State)
+    food_types = Symbol[o.name for o in PDDL.get_objects(state, Symbol("ftype"))]
+    receptacle_types = Symbol[o.name for o in PDDL.get_objects(state, Symbol("rtype"))]
+    prepare_methods = Symbol[o.name for o in PDDL.get_objects(state, Symbol("prepare-method"))]
+    combine_methods = Symbol[o.name for o in PDDL.get_objects(state, Symbol("combine-method"))]
+    cook_methods = Symbol[o.name for o in PDDL.get_objects(state, Symbol("cook-method"))]
+    spec = {*} ~ recipe_prior(food_types, receptacle_types,
+                              prepare_methods, combine_methods, cook_methods)
+    return spec
+end
+
+@gen function recipe_prior(
     food_types::Vector{Symbol},
     receptacle_types::Vector{Symbol},
     prepare_methods::Vector{Symbol},
@@ -10,37 +21,38 @@ using Gen, PDDL
     # Sample ingredients
     n_ingredients, ingredients =
         {:ingredients} ~ ingredient_prior(food_types)
-    # Sample ingredient cluster assignments
-    n_clusters, clusters =
-        {:clusters} ~ cluster_prior(n_ingredients)
     # Sample preparation method for each ingredient
     prepare_choices =
         {:prepare} ~ method_prior(n_ingredients, prepare_methods)
+    # Sample ingredient clusters for combination steps
+    n_combine_clusters, combine_clusters =
+        {:combine_clusters} ~ cluster_prior(n_ingredients)
     # Sample combination method for each ingredient cluster
     combine_choices =
-        {:combine} ~ method_prior(n_clusters, combine_methods)
+        {:combine} ~ method_prior(n_combine_clusters, combine_methods)
+    # Sample ingredient clusters for cooking steps
+    n_cook_clusters, cook_clusters =
+        {:cook_clusters} ~ cluster_prior(n_combine_clusters)
+    cook_clusters = map(cook_clusters) do cluster_idxs
+        reduce(vcat, combine_clusters[cluster_idxs])
+    end
     # Sample cooking method for each ingredient cluster
     cook_choices =
-        {:cook} ~ method_prior(n_clusters, cook_methods)
+        {:cook} ~ method_prior(n_cook_clusters, cook_methods)
     # Sample type of serving receptacle
     receptacle_id ~ uniform_discrete(1, length(receptacle_types))
     receptacle = receptacle_types[receptacle_id]
     # Construct dish specification from choices
-    # return ingredients, clusters, receptacle,
-    #        prepare_choices, combine_choices, cook_choices
-    spec = construct_dish_spec(ingredients, clusters, receptacle,
-                               prepare_choices, combine_choices, cook_choices)
+    spec = construct_recipe_spec(ingredients, receptacle, prepare_choices,
+                                 combine_clusters, combine_choices,
+                                 cook_clusters, cook_choices)
     return spec
 end
 
 @gen function ingredient_prior(food_types::Vector{Symbol})
-    n_food_types = length(food_types)
-    n_ingredients = ({:n} ~ geometric(0.5)) + 1
-    ingredients = Vector{Symbol}(undef, n_ingredients)
-    for i in 1:n_ingredients
-        food_id = {i} ~ uniform_discrete(1, n_food_types)
-        ingredients[i] = food_types[food_id]
-    end
+    included = [({i} ~ bernoulli(0.5)) for i in eachindex(food_types)]
+    ingredients = food_types[included]
+    n_ingredients = length(ingredients)
     return n_ingredients, ingredients
 end
 
@@ -70,17 +82,18 @@ end
     return choices
 end
 
-function construct_dish_spec(
+function construct_recipe_spec(
     ingredients::Vector{Symbol},
-    clusters::Vector{Vector{Int}},
     receptacle::Symbol,
     prepare_choices::Vector,
+    combine_clusters::Vector{Vector{Int}},
     combine_choices::Vector,
+    cook_clusters::Vector{Vector{Int}},
     cook_choices::Vector
 )
     terms = Term[]
-    vars = [Var(Symbol("F$i")) for i in 1:length(ingredients)]
-    rvar = Var(:R)
+    vars = [Var(Symbol(uppercasefirst(string(item)))) for item in ingredients]
+    rvar = Var(Symbol(uppercasefirst(string(receptacle))))
     # Construct food type declarations
     for (i, food_type) in enumerate(ingredients)
         term = Compound(Symbol("food-type"), Term[Const(food_type), vars[i]])
@@ -98,35 +111,37 @@ function construct_dish_spec(
     # Construct combination predicates
     for (c, method) in enumerate(combine_choices)
         method === nothing && continue
-        cluster = clusters[c]
-        for i in cluster
+        cluster = combine_clusters[c]
+        n_items = length(cluster)
+        if n_items == 1 # Add one combined term
+            i = cluster[1]
             term = Compound(Symbol("combined"), Term[Const(method), vars[i]])
             push!(terms, term)
-        end
-        n_items = length(cluster)
-        n_items == 1 && continue
-        for k in 1:length(cluster)
-            i, j = cluster[k], cluster[k == n_items ? 1 : k+1]
-            term = Compound(Symbol("combined-with"),
-                            Term[Const(method), vars[i], vars[j]])
-            push!(terms, term)
+        else # Add combined-with terms for each pair of objects in cluster
+            for k in 1:n_items-1
+                i, j = cluster[k], cluster[k+1]
+                term = Compound(Symbol("combined-with"),
+                                Term[Const(method), vars[i], vars[j]])
+                push!(terms, term)
+            end
         end
     end
     # Construct cooking predicates
     for (c, method) in enumerate(cook_choices)
         method === nothing && continue
-        cluster = clusters[c]
-        for i in cluster
+        cluster = cook_clusters[c]
+        n_items = length(cluster)
+        if n_items == 1 # Add one cooked term
+            i = cluster[1]
             term = Compound(Symbol("cooked"), Term[Const(method), vars[i]])
             push!(terms, term)
-        end
-        n_items = length(cluster)
-        n_items == 1 && continue
-        for k in 1:length(cluster)
-            i, j = cluster[k], cluster[k == n_items ? 1 : k+1]
-            term = Compound(Symbol("cooked-with"),
-                            Term[Const(method), vars[i], vars[j]])
-            push!(terms, term)
+        else # Add cooked-with terms for each pair of objects in cluster
+            for k in 1:n_items-1
+                i, j = cluster[k], cluster[k+1]
+                term = Compound(Symbol("cooked-with"),
+                                Term[Const(method), vars[i], vars[j]])
+                push!(terms, term)
+            end
         end
     end
     # Construct receptacle predicates
