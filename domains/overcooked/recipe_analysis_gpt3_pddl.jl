@@ -111,7 +111,7 @@ mean_df = innerjoin(mean_validity_df, mean_diversity_df, on=condition_cols)
 transform!(mean_df, [:frac_unique_valid, :valid_mean] => ((x, y) -> x./y) => :frac_unique_out_of_valid)
 
 # Write out files
-prob_df_path = joinpath(@__DIR__, "analysis_per_problem.csv")
+prob_df_path = joinpath(@__DIR__, "analysis_per_problem_gpt3_pddl.csv")
 CSV.write(prob_df_path, prob_df)
-mean_df_path = joinpath(@__DIR__, "analysis_per_condition.csv")
+mean_df_path = joinpath(@__DIR__, "analysis_per_condition_gpt3_pddl.csv")
 CSV.write(mean_df_path, mean_df)

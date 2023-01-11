@@ -233,7 +233,7 @@ df_types = eltype.(eachcol(df))
 datetime = Dates.format(Dates.now(), "yyyy-mm-ddTHH-MM-SS")
 header_options =
     join(string.(Int[USE_PREDICATES, USE_ACTIONS, USE_ACTIONS, USE_OBJECTS]))
-df_path = "prompt_eval_" * "temp_$(TEMPERATURE)_" *
+df_path = "recipes_gpt3_pddl_" * "temp_$(TEMPERATURE)_" *
           "options_$(header_options)_" * "example_type_$(EXAMPLE_TYPE)_" * 
           "$(datetime).csv"
 df_path = joinpath(@__DIR__, df_path)

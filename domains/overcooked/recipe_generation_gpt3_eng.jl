@@ -3,8 +3,8 @@ using CSV, DataFrames, Dates
 
 include("gpt3_complete.jl")
 include("goal_validation.jl")
-include("description_writing.jl")
-include("description_parsing.jl")
+include("recipe_writing.jl")
+include("recipe_parsing.jl")
 
 ## Recipe validation
 
@@ -125,7 +125,7 @@ df = DataFrame(
 df_types = eltype.(eachcol(df))
 datetime = Dates.format(Dates.now(), "yyyy-mm-ddTHH-MM-SS")
 n_per_kitchen = length(PROMPT_PROBLEMS[1]) 
-df_path = "prompt_eval_multi_" * "temp_$(TEMPERATURE)_" *
+df_path = "recipes_gpt3_eng_" * "temp_$(TEMPERATURE)_" *
           "nperkitchen_$(n_per_kitchen)" * "_$(datetime).csv"
 df_path = joinpath(@__DIR__, df_path)
 

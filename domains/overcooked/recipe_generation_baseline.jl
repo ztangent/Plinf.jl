@@ -3,7 +3,7 @@ using CSV, DataFrames, Dates
 
 include("goal_priors.jl")
 include("goal_validation.jl")
-include("description_writing.jl")
+include("recipe_writing.jl")
 
 # Kitchen names
 KITCHEN_NAMES = [
@@ -42,7 +42,7 @@ df = DataFrame(
 )
 df_types = eltype.(eachcol(df))
 datetime = Dates.format(Dates.now(), "yyyy-mm-ddTHH-MM-SS")
-df_path = "goal_generation_baseline_$(datetime).csv"
+df_path = "recipes_baseline_$(datetime).csv"
 df_path = joinpath(@__DIR__, df_path)
 
 # Load domain
