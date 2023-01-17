@@ -56,9 +56,9 @@
         (object-at-loc olive1 food-loc)
         (object-at-loc onion1 food-loc)
         (object-at-loc beef1 food-loc)
-        (object-at-loc chicken food-loc)
-        (object-at-loc basil food-loc)
-        (object-at-loc sausage food-loc)
+        (object-at-loc chicken1 food-loc)
+        (object-at-loc basil1 food-loc)
+        (object-at-loc sausage1 food-loc)
         ; Receptacle, tool, and appliance locations
         (object-at-loc board1 chop-loc)
         (object-at-loc knife1 chop-loc)

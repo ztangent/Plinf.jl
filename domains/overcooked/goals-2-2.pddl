@@ -35,7 +35,7 @@
                      (receptacle-type bowl ?bowl)
                      (cooked grill ?tuna)
                      (in-receptacle ?tuna ?bowl)))
-;Goal 5; Raw tuna rice bowl
+;Goal 5: Raw tuna rice bowl
         (exists (?tuna - food ?bowl - receptacle)
                 (and (food-type tuna ?tuna)
                      (receptacle-type bowl ?bowl)

@@ -17,7 +17,7 @@
                  (in-receptacle ?tomato ?plate)
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)))
-; Goal 2; Tuna melt
+; Goal 2: Tuna melt
         (exists (?bread - food ?tuna - food ?cheese - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -32,7 +32,7 @@
                  (in-receptacle ?tuna ?plate)
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)))
-; Goal 3; Fries
+; Goal 3: Fries
         (exists (?potato - food ?plate - receptacle)
                 (and (food-type potato ?potato)
                      (receptacle-type plate ?plate)

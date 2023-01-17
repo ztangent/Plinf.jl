@@ -28,8 +28,9 @@
 ;Goal 3: Edamame
     (exists (?soybean - food ?plate - receptacle)
             (and (food-type soybean ?soybean)
+                 (receptacle-type plate ?plate)
                  (cooked boil ?soybean)
-                 (in-receptacle ?plate)))
+                 (in-receptacle ?soybean ?plate)))
 ;Goal 4: Cucumber Avocado roll
         (exists (?avocado - food  ?nori - food ?rice - food ?cucumber - food ?plate - receptacle)
                 (and (food-type nori ?nori)

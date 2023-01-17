@@ -16,7 +16,7 @@
                      (receptacle-type plate ?plate)
                      (cooked grill ?tuna)
                      (in-receptacle ?tuna ?plate)))
-;Goal 4; Grilled salmon
+;Goal 4: Grilled salmon
         (exists (?salmon - food ?plate - receptacle)
                 (and (food-type tuna ?salmon)
                      (receptacle-type plate ?plate)
