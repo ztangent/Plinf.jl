@@ -1,14 +1,15 @@
 ; Delicatessen 
 (define (problem overcooked-problem-3-1)
     (:domain overcooked)
+    ; Add ham for pineapple
     (:objects
-        bread cheese onion lettuce tomato pineapple - ftype ; Food types
+        bread cheese onion lettuce tomato ham - ftype ; Food types
         chopping-board grill-pan plate - rtype ; Receptacle types
         knife - ttype ; Tool types
         stove - atype ; Appliance types
         slice chop mince - prepare-method ; Preparation methods
         grill - cook-method ; Cooking methods
-        bread1 cheese1 onion1 lettuce1 tomato1 pineapple1 - food ; Food objects
+        bread1 cheese1 onion1 lettuce1 tomato1 ham1 - food ; Food objects
         board1 pan1 plate1 - receptacle ; Receptacle objects
         knife1 - tool ; Tool objects
         stove1 - appliance ; Appliance objects
@@ -21,7 +22,7 @@
         (food-type onion onion1)
         (food-type lettuce lettuce1)
         (food-type tomato tomato1)
-        (food-type pineapple pineapple1)
+        (food-type ham ham1)
         (receptacle-type chopping-board board1)
         (receptacle-type plate plate1)
         (receptacle-type grill-pan pan1)
@@ -41,7 +42,7 @@
         (object-at-loc onion1 food-loc)
         (object-at-loc lettuce1 food-loc)
         (object-at-loc tomato1 food-loc)
-        (object-at-loc pineapple1 food-loc)
+        (object-at-loc ham1 food-loc)
         ; Receptacle, tool, and appliance locations
         (object-at-loc board1 chop-loc)
         (object-at-loc knife1 chop-loc)
@@ -52,7 +53,9 @@
         (in-appliance pan1 stove1)
         (occupied stove1)
     )
-    (:goal
+
+    ;Goal 1: Grilled Cheese
+     (:goal
         (exists (?bread - food ?cheese - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type cheese ?cheese)
@@ -61,5 +64,10 @@
                      (cooked-with grill ?bread ?cheese)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?cheese ?plate)))
-    )
+     )
+
+
 )
+
+
+

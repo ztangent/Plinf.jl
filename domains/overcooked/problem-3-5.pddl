@@ -4,7 +4,7 @@
 ;Add tuna, mixer, mixing bowl, spoon, mix
     (:objects
         hamburger-bun bread mayonnaise cheese beef chicken onion tuna potato bacon lettuce tomato ham pineapple - ftype ; Food types
-        chopping-board basket pan plate mixing-bowl grill-pan - rtype ; Receptacle types
+        chopping-board basket plate mixing-bowl grill-pan - rtype ; Receptacle types
         knife - ttype ; Tool types
         stove deep-fryer mixer - atype ; Appliance types
         slice chop mince - prepare-method ; Preparation methods
@@ -81,21 +81,24 @@
         (occupied mixer1)
         
     )
-    (:goal
-        (exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle)
-                (and (food-type bacon ?bacon)
-                     (food-type bread ?bread)
-                     (food-type lettuce ?lettuce)
-                     (food-type tomato ?tomato)
-                     (food-type mayonnaise ?mayonnaise)
-                     (receptacle-type plate ?plate)
-                     (cooked grill ?bacon)
-                     (prepared slice ?lettuce)
-                     (prepared slice ?tomato)
-                     (in-receptacle ?bread ?plate)
-                     (in-receptacle ?bacon ?plate)
-                     (in-receptacle ?tomato ?plate)
-                     (in-receptacle ?mayonnaise ?plate)
-                     (in-receptacle ?lettuce ?plate)))
-    )
+
+    ; Goal 1: Grilled chicken sandwich
+
+      (:goal  
+        (exists (?bread - food ?chicken - food ?cheese - food ?lettuce - food ?tomato - food ?plate - receptacle)
+            (and (food-type chicken ?chicken)
+                 (food-type bread ?bread)
+                 (food-type cheese ?cheese)
+                 (food-type lettuce ?lettuce)
+                 (food-type tomato ?tomato)
+                 (receptacle-type plate ?plate)
+                 (prepared slice ?cheese)
+                 (prepared slice ?tomato)
+                 (prepared slice ?lettuce)
+                 (cooked grill ?chicken)
+                 (in-receptacle ?bread ?plate)
+                 (in-receptacle ?lettuce ?plate)
+                 (in-receptacle ?tomato ?plate)
+                 (in-receptacle ?cheese ?plate)))
+      )
 )

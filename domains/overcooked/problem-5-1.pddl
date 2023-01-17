@@ -1,18 +1,19 @@
 ; Patisserie
 (define (problem overcooked-problem-5-1)
     (:domain overcooked)
+    ;Add glass
     (:objects
         chocolate strawberry orange peach grape apple - ftype ; Food types
-        chopping-board mixing-bowl plate - rtype ; Receptacle types
+        chopping-board mixing-bowl plate glass - rtype ; Receptacle types
         knife - ttype ; Tool types
         mixer - atype ; Appliance types
         mix - combine-method ; Combine methods
         slice - prepare-method ; Preparation methods
         chocolate1 strawberry1 orange1 peach1 grape1 apple1 - food ; Food objects
-        board1 mixing-bowl1 plate1 - receptacle ; Receptacle objects
+        board1 mixing-bowl1 plate1 glass1 - receptacle ; Receptacle objects
         knife1 - tool ; Tool types
         mixer1 - appliance ; Appliance objects
-        start-loc food-loc mix-loc chop-loc plate-loc - location ; Locations
+        start-loc food-loc mix-loc chop-loc plate-loc glass-loc - location ; Locations
     )
     (:init
         ; Type declarations
@@ -26,6 +27,7 @@
         (receptacle-type mixing-bowl mixing-bowl1)
         (receptacle-type plate plate1)
         (receptacle-type chopping-board board1)
+        (receptacle-type glass glass1)
         (appliance-type mixer mixer1)
         ; Method declarations
         (has-combine-method mix mixing-bowl mixer)
@@ -46,21 +48,20 @@
         (object-at-loc mixer1 mix-loc)
         (object-at-loc mixing-bowl1 mix-loc)
         (object-at-loc plate1 plate-loc)
+        (object-at-loc glass1 glass-loc)
         ; Whether receptacles are located on appliances
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
     )
-    (:goal
-        (exists (?orange - food ?peach - food ?grape - food ?plate - receptacle)
-                (and (food-type orange ?orange)
-                     (food-type peach ?peach)
-                     (food-type grape ?grape)
+
+    ; Goal 1: Chocolate strawberries
+    (:goal   
+        (exists (?chocolate - food ?strawberry - food ?plate - receptacle)
+                (and (food-type chocolate ?chocolate)
+                     (food-type strawberry ?strawberry)
                      (receptacle-type plate ?plate)
-                     (prepared slice ?orange)
-                     (prepared slice ?peach)
-                     (prepared slice ?grape)
-                     (in-receptacle ?orange ?plate)
-                     (in-receptacle ?peach ?plate)
-                     (in-receptacle ?grape ?plate)))
+                     (combined-with mix ?chocolate ?strawberry)
+                     (in-receptacle ?chocolate ?plate)
+                     (in-receptacle ?strawberry ?plate)))
     )
 )

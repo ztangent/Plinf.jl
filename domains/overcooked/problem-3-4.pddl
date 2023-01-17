@@ -8,7 +8,7 @@
         stove deep-fryer mixer - atype ; Appliance types
         slice chop mince - prepare-method ; Preparation methods
         mix - combine-method ; Combine methods
-        grill - cook-method ; Cooking methods
+        grill deep-fry - cook-method ; Cooking methods
         bread1 cheese1 tuna1 beef1 chicken1 onion1 potato1 lettuce1 tomato1 pineapple1 mayo1 - food ; Food objects
         board1 pan1 plate1 mixing-bowl1 - receptacle ; Receptacle objects
         knife1 - tool ; Tool objects
@@ -37,6 +37,7 @@
         (has-prepare-method mince chopping-board knife)
         (has-prepare-method chop chopping-board knife)
         (has-cook-method grill grill-pan stove)
+        (has-cook-method deep-fry basket deep-fryer)
         (has-combine-method mix mixing-bowl mixer)
         ; Initial agent state
         (handempty)
@@ -68,7 +69,9 @@
         (occupied mixer1)
         
     )
-    (:goal
+
+    ; Goal 1: Tuna sandwich
+(:goal
         (exists (?bread - food ?tuna - food ?cheese - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -87,5 +90,6 @@
                  (in-receptacle ?tomato ?plate)
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)))
-    )
+)
+
 )
