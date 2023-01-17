@@ -1,0 +1,33 @@
+; Goal 1: Tuna Sashimi
+        (exists (?tuna - food ?plate - receptacle)
+                (and (food-type tuna ?tuna)
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?tuna)
+                     (in-receptacle ?tuna ?plate)))
+;Goal 2: Salmon Sashimi
+    (exists (?salmon - food ?plate - receptacle)
+    (and (food-type salmon ?salmon)
+         (receptacle-type plate ?plate)
+         (prepared slice ?salmon)
+         (in-receptacle ?salmon ?plate)))
+;Goal 3: Grilled tuna
+        (exists (?tuna - food ?plate - receptacle)
+                (and (food-type tuna ?tuna)
+                     (receptacle-type plate ?plate)
+                     (cooked grill ?tuna)
+                     (in-receptacle ?tuna ?plate)))
+;Goal 4; Grilled salmon
+        (exists (?salmon - food ?plate - receptacle)
+                (and (food-type tuna ?salmon)
+                     (receptacle-type plate ?plate)
+                     (cooked grill ?salmon)
+                     (in-receptacle ?salmon ?plate)))
+;Goal 5: Tuna and Salmon Sashimi
+    (exists (?salmon - food ?tuna - food ?plate - receptacle)
+    (and (food-type salmon ?salmon)
+         (food-type tuna ?tuna)
+         (receptacle-type plate ?plate)
+         (prepared slice ?salmon)
+         (prepared slice ?tuna)
+         (in-receptacle ?tuna ?plate)
+         (in-receptacle ?salmon ?plate)))
