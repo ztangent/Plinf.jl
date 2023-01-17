@@ -1,7 +1,7 @@
 using PDDL
 using CSV, DataFrames, Dates
 
-include("goal_priors.jl")
+include("load_goals.jl")
 include("goal_validation.jl")
 include("recipe_writing.jl")
 
@@ -14,7 +14,7 @@ KITCHEN_NAMES = [
     "patisserie"
 ]
 
-# Paths to problems to test goal generation on
+# Paths to problems to generate recipe descriptions for
 PROBLEMS = [
     ["problem-1-1.pddl", "problem-1-2.pddl", "problem-1-3.pddl", "problem-1-4.pddl", "problem-1-5.pddl"],
     ["problem-2-1.pddl", "problem-2-2.pddl", "problem-2-3.pddl", "problem-2-4.pddl", "problem-2-5.pddl"],
@@ -24,8 +24,14 @@ PROBLEMS = [
 ]
 PROBLEMS = [joinpath.(@__DIR__, pset) for pset in PROBLEMS]
 
-# Number of goals generated per problem
-N_REPEATS = 50
+GOALS = [
+    ["goals-1-1.pddl", "goals-1-2.pddl", "goals-1-3.pddl", "goals-1-4.pddl", "goals-1-5.pddl"],
+    ["goals-2-1.pddl", "goals-2-2.pddl", "goals-2-3.pddl", "goals-2-4.pddl", "goals-2-5.pddl"],
+    ["goals-3-1.pddl", "goals-3-2.pddl", "goals-3-3.pddl", "goals-3-4.pddl", "goals-3-5.pddl"],
+    ["goals-4-1.pddl", "goals-4-2.pddl", "goals-4-3.pddl", "goals-4-4.pddl", "goals-4-5.pddl"],
+    ["goals-5-1.pddl", "goals-5-2.pddl", "goals-5-3.pddl", "goals-5-4.pddl", "goals-5-5.pddl"],
+]
+GOALS = [joinpath.(@__DIR__, gset) for gset in GOALS]
 
 # Initialize data frame
 df = DataFrame(
@@ -42,7 +48,7 @@ df = DataFrame(
 )
 df_types = eltype.(eachcol(df))
 datetime = Dates.format(Dates.now(), "yyyy-mm-ddTHH-MM-SS")
-df_path = "recipes_baseline_$(datetime).csv"
+df_path = "recipes_handcrafted_$(datetime).csv"
 df_path = joinpath(@__DIR__, df_path)
 
 # Load domain
@@ -52,8 +58,8 @@ domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
 for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
     println("== Kitchen $idx : $kitchen_name ==")
 
-    # Iterate over test problems for each kitchen type
-    for problem_path in PROBLEMS[idx]
+    # Iterate over problems and goals for each kitchen type
+    for (problem_path, goals_path) in zip(PROBLEMS[idx], GOALS[idx])
         println("-- Problem: $(basename(problem_path)) --")
 
         # Load problem and construct initial state
@@ -63,14 +69,13 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         # Construct kitchen description for test problem
         kitchen_desc = construct_kitchen_description(domain, problem)
 
-        # Generate multiple goals per problem
-        for i in 1:N_REPEATS
-            # Sample from baseline prior, extract goal and logprobs
-            trace = Gen.simulate(initial_state_recipe_prior, (state,))
-            pddl_goal = Gen.get_retval(trace)
-            logprobs = Gen.get_score(trace)
+        # Load the set of goals and natural language descriptions
+        descriptions, goals = load_goals(goals_path)
+
+        # Construct recipes from hand-crafted PDDL goals
+        for (i, (eng_goal, pddl_goal)) in enumerate(zip(descriptions, goals))
             # Convert PDDL to English recipe description
-            completion = construct_recipe_description(pddl_goal)
+            completion = construct_recipe_description(pddl_goal, eng_goal)
             println("-- Goal $i--")
             println(completion)
             # Check if generated recipe is valid
@@ -81,13 +86,12 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
             println("Validation Reason: $reason")
             println()
             pddl_goal = write_pddl(pddl_goal)
-            eng_goal = "" # Empty English goal description
             row = Dict(
                 :kitchen_id => idx,
                 :kitchen_name => kitchen_name,
                 :problem => basename(problem_path),
                 :description => kitchen_desc,
-                :logprobs => logprobs,
+                :logprobs => NaN,
                 :completion => completion,
                 :pddl_goal => pddl_goal,
                 :eng_goal => eng_goal, 
