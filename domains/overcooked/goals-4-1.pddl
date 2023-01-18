@@ -20,7 +20,7 @@
                  (food-type flour ?flour)
                  (food-type tomato ?tomato)
                  (food-type cheese ?cheese)
-                 (food-type basil ?sausage)
+                 (food-type sausage ?sausage)
                  (receptacle-type plate ?plate)
                  (prepared slice ?tomato)
                  (combined-with mix ?egg ?flour)
