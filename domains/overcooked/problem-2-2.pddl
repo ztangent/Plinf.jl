@@ -21,6 +21,7 @@
         (food-type salmon salmon1)
         (food-type rice rice1)
         (receptacle-type chopping-board board1)
+        (receptacle-type pot pot1)
         (receptacle-type grill-pan pan1)
         (receptacle-type plate plate1)
         (receptacle-type bowl bowl1)
