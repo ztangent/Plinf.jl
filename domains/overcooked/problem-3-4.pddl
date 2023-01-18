@@ -10,10 +10,10 @@
         mix - combine-method ; Combine methods
         grill deep-fry - cook-method ; Cooking methods
         bread1 cheese1 tuna1 beef1 chicken1 onion1 potato1 lettuce1 tomato1 pineapple1 mayo1 - food ; Food objects
-        board1 pan1 plate1 mixing-bowl1 - receptacle ; Receptacle objects
+        board1 pan1 plate1 mixing-bowl1 basket1 - receptacle ; Receptacle objects
         knife1 - tool ; Tool objects
-        stove1 mixer1 - appliance ; Appliance objects
-        start-loc food-loc chop-loc stove-loc plate-loc mix-loc - location ; Locations
+        stove1 mixer1 fryer1 - appliance ; Appliance objects
+        start-loc food-loc chop-loc stove-loc fryer-loc plate-loc mix-loc - location ; Locations
     )
     (:init
         ; Type declarations
@@ -29,9 +29,11 @@
         (receptacle-type plate plate1)
         (receptacle-type mixing-bowl mixing-bowl1)
         (receptacle-type grill-pan pan1)
+        (receptacle-type basket basket1)
         (tool-type knife knife1)
         (appliance-type stove stove1)
         (appliance-type mixer mixer1)
+        (appliance-type deep-fryer fryer1)
         ; Method declarations
         (has-prepare-method slice chopping-board knife)
         (has-prepare-method mince chopping-board knife)
@@ -62,12 +64,14 @@
         (object-at-loc plate1 plate-loc)
         (object-at-loc mixer1 mix-loc)
         (object-at-loc mixing-bowl1 mix-loc)
+        (object-at-loc basket1 fryer-loc)
         ; Whether receptacles are located on appliances
         (in-appliance pan1 stove1)
         (occupied stove1)
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
-        
+        (in-appliance basket1 fryer1 )
+        (occupied fryer1)
     )
 
     ; Goal 1: Tuna sandwich

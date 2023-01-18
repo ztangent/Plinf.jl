@@ -36,6 +36,7 @@
         (receptacle-type plate plate1)
         (receptacle-type grill-pan pan1)
         (receptacle-type mixing-bowl mixing-bowl1)
+        (receptacle-type basket basket1)
         (tool-type knife knife1)
         (appliance-type stove stove1)
         (appliance-type deep-fryer fryer1)
@@ -74,11 +75,14 @@
         (object-at-loc fryer1 fryer-loc)
         (object-at-loc mixer1 mix-loc)
         (object-at-loc mixing-bowl1 mix-loc)
+        (object-at-loc basket1 fryer-loc)
         ; Whether receptacles are located on appliances
         (in-appliance pan1 stove1)
         (occupied stove1)
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
+        (in-appliance basket1 fryer1)
+        (occupied fryer1)
         
     )
 

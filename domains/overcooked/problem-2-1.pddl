@@ -6,7 +6,8 @@
         chopping-board plate grill-pan - rtype ; Receptacle types
         sashimi-knife - ttype ; Tool types
         stove - atype ;Appliance types 
-        slice grill - prepare-method ; Preparation methods
+        slice - prepare-method ; Preparation methods
+        grill - cook-method ; Cook methods
         tuna1 salmon1 - food ; Food objects
         board1 plate1 pan1 - receptacle ; Receptacle objects
         s-knife1 - tool ; Tool objects
@@ -38,6 +39,8 @@
         (object-at-loc plate1 plate-loc)
         (object-at-loc pan1 stove-loc)
         ; Whether receptacles are located on appliances
+        (in-appliance pan1 stove)
+        (occupied stove)
     )
     ; Goal 1: Tuna Sashimi
     (:goal 

@@ -2,7 +2,7 @@
 (define (problem overcooked-problem-1-5)
     (:domain overcooked)
     (:objects
-        tomato lettuce cucumber cheese bacon egg avocado feta-cheese olive onion salad-dressing - ftype ; Food types
+        tomato lettuce cucumber cheese bacon egg avocado feta-cheese olive onion chicken salad-dressing - ftype ; Food types
         chopping-board grill-pan plate pot - rtype ; Receptacle types
         knife glove - ttype ; Tool types
         stove - atype ; Appliance types
@@ -25,6 +25,7 @@
         (food-type avocado avocado1)
         (food-type olive olive1)
         (food-type onion onion1)
+        (food-type chicken chicken1)
         (food-type feta-cheese feta-cheese1)
         (food-type salad-dressing salad-dressing1)
         (receptacle-type chopping-board board1)
@@ -56,6 +57,7 @@
         (object-at-loc onion1 food-loc)
         (object-at-loc olive1 food-loc)
         (object-at-loc salad-dressing1 food-loc)
+        (object-at-loc chicken1 food-loc)
         ; Initial receptacle and tool locations
         (object-at-loc board1 chop-loc)
         (object-at-loc knife1 chop-loc)

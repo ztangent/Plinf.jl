@@ -28,6 +28,7 @@
         (receptacle-type plate plate1)
         (receptacle-type basket basket1)
         (receptacle-type chopping-board board1)
+        (tool-type knife knife1)
         (appliance-type deep-fryer fryer1)
         (appliance-type mixer mixer1)
         ; Method declarations
@@ -46,7 +47,7 @@
         (object-at-loc apple1 food-loc)
         (object-at-loc sugar1 food-loc)
         ; Receptacle, tool, and appliance locations
-        (object-at-loc knife1 food-loc)
+        (object-at-loc knife1 chop-loc)
         (object-at-loc board1 chop-loc)
         (object-at-loc mixer1 mix-loc)
         (object-at-loc mixing-bowl1 mix-loc)
