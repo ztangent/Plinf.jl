@@ -64,13 +64,14 @@
         (object-at-loc plate1 plate-loc)
         (object-at-loc mixer1 mix-loc)
         (object-at-loc mixing-bowl1 mix-loc)
+        (object-at-loc fryer1 fryer-loc)
         (object-at-loc basket1 fryer-loc)
         ; Whether receptacles are located on appliances
         (in-appliance pan1 stove1)
         (occupied stove1)
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
-        (in-appliance basket1 fryer1 )
+        (in-appliance basket1 fryer1)
         (occupied fryer1)
     )
 
