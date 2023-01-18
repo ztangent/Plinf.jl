@@ -50,7 +50,9 @@ end
 end
 
 @gen function ingredient_prior(food_types::Vector{Symbol})
-    included = [({i} ~ bernoulli(0.5)) for i in eachindex(food_types)]
+    init_idx ~ uniform_discrete(1, length(food_types))
+    included = [({i} ~ bernoulli(i == init_idx ? 1.0 : 0.5))
+                for i in eachindex(food_types)]
     ingredients = food_types[included]
     n_ingredients = length(ingredients)
     return n_ingredients, ingredients
