@@ -43,16 +43,16 @@ survey_df = DataFrame(
 
 # Paths to recipe source files
 RECIPE_PATHS = [
-    joinpath(@__DIR__, "recipes_handcrafted_2023-01-17T13-22-57.csv"),
     joinpath(@__DIR__, "recipes_baseline_2023-01-18T00-51-59.csv"),
-    joinpath(@__DIR__, "recipes_gpt3_eng_temp_1.0_nperkitchen_3_2022-12-14T02-40-12.csv"),
+    joinpath(@__DIR__, "recipes_gpt3_eng_temp_1.0_nperkitchen_3_2023-01-18T02-01-34.csv"),
+    joinpath(@__DIR__, "recipes_handcrafted_2023-01-17T22-31-19.csv"),
 ]
 
 # Names of recipe sources
 RECIPE_SOURCES = [
-    "handcrafted",
     "baseline",
-    "gpt3_eng"
+    "gpt3_eng",
+    "handcrafted",
 ]
 
 # Number of recipes to use from each source
@@ -83,6 +83,8 @@ for (path, source) in zip(RECIPE_PATHS, RECIPE_SOURCES)
         append!(survey_df, sub_df, promote=true)
     end
 end
+# Sort by problem and source
+sort!(survey_df, [:problem, :source])
 
 # Write recipes to path
 datetime = Dates.format(Dates.now(), "yyyy-mm-ddTHH-MM-SS")

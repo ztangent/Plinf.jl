@@ -58,15 +58,17 @@ prompt = construct_multikitchen_prompt(
         [joinpath(@__DIR__, "problem-4-4.pddl"), joinpath(@__DIR__, "problem-4-5.pddl")],
         [joinpath(@__DIR__, "problem-5-4.pddl"), joinpath(@__DIR__, "problem-5-5.pddl")],
     ],
-    ["salad bar", "sushi bar", "delicatassen", "pizzeria", "patisserie"]
+    ["salad bar", "sushi bar", "delicatessen", "pizzeria", "patisserie"]
 )
 
 ## Script options ##
 
-# Recipe generation instruction (defaults to empty string)
+# Recipe generation instruction 
 INSTRUCTION =
     "Below is a list of recipes that can be made using only the " *
-    "ingredients, receptacles, tools, appliances, and methods in this kitchen.\n\n"
+    "ingredients, receptacles, tools, appliances, and methods in this kitchen. " *
+    "If ingredients in a recipe are not modified by any method, then they can be " * 
+    "assumed to remain in store-bought form.\n\n"
 
 # Kitchen names
 KITCHEN_NAMES = [
