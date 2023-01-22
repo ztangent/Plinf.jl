@@ -61,9 +61,6 @@
         (occupied mixer1)
         (occupied blender1)
     )
-
-
-
     (:goal
         (exists (?ice - food ?chocolate - food ?milk - food ?glass - receptacle)
                 (and (food-type ice ?ice)

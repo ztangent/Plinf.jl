@@ -36,8 +36,6 @@
         (object-at-loc board1 chop-loc)
         (object-at-loc knife1 chop-loc)
         (object-at-loc plate1 plate-loc)
-        ; Whether receptacles are located on appliances
-
     )
     (:goal
         (exists (?lettuce - food ?tomato - food ?cucumber - food ?onion - food ?salad-dressing - food ?plate - receptacle)

@@ -1,4 +1,4 @@
-; Goal 1: Pepperoni, beef, chicken pizza
+; Goal 1: Meat lover's (sausage, beef, chicken) pizza
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?beef - food ?chicken - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -8,6 +8,7 @@
                      (food-type beef ?beef)
                      (food-type chicken ?chicken)
                      (receptacle-type plate ?plate)
+                     (prepared slice ?tomato)
                      (prepared slice ?sausage)
                      (prepared chop ?beef)
                      (prepared chop ?chicken)
@@ -34,6 +35,7 @@
                  (food-type beef ?beef)
                  (receptacle-type plate ?plate)
                  (prepared slice ?tomato)
+                 (prepared chop ?beef)
                  (combined-with mix ?egg ?flour)
                  (cooked-with bake ?egg ?flour)
                  (cooked-with bake ?tomato ?flour)
@@ -51,6 +53,7 @@
                  (food-type cheese ?cheese)
                  (food-type beef ?beef)
                  (receptacle-type plate ?plate)
+                 (prepared chop ?beef)
                  (combined-with mix ?egg ?flour)
                  (cooked-with bake ?egg ?flour)
                  (cooked-with bake ?cheese ?flour)
@@ -70,6 +73,7 @@
                  (receptacle-type plate ?plate)
                  (prepared slice ?tomato)
                  (prepared slice ?sausage)
+                 (prepared chop ?beef)
                  (combined-with mix ?egg ?flour)
                  (cooked-with bake ?egg ?flour)
                  (cooked-with bake ?tomato ?flour)

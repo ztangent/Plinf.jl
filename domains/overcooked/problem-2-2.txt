@@ -1,4 +1,4 @@
 Initial State:
 Someone is in the kitchen and wants to make a meal. They currently have tuna, salmon, rice, a knife, a chopping board, a pan, a stove and a plate.
 Goal:
-Seared tuna tataki made of grilled ahi tuna.
+Tuna nigiri made from raw sliced tuna on top of boiled sushi rice.

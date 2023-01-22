@@ -53,8 +53,6 @@
         (in-appliance pan1 stove1)
         (occupied stove1)
     )
-
-    ;Goal 1: Grilled Cheese
      (:goal
         (exists (?bread - food ?cheese - food ?plate - receptacle)
                 (and (food-type bread ?bread)

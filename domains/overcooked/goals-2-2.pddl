@@ -16,7 +16,7 @@
                      (cooked boil ?rice)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?salmon ?plate)))
-;Goal 3: Tuna + salmon + rice sushi
+; Goal 3: Tuna + salmon + rice sushi
         (exists (?salmon - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type salmon ?salmon)
                      (food-type rice ?rice)
@@ -28,13 +28,13 @@
                      (in-receptacle ?salmon ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-;Goal 4: Griled tuna rice bowl
+; Goal 4: Griled tuna rice bowl
         (exists (?tuna - food ?bowl - receptacle)
                 (and (food-type tuna ?tuna)
                      (receptacle-type bowl ?bowl)
                      (cooked grill ?tuna)
                      (in-receptacle ?tuna ?bowl)))
-;Goal 5: Raw tuna rice bowl
+; Goal 5: Raw tuna rice bowl
         (exists (?tuna - food ?bowl - receptacle)
                 (and (food-type tuna ?tuna)
                      (receptacle-type bowl ?bowl)

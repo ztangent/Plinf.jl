@@ -1,4 +1,4 @@
 Initial State:
 Someone is in the kitchen and wants to make a meal. They currently have eggs, flour, tomato, cheese, sausage, olive, a knife, a chopping board, a stove, a tray, an oven and a plate.
 Goal:
-A plain cheese pizza made with cheese, tomato, and pizza dough all baked in an oven.
+Margherita pizza made with cheese, tomato, basil, baked on pizza dough made from egg and flour.

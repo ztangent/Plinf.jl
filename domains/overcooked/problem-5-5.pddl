@@ -95,7 +95,6 @@
                      (receptacle-type plate ?plate)
                      (prepared slice ?apple)
                      (combined-with mix ?egg ?flour)
-                     (combined-with mix ?flour ?apple)
                      (cooked-with bake ?egg ?flour)
                      (cooked-with bake ?flour ?apple)
                      (in-receptacle ?egg ?plate)

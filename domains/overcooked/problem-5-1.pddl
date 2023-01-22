@@ -53,8 +53,6 @@
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
     )
-
-    ; Goal 1: Chocolate strawberries
     (:goal   
         (exists (?chocolate - food ?strawberry - food ?plate - receptacle)
                 (and (food-type chocolate ?chocolate)

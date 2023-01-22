@@ -1,4 +1,4 @@
 Initial State:
 Someone is in the kitchen and wants to make a meal. They currently have salmon, tuna, crab, a sashimi-knife, a chopping board and a plate.
 Goal:
-A fresh piece of sashimi made of sliced raw tuna.
+A fresh piece of sashimi made of sliced raw tuna, served on a plate.

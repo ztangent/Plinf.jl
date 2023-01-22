@@ -57,9 +57,6 @@
         ; Whether receptacles are located on appliances
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
-
-
-    
     )
     (:goal
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?basil - food ?plate - receptacle)

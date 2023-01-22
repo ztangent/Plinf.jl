@@ -70,7 +70,6 @@
         ; Whether receptacles are located on appliances
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
-    
     )
     (:goal
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?ham - food ?pineapple - food ?plate - receptacle)
@@ -81,6 +80,7 @@
                      (food-type ham ?ham)
                      (food-type pineapple ?pineapple)
                      (receptacle-type plate ?plate)
+                     (prepared slice ?tomato)
                      (prepared slice ?ham)
                      (prepared chop ?pineapple)
                      (combined-with mix ?egg ?flour)

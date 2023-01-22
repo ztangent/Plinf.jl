@@ -42,7 +42,6 @@
         (in-appliance pan1 stove1)
         (occupied stove1)
     )
-    ; Goal 1: Tuna Sashimi
     (:goal 
         (exists (?tuna - food ?plate - receptacle)
                 (and (food-type tuna ?tuna)

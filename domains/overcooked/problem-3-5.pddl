@@ -85,10 +85,7 @@
         (occupied fryer1)
         
     )
-
-    ; Goal 1: Grilled chicken sandwich
-
-      (:goal  
+    (:goal  
         (exists (?bread - food ?chicken - food ?cheese - food ?lettuce - food ?tomato - food ?plate - receptacle)
             (and (food-type chicken ?chicken)
                  (food-type bread ?bread)
@@ -104,5 +101,5 @@
                  (in-receptacle ?lettuce ?plate)
                  (in-receptacle ?tomato ?plate)
                  (in-receptacle ?cheese ?plate)))
-      )
+    )
 )

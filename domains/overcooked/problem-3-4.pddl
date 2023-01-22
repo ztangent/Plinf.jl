@@ -74,9 +74,7 @@
         (in-appliance basket1 fryer1)
         (occupied fryer1)
     )
-
-    ; Goal 1: Tuna sandwich
-(:goal
+    (:goal
         (exists (?bread - food ?tuna - food ?cheese - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -95,6 +93,5 @@
                  (in-receptacle ?tomato ?plate)
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)))
-)
-
+    )
 )

@@ -60,22 +60,18 @@
         (occupied mixer1)
         (occupied fryer1)
     )
-
-    ; Goal 1: Plain Donut
-
-(:goal
-        (exists (?egg - food ?chocolate - food ?flour - food ?plate - receptacle)
-                (and (food-type egg ?egg)
-                     (food-type flour ?flour)
-                     (food-type chocolate ?chocolate)
-                     (receptacle-type plate ?plate)
-                     (combined-with mix ?egg ?flour)
-                     (combined-with mix ?flour ?chocolate)
-                     (cooked-with deep-fry ?egg ?flour)
-                     (cooked-with deep-fry ?flour ?chocolate)
-                     (in-receptacle ?egg ?plate)
-                     (in-receptacle ?chocolate ?plate)
-                     (in-receptacle ?flour ?plate)))
-)
-
+    (:goal
+            (exists (?egg - food ?chocolate - food ?flour - food ?plate - receptacle)
+                    (and (food-type egg ?egg)
+                         (food-type flour ?flour)
+                         (food-type chocolate ?chocolate)
+                         (receptacle-type plate ?plate)
+                         (combined-with mix ?egg ?flour)
+                         (combined-with mix ?flour ?chocolate)
+                         (cooked-with deep-fry ?egg ?flour)
+                         (cooked-with deep-fry ?flour ?chocolate)
+                         (in-receptacle ?egg ?plate)
+                         (in-receptacle ?chocolate ?plate)
+                         (in-receptacle ?flour ?plate)))
+    )
 )

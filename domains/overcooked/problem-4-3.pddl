@@ -58,8 +58,6 @@
         ; Whether receptacles are located on appliances
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
-
-    
     )
     (:goal
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?beef - food ?chicken - food ?plate - receptacle)
@@ -71,6 +69,7 @@
                      (food-type beef ?beef)
                      (food-type chicken ?chicken)
                      (receptacle-type plate ?plate)
+                     (prepared slice ?tomato)
                      (prepared slice ?sausage)
                      (prepared chop ?beef)
                      (prepared chop ?chicken)

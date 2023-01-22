@@ -1,4 +1,4 @@
 Initial State:
 Someone is in the kitchen and wants to make a meal. They currently have a hamburger bun, cheese, beef, chicken, onion, potato, soda, lettuce, tomato, pineapple, chopping board, pan, frying basket, deep fryer, knife, stove and a plate.
 Goal:
-A classic cheeseburger made of grilled beef, sliced cheese, and a fresh hamburger bun. 'Ts got fries now.
+A classic cheeseburger made of grilled beef, sliced cheese, and a fresh hamburger bun, served with a side of fries on a plate.
