@@ -20,6 +20,7 @@
                      (prepared crumble ?bacon)
                      (prepared slice ?avocado)
                      (cooked boil ?egg)
+                     (cooked grill ?bacon)
                      (in-receptacle ?salad-dressing ?plate)
                      (in-receptacle ?lettuce ?plate)
                      (in-receptacle ?tomato ?plate)

@@ -57,9 +57,6 @@
         ; Whether receptacles are located on appliances
         (in-appliance mixing-bowl1 mixer1)
         (occupied mixer1)
-
-
-    
     )
     (:goal
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?plate - receptacle)
@@ -69,12 +66,13 @@
                      (food-type cheese ?cheese)
                      (food-type sausage ?sausage)
                      (receptacle-type plate ?plate)
+                     (prepared slice ?tomato)
                      (prepared slice ?sausage)
                      (combined-with mix ?egg ?flour)
                      (cooked-with bake ?egg ?flour)
                      (cooked-with bake ?flour ?tomato )
                      (cooked-with bake ?tomato ?cheese)
-                     (cooked-with bake ?sausage ?cheese)
+                     (cooked-with bake ?cheese ?sausage)
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?cheese ?plate)
                      (in-receptacle ?sausage ?plate)
