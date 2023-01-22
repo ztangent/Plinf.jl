@@ -8,9 +8,11 @@ df = DataFrame(
     n_train_kitchens=Int[],
     n_train_recipes_per_kitchen=Int[],
     recipe_instruction=String[],
+    recipe_summary_in_prompt=Bool[],
     problem=String[],
     description=String[],
     temperature=Float64[],
+    model=String[],
     completion=String[],
     logprobs=Float64[],
     pddl_goal=String[],
@@ -22,60 +24,15 @@ df = DataFrame(
 df_types = eltype.(eachcol(df))
 
 # Define columns that correspond to experimental conditions
-condition_cols = [:kitchen_name, :temperature, :n_train_recipes_per_kitchen]
-
-# Read all CSV files that match format and concatenate them 
-# csv_paths = readdir(@__DIR__)
-# for path in csv_paths
-#     m = match(r"prompt_eval_multi_temp*\.csv", path)
-#     if isnothing(m)
-#         continue
-#     end
-#     path = joinpath(@__DIR__, path)
-#     next_df = CSV.read(path, DataFrame, types=df_types)
-#     df = vcat(df, next_df)
-# end
+condition_cols = [:kitchen_name, :temperature, :n_train_recipes_per_kitchen, :model, :recipe_summary_in_prompt]
 
 # Load dataframe
-df_path = "domains/overcooked/prompt_eval_multi_temp_1.0_nperkitchen_3_2022-12-14T02-40-12.csv"
-# df_path = "prompt_eval_multi_temp_0.25_nperkitchen_3_2022-12-06T22-23-49.csv"
-# df_path = joinpath(@__DIR__, df_path)
+df_path = "recipes_gpt3_eng_text-davinci-003_temp_1.0_nperkitchen_3_2023-01-22T14-31-25.csv"
+df_path = joinpath(@__DIR__, df_path)
 df = CSV.read(df_path, DataFrame, types=df_types)
 
-# Post-hoc fix for errors in parse validation
-# Make sure to compile parse_recipe and try_parse_recipe in prompt_eval_multi.jl before running this
-# function fix_parse_error(completion::String)
-#     result = try_parse_recipe(completion)
-#     if isnothing(result)
-#         pddl_goal, eng_goal = "", ""
-#         parse_success = false
-#     else
-#         pddl_goal, eng_goal = result
-#         pddl_goal = write_pddl(pddl_goal)
-#         parse_success = true
-#     end
-#     return pddl_goal, eng_goal, parse_success
-# end
-
-# domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
-# function fix_goal_validation(problem_path, completion::String)
-#     problem_path = joinpath(@__DIR__, problem_path)
-#     problem = load_problem(problem_path)
-#     state = initstate(domain, problem)
-#     println(completion)
-#     valid, reason = validate_recipe_string(completion, domain, state, verbose=true)
-#     return valid, reason
-# end
-
-# transform!(df, :completion => ByRow(fix_parse_error) => [:pddl_goal, :eng_goal, :parse_success])
-# transform!(df, [:problem, :completion] => ByRow(fix_goal_validation) => [:valid, :reason])
-# transform!(df, [:parse_success, :reason] => ByRow((x, y) -> x ? y : "Parse error") => :reason)
-
-df = df[:, 1:15]
-CSV.write(df_path, df)
-
 # Compute various extra information
-transform!(df, :reason => (x -> x .== "Parse error") => :pddl_parse_error)
+transform!(df, :reason => (x -> x .== "Parse error") => :parse_error)
 transform!(df, :reason => (x -> x .== "Non-existent predicates or types") => :non_existent_predicates)
 transform!(df, :reason => (x -> x .== "Non-existent objects or variables") => :non_existent_objects)
 transform!(df, :reason => (x -> x .== "Goal is not reachable") => :goal_unreachable)
@@ -88,7 +45,7 @@ condition_gdf = groupby(df, condition_cols)
 
 # Define operations and columns
 validity_cols =
-    [:valid, :pddl_parse_error,
+    [:valid, :parse_error,
      :non_existent_predicates, :non_existent_objects, :goal_unreachable]
 validity_sem_ops = reduce(vcat, ([col => mean, col => sem] for col in validity_cols))
 validity_ops = [col => mean for col in validity_cols]
@@ -128,7 +85,7 @@ diversity_cols =
 
 # Compute diversity metrics for each problem and condition
 prob_diversity_df = combine(problem_gdf,
-    [:pddl_parse_error, :pddl_goal] => frac_unique_goals => :frac_unique,
+    [:parse_error, :pddl_goal] => frac_unique_goals => :frac_unique,
     [:valid, :pddl_goal] => frac_unique_valid_goals => :frac_unique_valid,
     [:valid, :logprobs] => entropy_of_valid_goals => :entropy_valid
 )
@@ -148,7 +105,7 @@ mean_df = innerjoin(mean_validity_df, mean_diversity_df, on=condition_cols)
 transform!(mean_df, [:frac_unique_valid, :valid_mean] => ((x, y) -> x./y) => :frac_unique_out_of_valid)
 
 # Write out files
-prob_df_path = joinpath(@__DIR__, "analysis_multi_per_problem_gpt3_eng.csv")
+prob_df_path = joinpath(@__DIR__, "analysis_per_problem_gpt3_eng.csv")
 CSV.write(prob_df_path, prob_df)
-mean_df_path = joinpath(@__DIR__, "analysis_multi_per_condition_gpt3_eng.csv")
+mean_df_path = joinpath(@__DIR__, "analysis_per_condition_gpt3_eng.csv")
 CSV.write(mean_df_path, mean_df)

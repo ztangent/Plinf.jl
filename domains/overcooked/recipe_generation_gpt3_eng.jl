@@ -106,6 +106,9 @@ N_REPEATS = 50
 # Temperature of generated completion
 TEMPERATURE = 1.0
 
+# Model to request completions from
+MODEL = "text-davinci-003"
+
 # Initialize data frame
 df = DataFrame(
     kitchen_id=Int[],
@@ -113,9 +116,11 @@ df = DataFrame(
     n_train_kitchens=Int[],
     n_train_recipes_per_kitchen=Int[],
     recipe_instruction=String[],
+    recipe_summary_in_prompt=Bool[],
     problem=String[],
     description=String[],
     temperature=Float64[],
+    model=String[],
     completion=String[],
     logprobs=Float64[],
     pddl_goal=String[],
@@ -127,7 +132,7 @@ df = DataFrame(
 df_types = eltype.(eachcol(df))
 datetime = Dates.format(Dates.now(), "yyyy-mm-ddTHH-MM-SS")
 n_per_kitchen = length(PROMPT_PROBLEMS[1]) 
-df_path = "recipes_gpt3_eng_" * "temp_$(TEMPERATURE)_" *
+df_path = "recipes_gpt3_eng_$(MODEL)_" * "temp_$(TEMPERATURE)_" *
           "nperkitchen_$(n_per_kitchen)" * "_$(datetime).csv"
 df_path = joinpath(@__DIR__, df_path)
 
@@ -170,7 +175,8 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         println("Requesting $N_REPEATS completions through OpenAI API...")
         completions = gpt3_batch_complete(
             prompt, N_REPEATS, 10;
-            stop="Description:", temperature=TEMPERATURE,
+            stop="Description:", max_tokens=1024,
+            model=MODEL, temperature=TEMPERATURE,
             verbose=true, persistent=true
         )
         println("---")
@@ -208,6 +214,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
                 :n_train_kitchens => n_train_kitchens,
                 :n_train_recipes_per_kitchen => n_train_recipes_per_kitchen,
                 :recipe_instruction => INSTRUCTION,
+                :recipe_summary_in_prompt => true,
                 :problem => basename(problem_path),
                 :description => kitchen_desc,
                 :completion => completion,
@@ -215,6 +222,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
                 :pddl_goal => pddl_goal,
                 :eng_goal => eng_goal,
                 :temperature => TEMPERATURE,
+                :model => MODEL,
                 :parse_success => parse_success,
                 :valid => valid,
                 :reason => reason
