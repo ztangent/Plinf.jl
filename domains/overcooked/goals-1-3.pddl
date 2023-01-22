@@ -1,31 +1,4 @@
-;Goal 1: Sliced tomato
-        (exists (?tomato - food ?knife - tool ?plate - receptacle)
-                (and (food-type tomato ?tomato)
-                     (receptacle-type plate ?plate)
-                     (prepared slice ?tomato)
-                     (in-receptacle ?tomato ?plate)))
-;Goal 2: Sliced cucumber
-        (exists (?cucumber - food ?knife - tool ?plate - receptacle)
-                (and (food-type cucumber ?cucumber)
-                     (receptacle-type plate ?plate)
-                     (prepared slice ?cucumber)
-                     (in-receptacle ?cucumber ?plate)))
-;Goal 3: Crumbled feta cheese
-        (exists (?feta-cheese - food ?knife - tool ?glove - tool ?plate - receptacle)
-                (and (food-type feta-cheese ?feta-cheese)
-                     (receptacle-type plate ?plate)
-                     (prepared crumble ?feta-cheese)
-                     (in-receptacle ?feta-cheese ?plate)))
-; Goal 4: Crumbled feta cheese and chopped olive
-        (exists (?olive - food ?feta-cheese - food ?knife - tool ?glove - tool ?plate - receptacle)
-                (and (food-type olive ?olive)
-                     (food-type feta-cheese ?feta-cheese)
-                     (receptacle-type plate ?plate)
-                     (prepared chop ?olive)
-                     (prepared crumble ?feta-cheese)
-                     (in-receptacle ?olive ?plate)
-                     (in-receptacle ?feta-cheese ?plate)))
-; Goal 5: Greek salad
+; Goal 1: Greek salad
         (exists (?onion - food ?tomato - food ?cucumber - food ?olive - food ?feta-cheese - food ?knife - tool ?glove - tool ?plate - receptacle)
                 (and (food-type olive ?olive)
                      (food-type tomato ?tomato)
@@ -43,3 +16,30 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?tomato ?plate)))
+; Goal 2: Sliced tomato
+        (exists (?tomato - food ?knife - tool ?plate - receptacle)
+                (and (food-type tomato ?tomato)
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?tomato)
+                     (in-receptacle ?tomato ?plate)))
+; Goal 3: Sliced cucumber
+        (exists (?cucumber - food ?knife - tool ?plate - receptacle)
+                (and (food-type cucumber ?cucumber)
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?cucumber)
+                     (in-receptacle ?cucumber ?plate)))
+; Goal 4: Crumbled feta cheese
+        (exists (?feta-cheese - food ?knife - tool ?glove - tool ?plate - receptacle)
+                (and (food-type feta-cheese ?feta-cheese)
+                     (receptacle-type plate ?plate)
+                     (prepared crumble ?feta-cheese)
+                     (in-receptacle ?feta-cheese ?plate)))
+; Goal 5: Crumbled feta cheese and chopped olive
+        (exists (?olive - food ?feta-cheese - food ?knife - tool ?glove - tool ?plate - receptacle)
+                (and (food-type olive ?olive)
+                     (food-type feta-cheese ?feta-cheese)
+                     (receptacle-type plate ?plate)
+                     (prepared chop ?olive)
+                     (prepared crumble ?feta-cheese)
+                     (in-receptacle ?olive ?plate)
+                     (in-receptacle ?feta-cheese ?plate)))

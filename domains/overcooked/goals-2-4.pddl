@@ -1,4 +1,15 @@
-;Goal 1: Tuna cucumber roll
+; Goal 1: Tuna nori roll
+        (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
+                (and (food-type nori ?nori)
+                     (food-type rice ?rice)
+                     (food-type tuna ?tuna)
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?tuna)
+                     (cooked boil ?rice)
+                     (in-receptacle ?nori ?plate)
+                     (in-receptacle ?rice ?plate)
+                     (in-receptacle ?tuna ?plate)))
+; Goal 2: Tuna cucumber roll
         (exists (?nori - food ?rice - food ?tuna - food ?cucumber - food  ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -12,7 +23,7 @@
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?tuna ?plate)))
-; Goal 2: Salmon cucumber roll
+; Goal 3: Salmon cucumber roll
         (exists (?nori - food ?rice - food ?cucumber - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -26,7 +37,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?cucumber ?plate)))
-; Goal 3: Cucumber roll
+; Goal 4: Cucumber roll
         (exists (?nori - food ?rice - food ?cucumber - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -38,7 +49,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?cucumber ?plate)))
-; Goal 4: Tuna, salmon, cucumber
+; Goal 5: Tuna, salmon, cucumber
         (exists (?nori - food ?rice - food ?tuna - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -49,17 +60,6 @@
                      (prepared slice ?salmon)
                      (cooked boil ?rice)
                      (in-receptacle ?salmon ?plate)
-                     (in-receptacle ?nori ?plate)
-                     (in-receptacle ?rice ?plate)
-                     (in-receptacle ?tuna ?plate)))
-; Goal 5: Tuna nori roll
-        (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
-                (and (food-type nori ?nori)
-                     (food-type rice ?rice)
-                     (food-type tuna ?tuna)
-                     (receptacle-type plate ?plate)
-                     (prepared slice ?tuna)
-                     (cooked boil ?rice)
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))

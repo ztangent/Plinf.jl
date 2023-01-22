@@ -1,4 +1,15 @@
-; Goal 1: Chocolate milk
+; Goal 1: Chocolate milkshake
+        (exists (?ice - food ?chocolate - food ?milk - food ?glass - receptacle)
+                (and (food-type ice ?ice)
+                     (food-type milk ?milk)
+                     (food-type chocolate ?chocolate)
+                     (receptacle-type glass ?glass)
+                     (combined-with blend ?ice ?milk)
+                     (combined-with blend ?milk ?chocolate)
+                     (in-receptacle ?ice ?glass)
+                     (in-receptacle ?chocolate ?glass)
+                     (in-receptacle ?milk ?glass)))
+; Goal 2: Chocolate milk
         (exists (?chocolate - food ?milk - food ?glass - receptacle)
                 (and (food-type milk ?milk)
                      (food-type chocolate ?chocolate)
@@ -6,7 +17,7 @@
                      (combined-with blend ?milk ?chocolate)
                      (in-receptacle ?chocolate ?glass)
                      (in-receptacle ?milk ?glass)))
-; Goal 2: Strawberry milk  
+; Goal 3: Strawberry milk
         (exists (?strawberry - food ?milk - food ?glass - receptacle)
                 (and (food-type milk ?milk)
                      (food-type strawberry ?strawberry)
@@ -14,7 +25,7 @@
                      (combined-with blend ?strawberry ?milk)
                      (in-receptacle ?strawberry ?glass)
                      (in-receptacle ?milk ?glass)))
-; Goal 3: Watermelon, apple, grape smoothie
+; Goal 4: Watermelon, apple, grape smoothie
         (exists (?ice - food ?watermelon - food ?apple - food ?grape - food ?glass - receptacle)
                 (and (food-type ice ?ice)
                      (food-type watermelon ?watermelon)
@@ -28,7 +39,7 @@
                      (in-receptacle ?watermelon ?glass)
                      (in-receptacle ?grape ?glass)
                      (in-receptacle ?ice ?glass)))
-; Goal 4: Watermelon, apple. strawberry smoothie
+; Goal 5: Watermelon, apple. strawberry smoothie
         (exists (?ice - food ?watermelon - food ?apple - food ?strawberry - food ?glass - receptacle)
                 (and (food-type ice ?ice)
                      (food-type watermelon ?watermelon)
@@ -42,15 +53,3 @@
                      (in-receptacle ?watermelon ?glass)
                      (in-receptacle ?strawberry ?glass)
                      (in-receptacle ?ice ?glass)))
-; Goal 5: Chocolate milkshake
-        (exists (?ice - food ?chocolate - food ?milk - food ?glass - receptacle)
-                (and (food-type ice ?ice)
-                     (food-type milk ?milk)
-                     (food-type chocolate ?chocolate)
-                     (receptacle-type glass ?glass)
-                     (combined-with blend ?ice ?milk)
-                     (combined-with blend ?milk ?chocolate)
-                     (in-receptacle ?ice ?glass)
-                     (in-receptacle ?chocolate ?glass)
-                     (in-receptacle ?milk ?glass)))
-    

@@ -1,13 +1,4 @@
-; Goal 1: Plain Donut
-        (exists (?egg - food ?flour - food ?plate - receptacle)
-                (and (food-type egg ?egg)
-                     (food-type flour ?flour)
-                     (receptacle-type plate ?plate)
-                     (combined-with mix ?egg ?flour)
-                     (cooked-with deep-fry ?egg ?flour)
-                     (in-receptacle ?egg ?plate)
-                     (in-receptacle ?flour ?plate)))
-; Goal 2: Chocolate donut
+; Goal 1: Chocolate donut
         (exists (?egg - food ?chocolate - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -19,6 +10,15 @@
                      (cooked-with deep-fry ?flour ?chocolate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?chocolate ?plate)
+                     (in-receptacle ?flour ?plate)))
+; Goal 2: Plain Donut
+        (exists (?egg - food ?flour - food ?plate - receptacle)
+                (and (food-type egg ?egg)
+                     (food-type flour ?flour)
+                     (receptacle-type plate ?plate)
+                     (combined-with mix ?egg ?flour)
+                     (cooked-with deep-fry ?egg ?flour)
+                     (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
 ; Goal 3: Strawberry donut
         (exists (?egg - food ?strawberry - food ?flour - food ?plate - receptacle)

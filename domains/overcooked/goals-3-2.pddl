@@ -1,5 +1,17 @@
-   
-    ;Goal 1: BLT
+; Goal 1: Ham mayo cheese
+        (exists (?ham - food ?bread - food ?cheese - food ?mayonnaise - food ?plate - receptacle)
+                (and (food-type bread ?bread)
+                     (food-type ham ?ham)
+                     (food-type cheese ?cheese)
+                     (food-type mayonnaise ?mayonnaise)
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?ham)
+                     (prepared slice ?cheese)
+                     (in-receptacle ?ham ?plate)
+                     (in-receptacle ?bread ?plate)
+                     (in-receptacle ?mayonnaise ?plate)
+                     (in-receptacle ?cheese ?plate)))   
+; Goal 2: BLT
         (exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)
@@ -13,7 +25,7 @@
                      (in-receptacle ?bacon ?plate)
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?lettuce ?plate)))
-    ;Goal 2: Ham and mayo
+; Goal 3: Ham and mayo
         (exists (?ham - food ?bread - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -23,20 +35,7 @@
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?mayonnaise ?plate)))
-    ;Goal 3: Ham mayo cheese
-        (exists (?ham - food ?bread - food ?cheese - food ?mayonnaise - food ?plate - receptacle)
-                (and (food-type bread ?bread)
-                     (food-type ham ?ham)
-                     (food-type cheese ?cheese)
-                     (food-type mayonnaise ?mayonnaise)
-                     (receptacle-type plate ?plate)
-                     (prepared slice ?ham)
-                     (prepared slice ?cheese)
-                     (in-receptacle ?ham ?plate)
-                     (in-receptacle ?bread ?plate)
-                     (in-receptacle ?mayonnaise ?plate)
-                     (in-receptacle ?cheese ?plate)))
-    ;Goal 4: BLT + mayo
+; Goal 4: BLT + mayo
         (exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)
@@ -52,7 +51,7 @@
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?mayonnaise ?plate)
                      (in-receptacle ?lettuce ?plate)))
-    ;Goal 5: Dagwood (everything)
+; Goal 5: Dagwood (everything)
         (exists (?bread - food ?bacon - food ?lettuce - food ?ham - food ?onion - food ?tomato - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)

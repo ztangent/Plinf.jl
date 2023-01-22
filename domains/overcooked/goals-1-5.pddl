@@ -1,10 +1,4 @@
-; Goal 1: Sliced avocado
-        (exists (?avocado - food ?plate - receptacle)
-                (and (food-type avocado ?avocado)
-                     (receptacle-type plate ?plate)
-                     (prepared slice ?avocado)
-                     (in-receptacle ?avocado ?plate)))
-; Goal 2: Cobb salad
+; Goal 1: Cobb salad
         (exists (?lettuce - food ?tomato - food ?cheese - food ?bacon - food ?avocado - food ?egg - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato) 
@@ -28,6 +22,12 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?avocado ?plate)
                      (in-receptacle ?bacon ?plate)))
+; Goal 2: Sliced avocado
+        (exists (?avocado - food ?plate - receptacle)
+                (and (food-type avocado ?avocado)
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?avocado)
+                     (in-receptacle ?avocado ?plate)))
 ; Goal 3: Sliced lettuce, tomato, onion, cucumber, salad dressing
         (exists (?lettuce - food ?tomato - food ?cucumber - food ?onion - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)

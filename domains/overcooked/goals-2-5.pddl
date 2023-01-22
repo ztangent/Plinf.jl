@@ -1,4 +1,19 @@
-;Goal 1: Tuna roll
+; Goal 1: California Roll
+        (exists (?avocado - food  ?nori - food ?rice - food ?crab - food ?cucumber - food ?plate - receptacle)
+                (and (food-type nori ?nori)
+                     (food-type rice ?rice)
+                     (food-type crab ?crab)
+                     (food-type cucumber ?cucumber)
+                     (food-type avocado ?avocado)
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?crab)
+                     (cooked boil ?rice)
+                     (in-receptacle ?nori ?plate)
+                     (in-receptacle ?rice ?plate)
+                     (in-receptacle ?cucumber ?plate)
+                     (in-receptacle ?avocado ?plate)
+                     (in-receptacle ?crab ?plate)))
+; Goal 2: Tuna roll
         (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -9,7 +24,7 @@
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-;Goal 2: Tuna salmon avocado roll
+; Goal 3: Tuna salmon avocado roll
         (exists (?avocado - food  ?nori - food ?rice - food ?tuna - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -25,13 +40,13 @@
                      (in-receptacle ?tuna ?plate)
                      (in-receptacle ?avocado ?plate)
                      (in-receptacle ?salmon ?plate)))
-;Goal 3: Edamame
+; Goal 4: Edamame
     (exists (?soybean - food ?plate - receptacle)
             (and (food-type soybean ?soybean)
                  (receptacle-type plate ?plate)
                  (cooked boil ?soybean)
                  (in-receptacle ?soybean ?plate)))
-;Goal 4: Cucumber Avocado roll
+; Goal 5: Cucumber Avocado roll
         (exists (?avocado - food  ?nori - food ?rice - food ?cucumber - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -43,18 +58,3 @@
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?avocado ?plate)))
-;Goal 5: California Roll
-        (exists (?avocado - food  ?nori - food ?rice - food ?crab - food ?cucumber - food ?plate - receptacle)
-                (and (food-type nori ?nori)
-                     (food-type rice ?rice)
-                     (food-type crab ?crab)
-                     (food-type cucumber ?cucumber)
-                     (food-type avocado ?avocado)
-                     (receptacle-type plate ?plate)
-                     (prepared slice ?crab)
-                     (cooked boil ?rice)
-                     (in-receptacle ?nori ?plate)
-                     (in-receptacle ?rice ?plate)
-                     (in-receptacle ?cucumber ?plate)
-                     (in-receptacle ?avocado ?plate)
-                     (in-receptacle ?crab ?plate)))
