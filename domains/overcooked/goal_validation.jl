@@ -86,21 +86,3 @@ function validate_reachability(goal::Term, domain::Domain, state::State;
     end
     return true
 end
-
-# Load domain and problem
-# domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
-# problem = load_problem(joinpath(@__DIR__, "problem-2-2.pddl"))
-# state = initstate(domain, problem)
-# Goal as string
-# str = """
-#     (exists (?lettuce - food ?tomato - food ?plate - receptacle)
-#         (and (food-type lettuce ?lettuce)
-#              (food-type tomato ?tomato)
-#              (receptacle-type plate ?plate)
-#              (prepared slice ?lettuce)
-#              (prepared slice ?tomato)
-#              (in-receptacle ?lettuce ?plate)
-#              (in-receptacle ?tomato ?plate)))
-# """
-
-# # Test whether goal string is valid
