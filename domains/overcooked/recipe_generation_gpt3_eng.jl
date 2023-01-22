@@ -28,7 +28,8 @@ end
 ## Prompt generation functions ##
 
 function construct_multikitchen_prompt(
-    domain::Domain, problem_sets, kitchen_names, instruction=""
+    domain::Domain, problem_sets, kitchen_names, instruction="";
+    include_english_description::Bool=true
 )
     prompt = ""
     for (problem_paths, name) in zip(problem_sets, kitchen_names)
@@ -38,7 +39,10 @@ function construct_multikitchen_prompt(
             prob = load_problem(path)
             desc_path = path[1:end-5] * ".txt"
             desc = load_english_recipe_description(desc_path)
-            return construct_recipe_description(domain, prob, desc)
+            return construct_recipe_description(
+                domain, prob, desc;
+                include_description=include_english_description
+            )
         end
         str = "KITCHEN: $(uppercase(name))\n\n" * kitchen * "\n\n" * instruction *
               "RECIPES\n\n" * join(recipes, "\n\n")
@@ -109,6 +113,9 @@ TEMPERATURE = 1.0
 # Model to request completions from
 MODEL = "text-davinci-003"
 
+# Whether to include English descriptions in recipes
+INCLUDE_RECIPE_DESCRIPTION = false
+
 # Initialize data frame
 df = DataFrame(
     kitchen_id=Int[],
@@ -116,9 +123,9 @@ df = DataFrame(
     n_train_kitchens=Int[],
     n_train_recipes_per_kitchen=Int[],
     recipe_instruction=String[],
-    recipe_summary_in_prompt=Bool[],
+    include_recipe_description=Bool[],
     problem=String[],
-    description=String[],
+    kitchen_description=String[],
     temperature=Float64[],
     model=String[],
     completion=String[],
@@ -139,6 +146,10 @@ df_path = joinpath(@__DIR__, df_path)
 # Load domain
 domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
 
+# Set start and stop token based on whether recipe description is included
+START_AND_STOP_STRING = INCLUDE_RECIPE_DESCRIPTION ?
+    "Description:" : "Ingredients:"
+
 # Iterate over kitchen types
 for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
     println("== Kitchen $idx : $kitchen_name ==")
@@ -157,14 +168,18 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         train_problems = PROMPT_PROBLEMS[train_idxs]
         n_train_kitchens = length(train_problems)
         n_train_recipes_per_kitchen = length(train_problems[1]) 
-        context = construct_multikitchen_prompt(domain, train_problems, train_names, INSTRUCTION)
+        context = construct_multikitchen_prompt(
+            domain, train_problems, train_names, INSTRUCTION;
+            include_english_description=INCLUDE_RECIPE_DESCRIPTION
+        )
 
         # Construct kitchen description for test problem
         kitchen_desc = construct_kitchen_description(domain, problem)
 
         # Construct prompt from context and kitchen description
         prompt = (context * "KITCHEN: $(uppercase(kitchen_name))\n\n" *
-                  kitchen_desc * "\n\n" * INSTRUCTION * "RECIPES\n\nDescription:")
+                  kitchen_desc * "\n\n" * INSTRUCTION * "RECIPES\n\n" *
+                  START_AND_STOP_STRING)
         
         println() 
         println("Prompt:\n")
@@ -175,7 +190,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         println("Requesting $N_REPEATS completions through OpenAI API...")
         completions = gpt3_batch_complete(
             prompt, N_REPEATS, 10;
-            stop="Description:", max_tokens=1024,
+            stop=START_AND_STOP_STRING, max_tokens=1024,
             model=MODEL, temperature=TEMPERATURE,
             verbose=true, persistent=true
         )
@@ -185,7 +200,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         for (i, completion_obj) in enumerate(completions)
             # Extract completion text
             completion = completion_obj.text 
-            completion = strip("Description:" * completion)
+            completion = strip(START_AND_STOP_STRING * completion)
             println("-- Completion $i--")
             println(completion)
             # Extract log probability (stop sequence has 2 tokens)
@@ -214,9 +229,9 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
                 :n_train_kitchens => n_train_kitchens,
                 :n_train_recipes_per_kitchen => n_train_recipes_per_kitchen,
                 :recipe_instruction => INSTRUCTION,
-                :recipe_summary_in_prompt => true,
+                :include_recipe_description => INCLUDE_RECIPE_DESCRIPTION,
                 :problem => basename(problem_path),
-                :description => kitchen_desc,
+                :kitchen_description => kitchen_desc,
                 :completion => completion,
                 :logprobs => logprobs,
                 :pddl_goal => pddl_goal,

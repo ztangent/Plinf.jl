@@ -24,7 +24,7 @@ df = DataFrame(
 df_types = eltype.(eachcol(df))
 
 # Define columns that correspond to experimental conditions
-condition_cols = [:kitchen_name, :temperature, :n_train_recipes_per_kitchen, :model, :recipe_summary_in_prompt]
+condition_cols = [:kitchen_name, :temperature, :n_train_recipes_per_kitchen, :model, :include_recipe_description]
 
 # Load dataframe
 df_path = "recipes_gpt3_eng_text-davinci-003_temp_1.0_nperkitchen_3_2023-01-22T14-31-25.csv"

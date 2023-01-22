@@ -41,11 +41,12 @@ survey_df = DataFrame(
     reason=String[]
 )
 
+
 # Paths to recipe source files
 RECIPE_PATHS = [
-    joinpath(@__DIR__, "recipes_baseline_2023-01-18T00-51-59.csv"),
-    joinpath(@__DIR__, "recipes_gpt3_eng_temp_1.0_nperkitchen_3_2023-01-18T02-01-34.csv"),
-    joinpath(@__DIR__, "recipes_handcrafted_2023-01-17T22-31-19.csv"),
+    joinpath(@__DIR__, "recipes_baseline_2023-01-22T13-26-42.csv"),
+    joinpath(@__DIR__, "recipes_gpt3_eng_text-davinci-003_temp_1.0_nperkitchen_3_2023-01-22T14-31-25.csv"),
+    joinpath(@__DIR__, "recipes_handcrafted_2023-01-22T13-20-42.csv"),
 ]
 
 # Names of recipe sources

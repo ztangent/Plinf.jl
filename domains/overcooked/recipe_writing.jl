@@ -68,7 +68,8 @@ construct_kitchen_description(domain::Domain, problem::Problem) =
     construct_kitchen_description(domain, initstate(domain, problem))
 
 "Constructs a recipe description from a PDDL problem."
-function construct_recipe_description(goal::Term, description="")   
+function construct_recipe_description(goal::Term, description="";
+                                      include_description::Bool=true)   
     # Construct description string / flavor text
     description = "Description: $description"
     # Extract recipe terms
@@ -141,16 +142,19 @@ function construct_recipe_description(goal::Term, description="")
     receptacle = const_to_str(receptacle_term.args[1])
     receptacle_str = "Serve: in a $receptacle"
     # Concatenate all lines into recipe description
-    recipe_str = join([[description, ingredients_str];
+    recipe_str = join([[ingredients_str];
                         prepare_strs;
                         combine_strs; combined_with_strs;
                         cook_strs; cooked_with_strs;
                         [receptacle_str]], "\n")
+    if include_description
+        recipe_str = description * "\n" * recipe_str
+    end
     return recipe_str
 end
 
-construct_recipe_description(domain::Domain, problem::Problem, description="") =
-    construct_recipe_description(PDDL.get_goal(problem), description)
+construct_recipe_description(domain::Domain, problem::Problem, description=""; kwargs...) =
+    construct_recipe_description(PDDL.get_goal(problem), description; kwargs...)
 
 "Construct adjacency matrix of ingredient graph for a particular relation."
 function construct_graph(ingredients, edges)

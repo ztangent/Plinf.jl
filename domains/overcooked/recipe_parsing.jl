@@ -21,7 +21,12 @@ function parse_recipe(str::AbstractString)
     # Parse English description
     description_str = lines[1]
     m = match(r"Description: ?(.*)", description_str)
-    description = m.captures[1]
+    if isnothing(m)
+        description = "missing"
+        pushfirst!(lines, "Description: ")
+    else
+        description = m.captures[1]
+    end
 
     # Parse ingredients
     ingredients_str = lines[2]
