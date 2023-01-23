@@ -97,6 +97,7 @@
                  (prepared slice ?tomato)
                  (prepared slice ?lettuce)
                  (cooked grill ?chicken)
+                 (in-receptacle ?chicken ?plate)
                  (in-receptacle ?bread ?plate)
                  (in-receptacle ?lettuce ?plate)
                  (in-receptacle ?tomato ?plate)
