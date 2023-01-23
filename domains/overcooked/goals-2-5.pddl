@@ -40,12 +40,17 @@
                      (in-receptacle ?tuna ?plate)
                      (in-receptacle ?avocado ?plate)
                      (in-receptacle ?salmon ?plate)))
-; Goal 4: Edamame
-    (exists (?soybean - food ?plate - receptacle)
-            (and (food-type soybean ?soybean)
-                 (receptacle-type plate ?plate)
-                 (cooked boil ?soybean)
-                 (in-receptacle ?soybean ?plate)))
+; Goal 4: Crab roll
+        (exists (?nori - food ?rice - food ?crab - food ?plate - receptacle)
+                (and (food-type nori ?nori)
+                     (food-type rice ?rice)
+                     (food-type crab ?crab)
+                     (receptacle-type plate ?plate)
+                     (prepared slice ?crab)
+                     (cooked boil ?rice)
+                     (in-receptacle ?nori ?plate)
+                     (in-receptacle ?rice ?plate)
+                     (in-receptacle ?crab ?plate)))
 ; Goal 5: Cucumber Avocado roll
         (exists (?avocado - food  ?nori - food ?rice - food ?cucumber - food ?plate - receptacle)
                 (and (food-type nori ?nori)

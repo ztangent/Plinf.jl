@@ -24,15 +24,19 @@
                      (in-receptacle ?hamburger-bun ?plate)
                      (in-receptacle ?beef ?plate)
                      (in-receptacle ?cheese ?plate)))
-; Goal 4: Hamburger
-        (exists (?hamburger-bun - food ?beef - food ?potato - food ?plate - receptacle)
+; Goal 3: Hamburger with onion
+        (exists (?hamburger-bun - food ?beef - food ?onion - food ?potato - food ?plate - receptacle)
                 (and (food-type beef ?beef)
+                     (food-type onion ?onion)
                      (food-type hamburger-bun ?hamburger-bun)
                      (receptacle-type plate ?plate)
+                     (prepared slice ?onion)
+                     (cooked grill ?onion)
                      (cooked grill ?beef)
                      (in-receptacle ?hamburger-bun ?plate)
+                     (in-receptacle ?onion ?plate)
                      (in-receptacle ?beef ?plate)))
-; Goal 3: Burger and fries
+; Goal 4: Burger and fries
         (exists (?hamburger-bun - food ?beef - food ?potato - food ?plate - receptacle)
                 (and (food-type beef ?beef)
                      (food-type hamburger-bun ?hamburger-bun)

@@ -42,7 +42,7 @@
         (object-at-loc plate1 plate-loc)
     )
     (:goal
-        (exists (?onion - food ?tomato - food ?cucumber - food ?olive - food ?feta-cheese - food ?knife - tool ?glove - tool ?plate - receptacle)
+        (exists (?onion - food ?tomato - food ?cucumber - food ?olive - food ?feta-cheese - food ?plate - receptacle)
                 (and (food-type olive ?olive)
                      (food-type tomato ?tomato)
                      (food-type cucumber ?cucumber)
