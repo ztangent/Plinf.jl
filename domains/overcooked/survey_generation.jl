@@ -18,7 +18,10 @@ end
 "Convert recipe to formatted HTML for display in web survey."
 function recipe_to_html(recipe::AbstractString)
     recipe = strip(recipe)
-    lines = split(recipe, "\n")[2:end] # Remove description line
+    lines = split(recipe, "\n")
+    if occursin("Description:", lines[1]) # Remove description line
+        lines = lines[2:end]
+    end
     lines = map(lines) do line
         line = strip(line) # Remove trailing spaces
         replace(line, r"(\w+:)" => s"<b>\1</b>") # Bold line heading
@@ -45,7 +48,7 @@ survey_df = DataFrame(
 # Paths to recipe source files
 RECIPE_PATHS = [
     joinpath(@__DIR__, "recipes_baseline_2023-01-22T13-26-42.csv"),
-    joinpath(@__DIR__, "recipes_gpt3_eng_text-davinci-003_temp_1.0_nperkitchen_3_2023-01-22T14-31-25.csv"),
+    joinpath(@__DIR__, "recipes_gpt3_eng_text-davinci-003_temp_1.0_nperkitchen_3_2023-01-22T17-47-51.csv"),
     joinpath(@__DIR__, "recipes_handcrafted_2023-01-22T13-20-42.csv"),
 ]
 
@@ -60,7 +63,7 @@ RECIPE_SOURCES = [
 N_RECIPES_PER_SOURCE = 5
 
 # Old and new column names
-OLD_NAMES = [:kitchen_id, :kitchen_name, :problem, :description, :eng_goal, :completion, :valid, :reason]
+OLD_NAMES = [:kitchen_id, :kitchen_name, :problem, :kitchen_description, :eng_goal, :completion, :valid, :reason]
 NEW_NAMES = [:kitchen_id, :kitchen_name, :problem, :kitchen_desc, :recipe_desc, :recipe, :valid, :reason]
 
 # Iterate over recipe sources and convert each recipe to HTML
