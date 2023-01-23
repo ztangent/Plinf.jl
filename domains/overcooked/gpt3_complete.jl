@@ -98,3 +98,18 @@ function extract_logprobs(completion, n_stop_tokens::Int=1)
     logprobs = completion.logprobs.token_logprobs[1:stop_idx]
     return isempty(logprobs) ? 0.0 : sum(logprobs)
 end
+
+"Extract tokens and logprobs in a completion until a stop condition."
+function extract_tokens_until_stop(completion, stop_condition)
+    n_total = length(completion.logprobs.tokens)
+    i = 1
+    while i < n_total
+        tokens = view(completion.logprobs.tokens, 1:i)
+        stop_condition(tokens) && break
+        i += 1
+    end
+    tokens = completion.logprobs.tokens[1:i]
+    logprobs = completion.logprobs.token_logprobs[1:i]
+    return tokens, logprobs
+end
+

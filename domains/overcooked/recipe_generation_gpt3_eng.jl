@@ -8,6 +8,45 @@ include("recipe_parsing.jl")
 
 ## Recipe validation
 
+"Check when a series of GPT-3 generated tokens reaches the end of a recipe."
+function recipe_stop_condition(tokens)
+    # Check if last token is a newline
+    tokens[end] != "\n" && return false
+    # Search backwards until we find another newline
+    i = lastindex(tokens)
+    while i > firstindex(tokens)
+        i -= 1
+        tokens[i] == "\n" && break
+    end
+    # Check if last line begins with "Serve:"
+    last_line = tokens[i] == "\n" ? join(tokens[i+1:end]) : join(tokens[i:end])
+    if length(last_line) >= 6 && last_line[1:6] == "Serve:"
+        return true
+    else
+        return false
+    end
+end
+
+"Extract completion text and log probability from GPT-3 completion JSON."
+function extract_completion_text_and_logprobs(
+    completion_obj, n_stop_tokens=2
+)
+    # Check if completion went beyond what was expected
+    if (completion_obj.finish_reason != "stop" ||
+        occursin("KITCHEN", completion_obj.text))
+        tokens, token_logprobs =
+            extract_tokens_until_stop(completion_obj, recipe_stop_condition)
+        completion = join(tokens)
+        logprobs = sum(token_logprobs)
+    else # Completion stopped as expected
+        # Extract text
+        completion = completion_obj.text 
+        # Extract log probability
+        logprobs = extract_logprobs(completion_obj, n_stop_tokens)
+    end
+    return completion, logprobs
+end
+
 "Validates a generated recipe string with several checks."
 function validate_recipe_string(
     str::AbstractString, domain::Domain, state::State;
@@ -54,7 +93,7 @@ end
 ## Test multi-kitchen prompt construction from last two problems of each kitchen
 
 prompt = construct_multikitchen_prompt(
-    domain,
+    load_domain(joinpath(@__DIR__, "domain.pddl")),
     [
         [joinpath(@__DIR__, "problem-1-4.pddl"), joinpath(@__DIR__, "problem-1-5.pddl")],
         [joinpath(@__DIR__, "problem-2-4.pddl"), joinpath(@__DIR__, "problem-2-5.pddl")],
@@ -111,7 +150,7 @@ N_REPEATS = 50
 TEMPERATURE = 1.0
 
 # Model to request completions from
-MODEL = "text-davinci-003"
+MODEL = "text-davinci-003" # "davinci"
 
 # Whether to include English descriptions in recipes
 INCLUDE_RECIPE_DESCRIPTION = false
@@ -190,7 +229,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         println("Requesting $N_REPEATS completions through OpenAI API...")
         completions = gpt3_batch_complete(
             prompt, N_REPEATS, 10;
-            stop=START_AND_STOP_STRING, max_tokens=1024,
+            stop=START_AND_STOP_STRING, max_tokens=256,
             model=MODEL, temperature=TEMPERATURE,
             verbose=true, persistent=true
         )
@@ -198,13 +237,12 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
 
         # Iterate over multiple completions
         for (i, completion_obj) in enumerate(completions)
-            # Extract completion text
-            completion = completion_obj.text 
+            # Extract completion text and logprobs (stop sequence has 2 tokens)
+            completion, logprobs =
+                extract_completion_text_and_logprobs(completion_obj, 2)
             completion = strip(START_AND_STOP_STRING * completion)
             println("-- Completion $i--")
             println(completion)
-            # Extract log probability (stop sequence has 2 tokens)
-            logprobs = extract_logprobs(completion_obj, 2)
             # Try to parse to PDDL and English description
             result = try_parse_recipe(completion)
             if isnothing(result)
