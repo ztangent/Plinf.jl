@@ -7,7 +7,7 @@
                      (prepared slice ?tomato)
                      (in-receptacle ?lettuce ?plate)
                      (in-receptacle ?tomato ?plate)))
-;Goal 2: Sliced tomato, lettuce, and cucumber
+; Goal 2: Sliced tomato, lettuce, and cucumber
         (exists (?lettuce - food ?tomato - food ?cucumber - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato)

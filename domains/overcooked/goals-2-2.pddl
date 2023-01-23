@@ -29,7 +29,7 @@
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
 ; Goal 4: Grilled tuna rice bowl
-        (exists (?tuna - food ?bowl - receptacle)
+        (exists (?tuna - food ?rice - food ?bowl - receptacle)
                 (and (food-type tuna ?tuna)
                      (food-type rice ?rice)
                      (receptacle-type bowl ?bowl)
@@ -39,7 +39,7 @@
                      (in-receptacle ?rice ?bowl)
                      (in-receptacle ?tuna ?bowl)))
 ; Goal 5: Raw tuna rice bowl
-        (exists (?tuna - food ?bowl - receptacle)
+        (exists (?tuna - food ?rice - food ?bowl - receptacle)
                 (and (food-type tuna ?tuna)
                      (food-type rice ?rice)
                      (receptacle-type bowl ?bowl)
