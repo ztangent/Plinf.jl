@@ -2,6 +2,8 @@
 
 using PDDL
 
+include("recipe_utils.jl")
+
 "Constructs a kitchen description from a PDDL problem."
 function construct_kitchen_description(domain::Domain, state::State)
     # List food ingredients
@@ -155,49 +157,6 @@ end
 
 construct_recipe_description(domain::Domain, problem::Problem, description=""; kwargs...) =
     construct_recipe_description(PDDL.get_goal(problem), description; kwargs...)
-
-"Construct adjacency matrix of ingredient graph for a particular relation."
-function construct_graph(ingredients, edges)
-    n = length(ingredients)
-    graph = falses(n, n)
-    for e in edges
-        ingredient_1 = e.args[2]
-        ingredient_2 = e.args[3]
-        idx_1 = findfirst(==(ingredient_1), ingredients)
-        idx_2 = findfirst(==(ingredient_2), ingredients)
-        graph[idx_1, idx_2] = true
-        graph[idx_2, idx_1] = true
-    end
-    return graph
-end
-
-"Find connected components in an adjacency matrix."
-function find_connected_components(graph::BitMatrix)
-    visited = falses(size(graph)[1])
-    all_components = []
-    # Loop until every node is visited
-    while !all(visited)
-        root = findfirst(==(false), visited)
-        stack = [root]
-        component = Int[]
-        while !isempty(stack)
-            # Pop first node from the stack
-            node = pop!(stack)
-            visited[node] = true
-            push!(component, node)
-            # Iterate through the adjacent nodes
-            neighbors = findall(graph[node, :])
-            for x in neighbors
-                if !visited[x]
-                    push!(stack, x)
-                end
-            end
-        end
-        sort!(component)
-        push!(all_components, component)
-    end
-    return all_components
-end
 
 "Convert PDDL constant to string, replacing dashes with spaces."
 function const_to_str(x::Const)
