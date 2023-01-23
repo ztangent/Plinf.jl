@@ -84,6 +84,7 @@
                      (prepared crumble ?bacon)
                      (prepared slice ?avocado)
                      (in-receptacle ?salad-dressing ?plate)
+                     (in-receptacle ?chicken ?plate)
                      (in-receptacle ?lettuce ?plate)
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?cheese ?plate)

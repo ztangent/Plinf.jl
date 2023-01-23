@@ -36,7 +36,7 @@
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?rice ?plate)
-                     (in-receptacle ?cucumber ?plate)))
+                     (in-receptacle ?salmon ?plate)))
 ; Goal 4: Cucumber roll
         (exists (?nori - food ?rice - food ?cucumber - food ?plate - receptacle)
                 (and (food-type nori ?nori)
