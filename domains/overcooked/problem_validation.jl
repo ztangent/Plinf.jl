@@ -4,7 +4,8 @@ include("planner.jl")
 include("load_goals.jl")
 
 DOMAIN_DIR = @__DIR__
-PROBLEM_DIR = @__DIR__
+PROBLEM_DIR = joinpath(@__DIR__, "problems")
+GOALS_DIR = joinpath(@__DIR__, "goals")
 
 # Load domain
 domain = load_domain(joinpath(DOMAIN_DIR, "domain.pddl"))
@@ -26,7 +27,11 @@ for path in problem_paths
         continue
     end
     # Use planner to solve for goal
-    planner = OvercookedPlanner(planner=AStarPlanner(HAdd()), max_time=300.0)
+    planner = OvercookedPlanner(
+        planner=AStarPlanner(HAdd()),
+        ordering=:cluster,
+        max_time=300.0
+    )
     sol = planner(domain, state, problem.goal);
     if sol isa NullSolution
         println("❌ $(basename(path)) is unsolvable")
@@ -72,7 +77,7 @@ problem_paths = filter(readdir(PROBLEM_DIR, join=true)) do path
     match(r"problem-\d-\d.pddl", path) !== nothing
 end
 
-goals_paths = filter(readdir(PROBLEM_DIR, join=true)) do path
+goals_paths = filter(readdir(GOALS_DIR, join=true)) do path
     match(r"goals-\d-\d.pddl", path) !== nothing
 end
 
@@ -94,14 +99,17 @@ for (ppath, gpath) in zip(problem_paths, goals_paths)
     state = initstate(domain, problem)
     heuristic = memoized(precomputed(HAdd(), domain, state))
     for (idx, goal) in enumerate(goals)
-        hval = heuristic(domain, state, problem.goal)
+        hval = heuristic(domain, state, goal)
         if hval == Inf
             println("❌ Goal $idx for $(basename(ppath)) is unsolvable")
             continue
         end
         # Use planner to solve for goal
-        planner = OvercookedPlanner(planner=AStarPlanner(heuristic), max_time=300.0)
-        sol = planner(domain, state, problem.goal);
+        planner = OvercookedPlanner(
+            planner=AStarPlanner(heuristic),
+            max_time=300.0
+        )
+        sol = planner(domain, state, goal);
         if sol isa NullSolution
             println("❌ Goal $idx for $(basename(ppath)) is unsolvable")
         end

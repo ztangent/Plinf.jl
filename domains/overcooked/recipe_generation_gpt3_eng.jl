@@ -92,14 +92,17 @@ end
 
 ## Test multi-kitchen prompt construction from last two problems of each kitchen
 
+DOMAIN_DIR = @__DIR__
+PROBLEM_DIR = joinpath(@__DIR__, "problems")
+
 prompt = construct_multikitchen_prompt(
     load_domain(joinpath(@__DIR__, "domain.pddl")),
     [
-        [joinpath(@__DIR__, "problem-1-4.pddl"), joinpath(@__DIR__, "problem-1-5.pddl")],
-        [joinpath(@__DIR__, "problem-2-4.pddl"), joinpath(@__DIR__, "problem-2-5.pddl")],
-        [joinpath(@__DIR__, "problem-3-4.pddl"), joinpath(@__DIR__, "problem-3-5.pddl")],
-        [joinpath(@__DIR__, "problem-4-4.pddl"), joinpath(@__DIR__, "problem-4-5.pddl")],
-        [joinpath(@__DIR__, "problem-5-4.pddl"), joinpath(@__DIR__, "problem-5-5.pddl")],
+        [joinpath(PROBLEM_DIR, "problem-1-4.pddl"), joinpath(PROBLEM_DIR, "problem-1-5.pddl")],
+        [joinpath(PROBLEM_DIR, "problem-2-4.pddl"), joinpath(PROBLEM_DIR, "problem-2-5.pddl")],
+        [joinpath(PROBLEM_DIR, "problem-3-4.pddl"), joinpath(PROBLEM_DIR, "problem-3-5.pddl")],
+        [joinpath(PROBLEM_DIR, "problem-4-4.pddl"), joinpath(PROBLEM_DIR, "problem-4-5.pddl")],
+        [joinpath(PROBLEM_DIR, "problem-5-4.pddl"), joinpath(PROBLEM_DIR, "problem-5-5.pddl")],
     ],
     ["salad bar", "sushi bar", "delicatessen", "pizzeria", "patisserie"]
 )
@@ -131,7 +134,8 @@ PROMPT_PROBLEMS = [
     ["problem-4-3.pddl", "problem-4-4.pddl", "problem-4-5.pddl"],
     ["problem-5-3.pddl", "problem-5-4.pddl", "problem-5-5.pddl"], 
 ]
-PROMPT_PROBLEMS = [joinpath.(@__DIR__, pset) for pset in PROMPT_PROBLEMS]
+PROMPT_PROBLEMS = 
+    [joinpath.(@__DIR__, "problems", pset) for pset in PROMPT_PROBLEMS]
 
 # Paths to problems to test goal generation on
 TEST_PROBLEMS = [
@@ -141,7 +145,8 @@ TEST_PROBLEMS = [
     ["problem-4-1.pddl", "problem-4-2.pddl", "problem-4-3.pddl", "problem-4-4.pddl", "problem-4-5.pddl"],
     ["problem-5-1.pddl", "problem-5-2.pddl", "problem-5-3.pddl", "problem-5-4.pddl", "problem-5-5.pddl"],
 ]
-TEST_PROBLEMS = [joinpath.(@__DIR__, pset) for pset in TEST_PROBLEMS]
+TEST_PROBLEMS =
+    [joinpath.(@__DIR__, "problems", pset) for pset in TEST_PROBLEMS]
 
 # Number of completions per prompt
 N_REPEATS = 50

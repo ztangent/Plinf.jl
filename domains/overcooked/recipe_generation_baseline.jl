@@ -22,7 +22,7 @@ PROBLEMS = [
     ["problem-4-1.pddl", "problem-4-2.pddl", "problem-4-3.pddl", "problem-4-4.pddl", "problem-4-5.pddl"],
     ["problem-5-1.pddl", "problem-5-2.pddl", "problem-5-3.pddl", "problem-5-4.pddl", "problem-5-5.pddl"],
 ]
-PROBLEMS = [joinpath.(@__DIR__, pset) for pset in PROBLEMS]
+PROBLEMS = [joinpath.(@__DIR__, "problems", pset) for pset in PROBLEMS]
 
 # Number of goals generated per problem
 N_REPEATS = 50
