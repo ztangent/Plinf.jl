@@ -1,8 +1,24 @@
 using Base: @kwdef
 using PDDL, SymbolicPlanners
-import SymbolicPlanners: Planner
+import SymbolicPlanners: Planner, OrderedSolution
 
 include("recipe_utils.jl")
+
+struct OvercookedPlannerSolution <: OrderedSolution
+    plan::Vector{Term}
+    subplans::Vector{Vector{Term}}
+    subgoals::Vector{Vector{Term}}
+end
+
+Base.copy(sol::OvercookedPlannerSolution) =
+    OvercookedPlannerSolution(copy(sol.plan), copy(sol.subplans), copy(sol.subgoals))
+
+get_action(sol::OvercookedPlannerSolution, t::Int) = sol.plan[t]
+
+Base.iterate(sol::OvercookedPlannerSolution) = iterate(sol.plan)
+Base.iterate(sol::OvercookedPlannerSolution, istate) = iterate(sol.plan, istate)
+Base.getindex(sol::OvercookedPlannerSolution, i::Int) = getindex(sol.plan, i)
+Base.length(sol::OvercookedPlannerSolution) = length(sol.plan)
 
 "Custom landmark based planner for Overcooked problems."
 @kwdef mutable struct OvercookedPlanner{T <: Planner} <: Planner
@@ -35,7 +51,7 @@ function SymbolicPlanners.solve(
         error("Unrecognized ordering flag: $(planner.ordering)")
     end
     # Solve each set of subgoals in sequence
-    plan = Term[]
+    subplans = Vector{Term}[]
     for goals in subgoals
         if planner.verbose
             println("Subgoals: ", join(write_pddl.(goals), ", "))
@@ -54,14 +70,15 @@ function SymbolicPlanners.solve(
         if planner.verbose
             println("Subplan: ", join(write_pddl.(actions), ", "))
         end
-        append!(plan, actions)
+        push!(subplans, actions)
         state = sol.trajectory[end]
     end
+    plan = reduce(vcat, subplans)
     # Check that goal is satisfied
     if !PDDL.satisfy(domain, state, goal) 
         return NullSolution()
     end
-    return OrderedPlan(plan)
+    return OvercookedPlannerSolution(plan, subplans, subgoals)
 end
 
 "Orders subgoals in a recipe by predicate type."
