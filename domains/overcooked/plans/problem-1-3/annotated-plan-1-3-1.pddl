@@ -10,10 +10,12 @@
 (place-in cucumber1 board1 food-loc)
 (pick-up olive1 food-loc)
 (place-in olive1 board1 food-loc)
+; First, they move the onion, tomato, cucumber, and olive to the chopping board.
 (prepare chop board1 knife1 onion1 chop-loc)
 (prepare chop board1 knife1 tomato1 chop-loc)
 (prepare chop board1 knife1 cucumber1 chop-loc)
 (prepare chop board1 knife1 olive1 chop-loc)
+; Then, they chop the onion, tomato, cucumber, and olive on the chopping board.
 (pick-up feta-cheese1 food-loc)
 (place-in feta-cheese1 board1 food-loc)
 (pick-up board1 food-loc)
@@ -24,8 +26,10 @@
 (pick-up glove1 chop-loc)
 (prepare crumble board1 glove1 feta-cheese1 chop-loc)
 ; (prepared chop olive1) (prepared chop tomato1) (prepared chop cucumber1) (prepared chop onion1) (prepared crumble feta-cheese1)
+; Then, put on gloves, and then pick up the feta cheese and crumble it onto the chopping board.
 (put-down glove1 chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc plate-loc)
 (transfer board1 plate1 plate-loc)
 ; (in-receptacle olive1 plate1) (in-receptacle tomato1 plate1) (in-receptacle cucumber1 plate1) (in-receptacle onion1 plate1) (in-receptacle feta-cheese1 plate1)
+; Then, they transfer the chopped onion, tomato, cucumber, and olive and the crumbled feta to the plate. 

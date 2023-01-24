@@ -4,21 +4,25 @@
 (place-in rice1 pot1 stove-loc)
 (cook boil pot1 stove1 stove-loc)
 ; (cooked boil rice1)
+; First, they place rice in a pot of water on the stove to boil.
 (pick-up pot1 stove-loc)
 (move stove-loc plate-loc)
 (put-down pot1 plate-loc)
 (transfer pot1 plate1 plate-loc)
 ; (in-receptacle rice1 plate1)
+; Then, they place the cooked rice on the plate.
 (pick-up crab1 food-loc)
 (move food-loc chop-loc)
 (place-in crab1 board1 chop-loc)
 (pick-up s-knife1 chop-loc)
 (prepare slice board1 s-knife1 crab1 chop-loc)
 ; (prepared slice crab1)
+; Then they slice crab on the chopping board.
 (put-down s-knife1 chop-loc)
 (pick-up board1 chop-loc)
 (transfer board1 plate1 plate-loc)
 ; (in-receptacle crab1 plate1)
+; Then, they place the sliced crab on the plate with the rice.
 (move plate-loc food-loc)
 (put-down board1 food-loc)
 (pick-up plate1 plate-loc)
@@ -31,3 +35,4 @@
 (pick-up nori1 food-loc)
 (place-in nori1 plate1 food-loc)
 ; (in-receptacle nori1 plate1) (in-receptacle cucumber1 plate1) (in-receptacle avocado1 plate1)
+; Then they pick up cucumber, avocado, and nori, and add it to the place of sliced crab and salmon.
