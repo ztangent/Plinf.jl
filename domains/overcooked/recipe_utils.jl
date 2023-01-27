@@ -91,3 +91,109 @@ function extract_ingredient_clusters(recipe::Term, predicate_name::Symbol)
     return extract_ingredient_clusters(ingredients, terms, predicate_name)
 end
 
+"Extract and Skolemize variables with food or receptacle type declarations."
+function extract_and_skolemize_vars(recipe_terms, predicate_name)
+    type_terms = filter(x -> x.name == predicate_name, recipe_terms)
+    var_map = Dict{Var,Term}()
+    var_types = Dict{Var,Term}()
+    type_counts = Dict{Symbol,Int}()
+    for term in type_terms
+        type = term.args[1]
+        var = term.args[2]
+        count = get(type_counts, type.name, 0) + 1
+        obj = Const(Symbol(type, count))
+        var_map[var] = obj
+        var_types[var] = type
+        type_counts[type.name] = count
+    end
+    return var_map, var_types, type_counts
+end
+
+"Normalize recipe by converting ingredient clusters to a canonical form."
+function normalize_recipe(recipe::Term)
+    # Extract recipe terms from existential condition
+    terms = PDDL.flatten_conjs(recipe.args[2])
+    # Extract and Skolemize food variables
+    f_var_map, f_var_types, f_type_counts =
+        extract_and_skolemize_vars(terms, Symbol("food-type"))
+    # Extract and Skolemize receptacle variables
+    r_var_map, r_var_types, r_type_counts =
+        extract_and_skolemize_vars(terms, Symbol("receptacle-type"))
+    # Replace all variables with their Skolemized constants
+    terms = Term[PDDL.substitute(t, merge(f_var_map, r_var_map)) for t in terms]
+    new_terms = copy(terms)
+    # Normalize combination clusters
+    ingredients = collect(values(f_var_map))
+    combine_cluster_vars = Dict{Var,Const}()
+    combine_clusters, combine_terms =
+        extract_ingredient_clusters(ingredients, terms, Symbol("combined-with"))
+    for (i, (c, c_terms)) in enumerate(zip(combine_clusters, combine_terms))
+        setdiff!(new_terms, c_terms)
+        method = c_terms[1].args[1] # Extract combination method
+        for obj in c # Add combined terms for each ingredient
+            push!(new_terms, Compound(:combined, Term[method, obj]))
+        end
+        cluster_var = Var(Symbol("Combine", i))
+        for obj in c # Add combined with terms for each ingredient
+            push!(new_terms, Compound(Symbol("combined-in-cluster"), 
+                                      Term[method, cluster_var, obj]))
+        end
+        # Add cluster variable
+        combine_cluster_vars[cluster_var] = method
+    end
+    # Normalize cooking clusters
+    cook_cluster_vars = Dict{Var,Const}()
+    cook_clusters, cook_terms =
+        extract_ingredient_clusters(ingredients, terms, Symbol("cooked-with"))
+    for (i, (c, c_terms)) in enumerate(zip(cook_clusters, cook_terms))
+        setdiff!(new_terms, c_terms)
+        method = c_terms[1].args[1] # Extract cooking method
+        for obj in c # Add cooked terms for each ingredient
+            push!(new_terms, Compound(:cooked, Term[method, obj]))
+        end
+        cluster_var = Var(Symbol("Cook", i))
+        for obj in c # Add combined with terms for each ingredient
+            push!(new_terms, Compound(Symbol("cooked-in-cluster"), 
+                                      Term[method, cluster_var, obj]))
+        end
+        # Add cluster variable
+        cook_cluster_vars[cluster_var] = method
+    end
+    cluster_vars = merge(combine_cluster_vars, cook_cluster_vars)
+    return unique!(new_terms), cluster_vars
+end
+
+"""
+    recipe_overlap(recipe1, recipe2)
+
+Returns the intersection-over-union of recipe terms after normalization and
+variable alignment, as a measure of the semantic similarity of two recipes.
+"""
+function recipe_overlap(recipe1::Term, recipe2::Term)
+    terms1, vars1 = normalize_recipe(recipe1)
+    terms2, vars2 = normalize_recipe(recipe2)
+    # Perform DFS over all possible variable alignments to find max IOU
+    max_iou = 0.0
+    queue = [Dict{Var,Term}()]
+    while !isempty(queue)
+        alignment = pop!(queue)
+        # Compute intersection over union for complete variable alignments
+        if length(alignment) == min(length(vars1), length(vars2))
+            ts1 = Term[PDDL.substitute(t, alignment) for t in terms1]
+            iou = length(intersect(ts1, terms2)) / length(union(ts1, terms2))
+            if iou > max_iou
+                max_iou = iou
+            end
+        else # Extend current variable alignment by trying all possibilities
+            for v1 in setdiff(keys(vars1), keys(alignment))
+                for v2 in setdiff(keys(vars2), values(alignment))
+                    vars1[v1] == vars2[v2] || continue # Ensure method match
+                    new_alignment = copy(alignment)
+                    new_alignment[v1] = v2
+                    push!(queue, new_alignment)
+                end
+            end
+        end
+    end
+    return max_iou
+end

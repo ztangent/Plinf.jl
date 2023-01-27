@@ -1,4 +1,4 @@
-; Patisserie
+; Fruits and desserts
 (define (problem overcooked-problem-5-1)
     (:domain overcooked)
     ;Add glass
