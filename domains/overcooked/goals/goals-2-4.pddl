@@ -1,4 +1,4 @@
-; Goal 1: Tuna nori roll
+;A rolled maki sushi roll filled with tuna, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -9,7 +9,7 @@
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-; Goal 2: Tuna cucumber roll
+;A rolled maki sushi roll filled with tuna, cucumber, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?tuna - food ?cucumber - food  ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -23,7 +23,7 @@
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?tuna ?plate)))
-; Goal 3: Salmon cucumber roll
+;A rolled maki sushi roll filled with salmon, cucumber, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?cucumber - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -37,7 +37,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?salmon ?plate)))
-; Goal 4: Cucumber roll
+;A rolled maki sushi roll filled with cucumber, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?cucumber - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -49,7 +49,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?cucumber ?plate)))
-; Goal 5: Tuna, salmon, cucumber
+;A rolled maki sushi roll filled with tuna, salmon, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?tuna - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)

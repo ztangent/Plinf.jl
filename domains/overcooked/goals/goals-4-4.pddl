@@ -1,4 +1,4 @@
-; Goal 1: Veggie pizza (all veggies)
+;An oven-baked veggie pizza made of mushroom, onion, olives, mozarella cheese, tomato sauce and pizza dough, served on a plate.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?onion - food ?mushroom - food ?olive - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -26,7 +26,7 @@
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 2: Mushroom pizza
+;An oven-baked veggie pizza made of mushroom, mozarella cheese, tomato sauce and pizza dough, served on a plate.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?mushroom - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -46,7 +46,7 @@
                  (in-receptacle ?mushroom ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 3: Onion pizza
+;An oven-baked veggie pizza made of onion, mozarella cheese, tomato sauce and pizza dough, served on a plate.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?onion - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -66,7 +66,7 @@
                  (in-receptacle ?onion ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 4: Olive pizza
+;An oven-baked veggie pizza made of olives, mozarella cheese, tomato sauce and pizza dough, served on a plate.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?olive - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -86,7 +86,7 @@
                  (in-receptacle ?olive ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 5: Veggie calzone
+;An oven-baked veggie calzone made of mushroom, onion, olives, mozarella cheese and pizza dough, served on a plate.
         (exists (?egg - food ?flour - food ?cheese - food ?onion - food ?mushroom - food ?olive - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)

@@ -1,4 +1,4 @@
-; Goal 1: Apple pie
+;Baked apple pie made of sliced apples baked in dough made from egg and flour.
         (exists (?egg - food ?apple - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -11,7 +11,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)
                      (in-receptacle ?apple ?plate)))
-; Goal 2: Peach cobbler
+;Baked peach cobbler made of sliced peaches baked in dough made from egg and flour.
         (exists (?egg - food ?peach - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -25,7 +25,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)
                      (in-receptacle ?peach ?plate)))
-; Goal 3: Grape jelly donut
+;Jelly filled donut made from eggs, flour mixed together and deep fried and filled with grape jelly.
         (exists (?egg - food ?grape - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -37,7 +37,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?grape ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 4 Chocolate cake
+;Baked chocolate cake made from chocolate, egg and flour.
         (exists (?egg - food ?chocolate - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -50,7 +50,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?chocolate ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 5: Strawberry cake
+;Baked strawberry cake made from strawberry, egg and flour.
         (exists (?egg - food ?strawberry - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)

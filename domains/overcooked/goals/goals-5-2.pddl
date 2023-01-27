@@ -1,4 +1,4 @@
-; Goal 1 Chocolate cake
+;A freshly baked chocolate cake made from chocolate, egg and flour batter.
         (exists (?egg - food ?chocolate - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -11,7 +11,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?chocolate ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 2: Strawberry cake
+;A freshly baked strawberry cake made from strawberry, egg and flour batter.
         (exists (?egg - food ?strawberry - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -24,7 +24,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?strawberry ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 3: Apple pie
+;A freshly baked apple pie made from apple, egg and flour batter.
         (exists (?egg - food ?apple - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -36,7 +36,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?apple ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 4: Chocolate Strawberry cake
+;A freshly baked strawberry chocolate cake made from chocolate, strawberry, egg and flour batter.
         (exists (?egg - food ?chocolate - food ?strawberry - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -53,7 +53,7 @@
                      (in-receptacle ?strawberry ?plate)
                      (in-receptacle ?chocolate ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 5: Chocolate strawberry
+;A plate of chocolate-coated strawberries, made by mixing strawberries with chocolate.
         (exists (?chocolate - food ?strawberry - food ?plate - receptacle)
                 (and (food-type chocolate ?chocolate)
                      (food-type strawberry ?strawberry)
