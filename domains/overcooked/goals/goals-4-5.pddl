@@ -1,4 +1,4 @@
-; Goal 1: Hawaiian pizza (ham and pineapple)
+;Hawaiian style pizza made with mozarella cheese, tomato sauce, ham, and pineapple, baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?ham - food ?pineapple - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -22,7 +22,7 @@
                      (in-receptacle ?pineapple ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 2: Meatlovers (all meat)
+;A Meatlover's pizza made with mozarella cheese, tomato sauce, ham, beef, and sausage baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?beef - food ?ham - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -50,7 +50,7 @@
                      (in-receptacle ?sausage ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 3: Ham and cheese pizza
+;A pizza made with mozarella cheese, tomato sauce and ham, baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?ham - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -70,7 +70,7 @@
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 4: Pepperoni pizza
+;A pepperoni pizza made with mozarella cheese, tomato sauce, and sausage baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -90,7 +90,7 @@
                  (in-receptacle ?sausage ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 5: Cheese pizza
+;A cheese pizza made with mozarella cheese, tomato sauce, ham, and pineapple, baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)

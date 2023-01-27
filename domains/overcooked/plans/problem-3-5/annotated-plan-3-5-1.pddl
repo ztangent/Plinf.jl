@@ -14,31 +14,26 @@
 (prepare slice board1 knife1 tomato1 chop-loc)
 (prepare slice board1 knife1 cheese1 chop-loc)
 (prepare slice board1 knife1 lettuce1 chop-loc)
-; (prepared slice cheese1) (prepared slice tomato1) (prepared slice lettuce1)
-; First, they pick up the cheese, tomato, and lettuce and slice them on a chopping board.
+; They pick up the cheese, tomato, and lettuce and slice them on a chopping board.
 (put-down knife1 chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc plate-loc)
 (transfer board1 plate1 plate-loc)
-; (in-receptacle cheese1 plate1) (in-receptacle tomato1 plate1) (in-receptacle lettuce1 plate1)
-; Then, they place the sliced cheese, tomato and lettuce in the plate.
+; They place the sliced cheese, tomato and lettuce in the plate.
 (move plate-loc food-loc)
 (put-down board1 food-loc)
 (pick-up chicken1 food-loc)
 (move food-loc stove-loc)
 (place-in chicken1 pan1 stove-loc)
 (cook grill pan1 stove1 stove-loc)
-; (cooked grill chicken1)
-; Then, they pick up chicken and place in a pan on the stove to grill.
+; They pick up chicken and place in a pan on the stove to grill.
 (pick-up pan1 stove-loc)
 (move stove-loc plate-loc)
 (transfer pan1 plate1 plate-loc)
-; (in-receptacle chicken1 plate1)
-; Then, they grab the grilled chicken from the pan and transfer it to the plate.
+; They grab the grilled chicken from the pan and transfer it to the plate.
 (move plate-loc food-loc)
 (put-down pan1 food-loc)
 (pick-up bread1 food-loc)
 (move food-loc plate-loc)
 (place-in bread1 plate1 plate-loc)
-; (in-receptacle bread1 plate1)
-; Then, they pick up the bread and place it in the plate with the grilled chicken, and sliced cheese, tomato, and lettuce.
+; They pick up the bread and place it in the plate with the grilled chicken, and sliced cheese, tomato, and lettuce.

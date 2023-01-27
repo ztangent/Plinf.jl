@@ -6,16 +6,14 @@
 (pick-up chocolate1 food-loc)
 (move food-loc blend-loc)
 (place-in chocolate1 blender-jug1 blend-loc)
-; First, they place chocolate and ice into the blender.
+; They place chocolate and ice into the blender.
 (move blend-loc food-loc)
 (pick-up milk1 food-loc)
 (move food-loc blend-loc)
 (place-in milk1 blender-jug1 blend-loc)
 (combine blend blender-jug1 blender1 blend-loc)
-; Then, they add milk and blend the mixture.
-; (combined-with blend ice1 milk1) (combined-with blend milk1 chocolate1)
+; They add milk and blend the mixture.
 (pick-up blender-jug1 blend-loc)
 (move blend-loc glass-loc)
 (transfer blender-jug1 glass1 glass-loc)
-; (in-receptacle ice1 glass1) (in-receptacle chocolate1 glass1) (in-receptacle milk1 glass1)
-; Then, they transfer the blended mixture into a glass.
+; They transfer the blended mixture into a glass.

@@ -1,4 +1,4 @@
-; Goal 1: Margherita pizza (cheese wth basil)
+;Margherita pizza made with cheese, tomato, basil, baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?basil - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -17,7 +17,7 @@
                  (in-receptacle ?basil ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 2: Cheese pizza
+;A cheese pizza made with cheese and tomato baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -33,7 +33,7 @@
                  (in-receptacle ?cheese ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 3: Pepperoni pizza
+;A pepperoni pizza made with cheese, tomato, and sausage baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -52,7 +52,7 @@
                  (in-receptacle ?sausage ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 4: Olive pizza
+;A olive pizza made with cheese, tomato, and olive baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?olive - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -71,7 +71,7 @@
                  (in-receptacle ?olive ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 5: Pepperoni and olive pizza
+;A pepperoni and olive pizza made with cheese, tomato, sausage and olive baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?olive - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)

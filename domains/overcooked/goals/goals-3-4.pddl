@@ -1,4 +1,4 @@
-; Goal 1: Tuna sandwich
+;A tuna salad sandwich made of tuna mixed with mayo, layered in bread with tomato, lettuce, and cheese.
         (exists (?bread - food ?tuna - food ?cheese - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -17,7 +17,7 @@
                  (in-receptacle ?tomato ?plate)
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)))
-; Goal 2: Tuna melt
+;A tuna melt sandwich made of tuna mixed with mayo, layered in bread and grilled with cheese.
         (exists (?bread - food ?tuna - food ?cheese - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -32,14 +32,14 @@
                  (in-receptacle ?tuna ?plate)
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)))
-; Goal 3: Fries
+;A side of fries.
         (exists (?potato - food ?plate - receptacle)
                 (and (food-type potato ?potato)
                      (receptacle-type plate ?plate)
                      (prepared slice ?potato)
                      (cooked deep-fry ?potato)
                      (in-receptacle ?potato ?plate)))
-; Goal 4: Tuna sand + fries
+;A tuna salad sandwich made of tuna mixed with mayo, layered in bread with tomato, lettuce, cheese, served with a side of fries.
         (exists (?bread - food ?tuna - food ?potato - food ?cheese - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -62,7 +62,7 @@
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)
                  (in-receptacle ?potato ?plate)))
-; Goal 5: Tuna melt + fries
+;A tuna melt sandwich made of tuna mixed with mayo, layered in bread and grilled with cheese, served with a side of fries.
         (exists (?bread - food ?tuna - food ?potato - food ?cheese - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)

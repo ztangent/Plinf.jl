@@ -4,14 +4,12 @@
 (place-in tuna1 board1 chop-loc)
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 tuna1 chop-loc)
-; (prepared slice tuna1)
-; First, they slice the tuna on the chopping board.
+; They slice the tuna on the chopping board.
 (put-down knife1 chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc plate-loc)
 (transfer board1 plate1 plate-loc)
-; (in-receptacle tuna1 plate1)
-; Then, they place the sliced tuna on the plate.
+; They place the sliced tuna on the plate.
 (move plate-loc food-loc)
 (put-down board1 food-loc)
 (pick-up rice1 food-loc)
@@ -20,10 +18,8 @@
 (pick-up pot1 stove-loc)
 (put-down pot1 stove-loc)
 (cook boil pot1 stove1 stove-loc)
-; (cooked boil rice1)
-; Then, they place rice in a pot of water on the stove to boil.
+; They place rice in a pot of water on the stove to boil.
 (pick-up pot1 stove-loc)
 (move stove-loc plate-loc)
 (transfer pot1 plate1 plate-loc)
-; (in-receptacle rice1 plate1)
-; Then, they transfer the cooked rice to the plate of sliced tuna.Í
+; They transfer the cooked rice to the plate of sliced tuna.Í

@@ -7,8 +7,7 @@
 (move food-loc mix-loc)
 (place-in egg1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; (combined-with mix egg1 flour1)
-; First, they mix the flour and egg in the mixing bowl.
+; They mix the flour and egg in the mixing bowl.
 (move mix-loc chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc food-loc)
@@ -28,8 +27,7 @@
 (prepare slice board1 knife1 olive1 food-loc)
 (prepare slice board1 knife1 mushroom1 food-loc)
 (prepare slice board1 knife1 tomato1 food-loc)
-; Then, they slice the onion, olive, mushroom and tomato.
-; (prepared slice onion1) (prepared slice mushroom1) (prepared slice olive1) (prepared slice tomato1)
+; They slice the onion, olive, mushroom and tomato.
 (put-down knife1 food-loc)
 (pick-up board1 food-loc)
 (move food-loc tray-loc)
@@ -40,21 +38,19 @@
 (move mix-loc tray-loc)
 (transfer mixing-bowl1 tray1 tray-loc)
 (put-down mixing-bowl1 tray-loc)
-; Then, they transfer the egg and flour mixture to the tray, and the sliced onion, olive, mushroom and tomato as well.
+; They transfer the egg and flour mixture to the tray, and the sliced onion, olive, mushroom and tomato as well.
 (pick-up tray1 tray-loc)
 (move tray-loc food-loc)
 (put-down tray1 food-loc)
 (pick-up cheese1 food-loc)
 (place-in cheese1 tray1 food-loc)
-; Then, they add cheese to the tray.
+; They add cheese to the tray.
 (pick-up tray1 food-loc)
 (move food-loc oven-loc)
 (put-down tray1 oven-loc)
 (cook bake tray1 oven1 oven-loc)
-; Then, they bake the tray in the oven.
-; (cooked-with bake egg1 flour1) (cooked-with bake flour1 cheese1) (cooked-with bake cheese1 olive1) (cooked-with bake olive1 mushroom1) (cooked-with bake mushroom1 onion1) (cooked-with bake onion1 tomato1)
+; They bake the tray in the oven.
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)
-; (in-receptacle cheese1 plate1) (in-receptacle tomato1 plate1) (in-receptacle mushroom1 plate1) (in-receptacle olive1 plate1) (in-receptacle onion1 plate1) (in-receptacle egg1 plate1) (in-receptacle flour1 plate1)
-; Then, they transfer the baked food in the tray to the plate.
+; They transfer the baked food in the tray to the plate.

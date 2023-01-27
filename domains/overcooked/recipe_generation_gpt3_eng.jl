@@ -104,7 +104,7 @@ prompt = construct_multikitchen_prompt(
         [joinpath(PROBLEM_DIR, "problem-4-4.pddl"), joinpath(PROBLEM_DIR, "problem-4-5.pddl")],
         [joinpath(PROBLEM_DIR, "problem-5-4.pddl"), joinpath(PROBLEM_DIR, "problem-5-5.pddl")],
     ],
-    ["salad bar", "sushi bar", "delicatessen", "pizzeria", "patisserie"]
+    ["salad bar", "sushi bar", "delicatessen", "pizzeria", "fruits and desserts"]
 )
 
 ## Script options ##
@@ -122,7 +122,7 @@ KITCHEN_NAMES = [
     "sushi bar",
     "delicatessen",
     "pizzeria",
-    "patisserie"
+    "fruits and desserts"
 ]
 
 # Paths to problems used in prompt generation

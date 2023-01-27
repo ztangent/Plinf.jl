@@ -11,19 +11,16 @@
 (move food-loc mix-loc)
 (place-in egg1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; First, they mix the chocolate, flour, and egg in the mixing bowl.
-; (combined-with mix egg1 flour1) (combined-with mix flour1 chocolate1)
+; They mix the chocolate, flour, and egg in the mixing bowl.
 (pick-up mixing-bowl1 mix-loc)
 (move mix-loc fryer-loc)
 (transfer mixing-bowl1 basket1 fryer-loc)
 (cook deep-fry basket1 fryer1 fryer-loc)
-; Then, they fry the chocolate, flour, and egg mixture.
-; (cooked-with deep-fry egg1 flour1) (cooked-with deep-fry flour1 chocolate1)
+; They fry the chocolate, flour, and egg mixture.
 (move fryer-loc mix-loc)
 (put-down mixing-bowl1 mix-loc)
 (move mix-loc fryer-loc)
 (pick-up basket1 fryer-loc)
 (move fryer-loc plate-loc)
 (transfer basket1 plate1 plate-loc)
-; (in-receptacle egg1 plate1) (in-receptacle chocolate1 plate1) (in-receptacle flour1 plate1)
-; Then, they transfer the fried chocolate, flour, and egg mixture to the plate.
+; They transfer the fried chocolate, flour, and egg mixture to the plate.

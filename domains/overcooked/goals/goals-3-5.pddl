@@ -1,4 +1,4 @@
-; Goal 1: Grilled chicken sandwich
+;A grilled chicken sandwich, made from bread, grilled chicken, tomato, cheese and lettuce.
         (exists (?bread - food ?chicken - food ?cheese - food ?lettuce - food ?tomato - food ?plate - receptacle)
             (and (food-type chicken ?chicken)
                  (food-type bread ?bread)
@@ -15,7 +15,7 @@
                  (in-receptacle ?lettuce ?plate)
                  (in-receptacle ?tomato ?plate)
                  (in-receptacle ?cheese ?plate)))
-; Goal 2: Cheeseburger with lettuce and tomato
+;A cheeseburger made from a hamburger bun, grilled beef, tomato, cheese and lettuce.
         (exists (?hamburger-bun - food ?beef - food ?lettuce - food ?tomato - food ?cheese - food ?plate - receptacle)
                 (and (food-type beef ?beef)
                      (food-type hamburger-bun ?hamburger-bun)
@@ -32,13 +32,13 @@
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?beef ?plate)
                      (in-receptacle ?cheese ?plate)))    
-; Goal 3: Fried Chicken
+;Fried chicken.
         (exists (?chicken - food ?plate - receptacle)
                 (and (food-type chicken ?chicken)
                      (receptacle-type plate ?plate)
                      (cooked deep-fry ?chicken)
                      (in-receptacle ?chicken ?plate)))
-; Goal 4: Fried Chicken and fries
+;Fried chicken and a side of fries.
         (exists (?potato - food ?chicken - food ?plate - receptacle)
                 (and (food-type potato ?potato)
                      (food-type chicken ?chicken)
@@ -48,7 +48,7 @@
                      (cooked deep-fry ?chicken)
                      (in-receptacle ?chicken ?plate)
                      (in-receptacle ?potato ?plate)))
-; Goal 5: BLT + mayo
+;A BLT made from grilled bacon, lettuce, tomato, and mayonnaise.
         (exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)

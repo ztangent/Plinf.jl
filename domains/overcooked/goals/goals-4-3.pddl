@@ -1,4 +1,4 @@
-; Goal 1: Meat lover's (sausage, beef, chicken) pizza
+;A meat lover's pizza made of mozarella cheese, tomato sauce, sliced sausage, chopped chicken, chopped beef, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?beef - food ?chicken - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -26,7 +26,7 @@
                      (in-receptacle ?sausage ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 2: Beef pizza
+;A pizza made of mozarella cheese, tomato sauce, chopped beef, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?beef - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -46,7 +46,7 @@
                  (in-receptacle ?beef ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 3: Beef calzone
+;A beef calzone made of mozarella cheese, chopped beef, and dough, all baked in an oven.
         (exists (?egg - food ?flour - food  ?cheese - food ?beef - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -62,7 +62,7 @@
                  (in-receptacle ?beef ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 4: Pepperoni and beef pizza
+;A pizza made of mozarella cheese, tomato sauce, sliced sausage, chopped beef, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?beef - food ?sausage - food  ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -86,7 +86,7 @@
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?sausage ?plate)
                  (in-receptacle ?flour ?plate)))
-; Goal 5: Cheese pizza
+;A pizza made of mozarella cheese, tomato sauce and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)

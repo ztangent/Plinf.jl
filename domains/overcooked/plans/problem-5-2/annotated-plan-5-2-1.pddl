@@ -11,19 +11,16 @@
 (move food-loc mix-loc)
 (place-in egg1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; First, they mix the chocolate, flour, and egg in the mixing bowl.
-; (combined-with mix egg1 flour1) (combined-with mix flour1 chocolate1)
+; They mix the chocolate, flour, and egg in the mixing bowl.
 (pick-up mixing-bowl1 mix-loc)
 (move mix-loc oven-loc)
 (transfer mixing-bowl1 tray1 oven-loc)
 (cook bake tray1 oven1 oven-loc)
-; (cooked-with bake egg1 flour1) (cooked-with bake flour1 chocolate1)
-; Then, they transfer the egg, flour, and chocolate mixture to the tray and bake in the oven.
+; They transfer the egg, flour, and chocolate mixture to the tray and bake in the oven.
 (move oven-loc plate-loc)
 (put-down mixing-bowl1 plate-loc)
 (move plate-loc oven-loc)
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)
-; (in-receptacle egg1 plate1) (in-receptacle chocolate1 plate1) (in-receptacle flour1 plate1)
-; Then, transfer the cooked food in the tray to the plate.
+; They transfer the cooked food in the tray to the plate.

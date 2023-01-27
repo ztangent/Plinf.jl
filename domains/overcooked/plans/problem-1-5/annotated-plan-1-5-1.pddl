@@ -8,7 +8,7 @@
 (pick-up knife1 chop-loc)
 (move chop-loc food-loc)
 (prepare chop board1 knife1 lettuce1 food-loc)
-; First, they pick up the lettuce and chop it on the chopping board.
+; They pick up the lettuce and chop it on the chopping board.
 (pick-up tomato1 food-loc)
 (place-in tomato1 board1 food-loc)
 (pick-up cheese1 food-loc)
@@ -18,14 +18,12 @@
 (prepare slice board1 knife1 avocado1 food-loc)
 (prepare slice board1 knife1 tomato1 food-loc)
 (prepare slice board1 knife1 cheese1 food-loc)
-; (prepared chop lettuce1) (prepared slice tomato1) (prepared slice cheese1) (prepared slice avocado1)
-; Then, they pick up the avocado, tomato, and cheese to slice on the chopping board.
+; They pick up the avocado, tomato, and cheese to slice on the chopping board.
 (put-down knife1 food-loc)
 (pick-up board1 food-loc)
 (move food-loc plate-loc)
 (transfer board1 plate1 plate-loc)
-; (in-receptacle lettuce1 plate1) (in-receptacle tomato1 plate1) (in-receptacle cheese1 plate1) (in-receptacle avocado1 plate1)
-; Then, they transfer the chopped lettuce and sliced avocado, tomato, and cheese to the plate.
+; They transfer the chopped lettuce and sliced avocado, tomato, and cheese to the plate.
 (move plate-loc food-loc)
 (put-down board1 food-loc)
 (pick-up bacon1 food-loc)
@@ -34,40 +32,34 @@
 (pick-up glove1 chop-loc)
 (move chop-loc food-loc)
 (prepare crumble board1 glove1 bacon1 food-loc)
-; (prepared crumble bacon1)
-; Then, they put on gloves and crumble bacon onto the chopping board
+; They put on gloves and crumble bacon onto the chopping board
 (put-down glove1 food-loc)
 (pick-up board1 food-loc)
 (move food-loc stove-loc)
 (transfer board1 pan1 stove-loc)
 (cook grill pan1 stove2 stove-loc)
-; (cooked grill bacon1)
-; Then, they put the pan on the stove, and place the crumbled bacon on it to grill.
+; They put the pan on the stove, and place the crumbled bacon on it to grill.
 (move stove-loc plate-loc)
 (put-down board1 plate-loc)
 (move plate-loc stove-loc)
 (pick-up pan1 stove-loc)
 (move stove-loc plate-loc)
 (transfer pan1 plate1 plate-loc)
-; (in-receptacle bacon1 plate1)
-; Then, they transfer the grilled crumbled bacon from the pan to the plate.
+; They transfer the grilled crumbled bacon from the pan to the plate.
 (move plate-loc food-loc)
 (put-down pan1 food-loc)
 (pick-up egg1 food-loc)
 (move food-loc stove-loc)
 (place-in egg1 pot1 stove-loc)
 (cook boil pot1 stove1 stove-loc)
-; (cooked boil egg1)
-; Then, they pick up an egg and place in a pot of water on the stove to boil.
+; They pick up an egg and place in a pot of water on the stove to boil.
 (pick-up pot1 stove-loc)
 (move stove-loc plate-loc)
 (transfer pot1 plate1 plate-loc)
-; (in-receptacle egg1 plate1)
-; Then, they add the egg to the plate.
+; They add the egg to the plate.
 (put-down pot1 plate-loc)
 (move plate-loc food-loc)
 (pick-up salad-dressing1 food-loc)
 (move food-loc plate-loc)
 (place-in salad-dressing1 plate1 plate-loc)
-; (in-receptacle salad-dressing1 plate1)
-; Then, they add dressing to the plate of prepared lettuce, avocado, tomato, cheese, bacon, and egg.
+; They add dressing to the plate of prepared lettuce, avocado, tomato, cheese, bacon, and egg.

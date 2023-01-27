@@ -14,14 +14,12 @@
 (prepare slice board1 knife1 tomato1 chop-loc)
 (prepare slice board1 knife1 cheese1 chop-loc)
 (prepare slice board1 knife1 lettuce1 chop-loc)
-; (prepared slice cheese1) (prepared slice tomato1) (prepared slice lettuce1)
-; First, they pick up cheese, tomato, and lettuce and slice them on the chopping board.
+; They pick up cheese, tomato, and lettuce and slice them on the chopping board.
 (put-down knife1 chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc plate-loc)
 (transfer board1 plate1 plate-loc)
-; (in-receptacle cheese1 plate1) (in-receptacle tomato1 plate1) (in-receptacle lettuce1 plate1)
-; Then, they place the sliced cheese, tomato, and lettuce on the place.
+; They place the sliced cheese, tomato, and lettuce on the place.
 (move plate-loc food-loc)
 (put-down board1 food-loc)
 (pick-up tuna1 food-loc)
@@ -32,17 +30,14 @@
 (move food-loc mix-loc)
 (place-in mayo1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; (combined-with mix tuna1 mayo1)
-; Then, they pick up the tuna and mayo and mix them in a mixint bowl.
+; They pick up the tuna and mayo and mix them in a mixing bowl.
 (pick-up mixing-bowl1 mix-loc)
 (move mix-loc plate-loc)
 (transfer mixing-bowl1 plate1 plate-loc)
-; (in-receptacle tuna1 plate1) (in-receptacle mayo1 plate1)
-; Then, they add the mixed tuna and mayo to the plate with the sliced cheese, tomato, and lettuce,
+; They add the mixed tuna and mayo to the plate with the sliced cheese, tomato, and lettuce,
 (move plate-loc food-loc)
 (put-down mixing-bowl1 food-loc)
 (pick-up bread1 food-loc)
 (move food-loc plate-loc)
 (place-in bread1 plate1 plate-loc)
-; (in-receptacle bread1 plate1)
-; Then, they pick up the bread and put it on the plate with the slices cheese, tomato, lettuce, and tuna and mayo.
+; They pick up the bread and put it on the plate with the slices cheese, tomato, lettuce, and tuna and mayo.

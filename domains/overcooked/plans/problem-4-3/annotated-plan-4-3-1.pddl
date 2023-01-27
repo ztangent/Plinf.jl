@@ -7,8 +7,7 @@
 (move food-loc mix-loc)
 (place-in flour1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; (combined-with mix egg1 flour1)
-; First, they mix the flour and egg in the mixing bowl.
+; They mix the flour and egg in the mixing bowl.
 (move mix-loc chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc food-loc)
@@ -28,8 +27,7 @@
 (prepare chop board1 knife1 beef1 food-loc)
 (prepare chop board1 knife1 chicken1 food-loc)
 (prepare slice board1 knife1 tomato1 food-loc)
-; Then, they slice the tomato and sausage and chop the beef and chicken.
-; (prepared slice tomato1) (prepared slice sausage1) (prepared chop beef1) (prepared chop chicken1)
+; They slice the tomato and sausage and chop the beef and chicken.
 (put-down knife1 food-loc)
 (pick-up board1 food-loc)
 (move food-loc tray-loc)
@@ -40,20 +38,18 @@
 (move mix-loc tray-loc)
 (transfer mixing-bowl1 tray1 tray-loc)
 (put-down mixing-bowl1 tray-loc)
-; Then, they transfer the egg and flour mixture to the tray, and the sliced tomato and sausage, and chopped beef and chicken as well.
+; They transfer the egg and flour mixture to the tray, and the sliced tomato and sausage, and chopped beef and chicken as well.
 (move tray-loc food-loc)
 (pick-up cheese1 food-loc)
 (move food-loc tray-loc)
 (place-in cheese1 tray1 tray-loc)
-; Then, they add cheese to the tray.
+; They add cheese to the tray.
 (pick-up tray1 tray-loc)
 (move tray-loc oven-loc)
 (put-down tray1 oven-loc)
 (cook bake tray1 oven1 oven-loc)
-; Then, they bake the tray in the oven.
-; (cooked-with bake egg1 flour1) (cooked-with bake flour1 tomato1) (cooked-with bake tomato1 cheese1) (cooked-with bake cheese1 sausage1) (cooked-with bake sausage1 beef1) (cooked-with bake beef1 chicken1)
+; They bake the tray in the oven.
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)
-; (in-receptacle tomato1 plate1) (in-receptacle cheese1 plate1) (in-receptacle beef1 plate1) (in-receptacle chicken1 plate1) (in-receptacle sausage1 plate1) (in-receptacle egg1 plate1) (in-receptacle flour1 plate1)
-; Then, they transfer the baked food in the tray to the plate. 
+; They transfer the baked food in the tray to the plate.

@@ -10,7 +10,7 @@
 (place-in tomato1 board1 food-loc)
 (pick-up cucumber1 food-loc)
 (place-in cucumber1 board1 food-loc)
-; First, they move the onion, lettuce, tomato and cucumber chopping board.
+; They move the onion, lettuce, tomato and cucumber chopping board.
 (move food-loc chop-loc)
 (pick-up knife1 chop-loc)
 (move chop-loc food-loc)
@@ -18,18 +18,15 @@
 (prepare slice board1 knife1 lettuce1 food-loc)
 (prepare slice board1 knife1 cucumber1 food-loc)
 (prepare slice board1 knife1 tomato1 food-loc)
-; (prepared slice lettuce1) (prepared slice tomato1) (prepared slice cucumber1) (prepared slice onion1)
-; Then, they slice the onion, lettuce, tomato, and cucumber.
+; They slice the onion, lettuce, tomato, and cucumber.
 (put-down knife1 food-loc)
 (pick-up board1 food-loc)
 (move food-loc plate-loc)
 (transfer board1 plate1 plate-loc)
-; (in-receptacle lettuce1 plate1) (in-receptacle tomato1 plate1) (in-receptacle cucumber1 plate1) (in-receptacle onion1 plate1)
-; Then, they transfer the slices onion, lettuce, tomato, and cucumber.
+; They transfer the slices onion, lettuce, tomato, and cucumber.
 (move plate-loc food-loc)
 (put-down board1 food-loc)
 (pick-up salad-dressing1 food-loc)
 (move food-loc plate-loc)
 (place-in salad-dressing1 plate1 plate-loc)
-; (in-receptacle salad-dressing1 plate1)
-; Then, they pick up the salad dressing and add it to the place of sliced onion, lettuce, tomato, and cucumber.
+; They pick up the salad dressing and add it to the place of sliced onion, lettuce, tomato, and cucumber.

@@ -11,7 +11,7 @@ KITCHEN_NAMES = [
     "sushi bar",
     "delicatessen",
     "pizzeria",
-    "patisserie"
+    "fruits and desserts"
 ]
 
 # Paths to problems to generate recipe descriptions for

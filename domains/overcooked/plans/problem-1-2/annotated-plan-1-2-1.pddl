@@ -6,15 +6,15 @@
 (pick-up lettuce1 food-loc)
 (move food-loc chop-loc)
 (place-in lettuce1 board1 chop-loc)
-; First, they place the tomato and lettuce on the chopping board.
+; They place the tomato and lettuce on the chopping board.
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 lettuce1 chop-loc)
 (prepare slice board1 knife1 tomato1 chop-loc)
 ; (prepared slice lettuce1) (prepared slice tomato1)
-; Next, they slice the lettuce and tomato.
+; They slice the lettuce and tomato.
 (put-down knife1 chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc plate-loc)
 (transfer board1 plate1 plate-loc)
 ; (in-receptacle lettuce1 plate1) (in-receptacle tomato1 plate1)
-; Then, they transfer the sliced lettuce and tomato from the chopping board to the plate
+; They transfer the sliced lettuce and tomato from the chopping board to the plate

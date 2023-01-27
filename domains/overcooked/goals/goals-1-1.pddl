@@ -1,21 +1,21 @@
-; Sliced lettuce
+;A salad made of sliced green leaf lettuce, served on a plate.
         (exists (?lettuce - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (receptacle-type plate ?plate)
                      (prepared slice ?lettuce)
                      (in-receptacle ?lettuce ?plate)))
-; Sliced cucumber
+;A salad made of sliced cucumber, served on a plate.
         (exists (?cucumber - food ?plate - receptacle)
                 (and (food-type cucumber ?cucumber)
                      (receptacle-type plate ?plate)
                      (prepared slice ?cucumber)
                      (in-receptacle ?cucumber ?plate)))
-; Raw lettuce
+;A salad made of sliced green leaf lettuce, served on a plate.
         (exists (?lettuce - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (receptacle-type plate ?plate)
                      (in-receptacle ?lettuce ?plate)))
-; Sliced lettuce and sliced cucumber
+;A salad made of sliced green leaf lettuce and cucumber, served on a plate.
         (exists (?lettuce - food ?cucumber - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type cucumber ?cucumber)
@@ -24,7 +24,7 @@
                      (prepared slice ?cucumber)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?lettuce ?plate)))
-; Raw lettuce and sliced cucumber
+;A salad made of sliced cucumber and raw green leaf lettuce, served on a plate.
         (exists (?lettuce - food ?cucumber - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type cucumber ?cucumber)
