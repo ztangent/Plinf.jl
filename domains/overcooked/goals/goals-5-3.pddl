@@ -1,4 +1,4 @@
-; Goal 1: Chocolate donut
+;A tasty chocolate donut made from eggs, flour, and chocolate, mixed together and then deep fried.
         (exists (?egg - food ?chocolate - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -11,7 +11,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?chocolate ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 2: Plain Donut
+;A tasty donut made from eggs and flour mixed together and then deep fried.
         (exists (?egg - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -20,7 +20,7 @@
                      (cooked-with deep-fry ?egg ?flour)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 3: Strawberry donut
+;A tasty strawberry donut made from eggs, flour, and strawberries mixed together and then deep fried.
         (exists (?egg - food ?strawberry - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -32,7 +32,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?strawberry ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 4: Apple donut
+;A tasty apple fritter made from eggs, flour, and sliced apples, mixed together and then deep fried.
         (exists (?egg - food ?apple - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -45,7 +45,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?apple ?plate)
                      (in-receptacle ?flour ?plate)))
-; Goal 5: Strawberry filled chocolate donut
+;A tasty strawberry filled chocolate donut made from eggs, flour mixed together and deep fried, filled with strawberry jelly and covered in chocolate.
         (exists (?egg - food ?strawberry - food ?chocolate - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)

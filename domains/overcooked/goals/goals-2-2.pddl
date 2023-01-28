@@ -1,4 +1,4 @@
-;Goal 1: Tuna + rice sushi
+;Tuna nigiri made from raw sliced tuna on top of boiled sushi rice.
         (exists (?tuna - food ?rice - food ?plate - receptacle)
                 (and (food-type tuna ?tuna)
                      (food-type rice ?rice)
@@ -7,7 +7,7 @@
                      (cooked boil ?rice)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-; Goal 2: Salmon + rice sushi
+;Salmon nigiri made from raw sliced salmon on top of boiled sushi rice, served on a plate.
         (exists (?salmon - food ?rice - food ?plate - receptacle)
                 (and (food-type salmon ?salmon)
                      (food-type rice ?rice)
@@ -16,7 +16,7 @@
                      (cooked boil ?rice)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?salmon ?plate)))
-; Goal 3: Tuna + salmon + rice sushi
+;Tuna and salmon nigiri made from raw sliced tuna and salmon on top of boiled sushi rice, served on a plate.
         (exists (?salmon - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type salmon ?salmon)
                      (food-type rice ?rice)
@@ -28,7 +28,7 @@
                      (in-receptacle ?salmon ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-; Goal 4: Grilled tuna rice bowl
+;Grilled tuna on top of boiled white rice, served in a bowl.
         (exists (?tuna - food ?rice - food ?bowl - receptacle)
                 (and (food-type tuna ?tuna)
                      (food-type rice ?rice)
@@ -38,7 +38,7 @@
                      (cooked boil ?rice)
                      (in-receptacle ?rice ?bowl)
                      (in-receptacle ?tuna ?bowl)))
-; Goal 5: Raw tuna rice bowl
+;Tuna sashimi on top of boiled white rice, served in a bowl.
         (exists (?tuna - food ?rice - food ?bowl - receptacle)
                 (and (food-type tuna ?tuna)
                      (food-type rice ?rice)

@@ -1,4 +1,4 @@
-;Goal 1: Sliced tomato and lettuce
+;A salad made of sliced green leaf lettuce and freshly sliced tomato, served in a plate
         (exists (?lettuce - food ?tomato - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato)
@@ -7,7 +7,7 @@
                      (prepared slice ?tomato)
                      (in-receptacle ?lettuce ?plate)
                      (in-receptacle ?tomato ?plate)))
-; Goal 2: Sliced tomato, lettuce, and cucumber
+;A salad made of sliced green leaf lettuce, freshly sliced tomato, and freshly sliced cucumber, served in a plate.
         (exists (?lettuce - food ?tomato - food ?cucumber - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato)
@@ -19,13 +19,13 @@
                      (in-receptacle ?lettuce ?plate)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?tomato ?plate)))
-; Goal 3: Sliced lettuce
+;A salad made of sliced green leaf lettuce, served on a plate.
         (exists (?lettuce - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (receptacle-type plate ?plate)
                      (prepared slice ?lettuce)
                      (in-receptacle ?lettuce ?plate)))
-; Goal 4: Sliced tomato and cucumber
+;A salad made of sliced green leaf lettuce, freshly sliced tomato, and freshly sliced cucumber, served in a plate.
         (exists (?cucumber - food ?tomato - food ?plate - receptacle)
                 (and (food-type cucumber ?cucumber)
                      (food-type tomato ?tomato)
@@ -34,7 +34,7 @@
                      (prepared slice ?tomato)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?tomato ?plate)))
-; Goal 5: Sliced tomato
+;A salad made of freshly sliced tomato, served on a plate.
         (exists (?tomato - food ?plate - receptacle)
                 (and (food-type tomato ?tomato)
                      (receptacle-type plate ?plate)

@@ -1,4 +1,4 @@
-;Goal 1: Salmon, nori, rice
+;A piece of nigiri made of boiled rice topped with raw sliced salmon.
     (exists (?nori - food ?rice - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -10,7 +10,7 @@
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?salmon ?plate)))
     
-; Goal 2: Tuna, nori, rice
+;A tuna roll made of sliced raw tuna, boiled rice, and nori.
         (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -21,7 +21,8 @@
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-; Goal 3: Tuna, salmon, nori, rice
+
+;A tuna and salmon roll made of sliced raw tuna, salmon, boiled rice, and nori.
         (exists (?nori - food ?rice - food ?salmon - food ?tuna - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -35,7 +36,7 @@
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)
                      (in-receptacle ?salmon ?plate)))
-; Goal 4: tuna rice
+;Tuna nigiri made of raw sliced tuna and boiled rice.
         (exists (?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type rice ?rice)
                      (food-type tuna ?tuna)
@@ -44,7 +45,7 @@
                      (cooked boil ?rice)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-; Goal 5: salmon rice
+;Salmon nigiri made of raw sliced salmon and boiled rice.
         (exists (?rice - food ?salmon - food ?plate - receptacle)
                 (and (food-type rice ?rice)
                      (food-type salmon ?salmon)

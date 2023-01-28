@@ -1,4 +1,4 @@
-; Goal 1: Ham mayo cheese
+;A ham sandwich consisting of sliced ham and sliced cheese, layered with mayonnaise in bread.
         (exists (?ham - food ?bread - food ?cheese - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -11,7 +11,7 @@
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?mayonnaise ?plate)
                      (in-receptacle ?cheese ?plate)))   
-; Goal 2: BLT
+;A BLT consisting of grilled bacon, sliced lettuce, sliced tomato, with bread.
         (exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)
@@ -25,7 +25,7 @@
                      (in-receptacle ?bacon ?plate)
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?lettuce ?plate)))
-; Goal 3: Ham and mayo
+;A sandwich consisting of sliced ham layered with mayonnaise in bread.
         (exists (?ham - food ?bread - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -35,7 +35,7 @@
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?mayonnaise ?plate)))
-; Goal 4: BLT + mayo
+;A BLT consisting of grilled bacon, sliced lettuce, sliced tomato, layered with mayonnaise in bread
         (exists (?bread - food ?bacon - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)
@@ -51,7 +51,7 @@
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?mayonnaise ?plate)
                      (in-receptacle ?lettuce ?plate)))
-; Goal 5: Dagwood (everything)
+;A sandwich consisting of grilled bacon, sliced ham, sliced lettuce, slice tomato, sliced onion, layered with mayonnaise in bread.
         (exists (?bread - food ?bacon - food ?lettuce - food ?ham - food ?onion - food ?tomato - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)
