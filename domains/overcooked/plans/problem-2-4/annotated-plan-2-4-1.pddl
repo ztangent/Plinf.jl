@@ -26,4 +26,4 @@
 (pick-up nori1 food-loc)
 (move food-loc plate-loc)
 (place-in nori1 plate1 plate-loc)
-; They pick up nori and add it to the plate of sliced tuna and rice.
+; They pick up the nori and assemble it with the rice and tuna in the plate.

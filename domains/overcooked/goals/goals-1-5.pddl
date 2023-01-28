@@ -1,4 +1,4 @@
-;A fresh Cobb salad with chopped lettuce, boiled egg, sliced tomato, sliced cheese, crumbled bacon, sliced avocado, and salad dressing.
+; A fresh Cobb salad with chopped lettuce, boiled egg, sliced tomato, sliced cheese, crumbled bacon, sliced avocado, and salad dressing.
         (exists (?lettuce - food ?tomato - food ?cheese - food ?bacon - food ?avocado - food ?egg - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato) 
@@ -22,13 +22,13 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?avocado ?plate)
                      (in-receptacle ?bacon ?plate)))
-;A sliced avocado.
+; A sliced avocado.
         (exists (?avocado - food ?plate - receptacle)
                 (and (food-type avocado ?avocado)
                      (receptacle-type plate ?plate)
                      (prepared slice ?avocado)
                      (in-receptacle ?avocado ?plate)))
-;A salad with sliced lettuce, sliced tomato, sliced cucumber, sliced onion, and salad dressing.
+; A salad with sliced lettuce, sliced tomato, sliced cucumber, sliced onion, and salad dressing.
         (exists (?lettuce - food ?tomato - food ?cucumber - food ?onion - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato)
@@ -45,7 +45,7 @@
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?salad-dressing ?plate)))
-;Greek salad made of chopped tomato, olives, onion, cucumber, and crumbled feta cheese.
+; Greek salad made of chopped tomato, olives, onion, cucumber, and crumbled feta cheese.
         (exists (?onion - food ?tomato - food ?cucumber - food ?olive - food ?feta-cheese - food ?salad-dressing - food ?knife - tool ?glove - tool ?plate - receptacle)
                 (and (food-type olive ?olive)
                      (food-type tomato ?tomato)
@@ -65,7 +65,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?tomato ?plate)))
-;A fresh Cobb salad with grilled chicken, chopped lettuce, boiled egg, sliced tomato, sliced cheese, crumbled bacon, sliced avocado, and salad dressing.
+; A fresh Cobb salad with grilled chicken, chopped lettuce, boiled egg, sliced tomato, sliced cheese, crumbled bacon, sliced avocado, and salad dressing.
         (exists (?chicken - food ?lettuce - food ?tomato - food ?cheese - food ?bacon - food ?avocado - food ?egg - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato) 

@@ -6,9 +6,14 @@
 (pick-up flour1 food-loc)
 (move food-loc mix-loc)
 (place-in flour1 mixing-bowl1 mix-loc)
+; They add flour and egg to the mixing bowl.
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; They mix the flour and egg in the mixing bowl.
-(move mix-loc food-loc)
+(pick-up mixing-bowl1 mix-loc)
+(move mix-loc oven-loc)
+(transfer mixing-bowl1 tray1 oven-loc)
+; They mix the flour and egg using a mixer, then transfer the mixture to a tray.
+(move oven-loc food-loc)
+(put-down mixing-bowl1 food-loc)
 (pick-up apple1 food-loc)
 (move food-loc board-loc)
 (place-in apple1 board1 board-loc)
@@ -16,22 +21,14 @@
 (pick-up knife1 chop-loc)
 (move chop-loc board-loc)
 (prepare slice board1 knife1 apple1 board-loc)
-; They slice the apple on the chopping board.
+; They put down the mixing bowl, place an apple on the chopping board, and slice the apple.
 (put-down knife1 board-loc)
-(move board-loc tray-loc)
-(pick-up tray1 tray-loc)
-(move tray-loc )
 (take-out apple1 board1 board-loc)
-(pick-up mixing-bowl1 mix-loc)
-(move mix-loc oven-loc)
-(transfer mixing-bowl1 tray1 oven-loc)
+(move board-loc oven-loc)
 (place-in apple1 tray1 oven-loc)
-; Following that, they transfer the egg and flour mixture and sliced apple to the tray and baked in the oven.
 (cook bake tray1 oven1 oven-loc)
-(move oven-loc start-loc)
-(put-down mixing-bowl1 start-loc)
-(move start-loc oven-loc)
+; They take the apple from the chopping board, place it in the tray, then bake the tray in the oven.
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)
-; They transfer the baked egg, flour and apple mixture to the plate.
+; After baking, they transfer the baked food to the plate.

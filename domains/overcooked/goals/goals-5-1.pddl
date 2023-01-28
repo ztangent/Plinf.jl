@@ -1,4 +1,4 @@
-;A plate of chocolate-coated strawberries, made by mixing strawberries with chocolate.
+; A plate of chocolate-coated strawberries, made by mixing strawberries with chocolate.
         (exists (?chocolate - food ?strawberry - food ?plate - receptacle)
                 (and (food-type chocolate ?chocolate)
                      (food-type strawberry ?strawberry)
@@ -6,7 +6,7 @@
                      (combined-with mix ?chocolate ?strawberry)
                      (in-receptacle ?chocolate ?plate)
                      (in-receptacle ?strawberry ?plate)))
-;A parfait made of grapes, sliced oranges, and peaches served in a glass.
+; A parfait made of grapes, sliced oranges, and peaches served in a glass.
         (exists (?orange - food ?peach - food ?grape - food ?glass - receptacle)
                 (and (food-type orange ?orange)
                      (food-type peach ?peach)
@@ -17,7 +17,7 @@
                      (in-receptacle ?orange ?glass)
                      (in-receptacle ?peach ?glass)
                      (in-receptacle ?grape ?glass)))
-;A parfait made of grapes, sliced strawberry, and apples served in a glass.
+; A parfait made of grapes, sliced strawberry, and apples served in a glass.
         (exists (?apple - food ?strawberry - food ?grape - food ?glass - receptacle)
                 (and (food-type apple ?apple)
                      (food-type strawberry ?strawberry)
@@ -28,13 +28,13 @@
                      (in-receptacle ?apple ?glass)
                      (in-receptacle ?strawberry ?glass)
                      (in-receptacle ?grape ?glass)))
-;A plate of sliced apples.
+; A plate of sliced apples.
         (exists (?apple - food  ?plate - receptacle)
                 (and (food-type apple ?apple)
                      (receptacle-type plate ?plate)
                      (prepared slice ?apple)
                      (in-receptacle ?apple ?plate)))
-;A plate of sliced oranges.
+; A plate of sliced oranges.
         (exists (?orange - food ?plate - receptacle)
                 (and (food-type orange ?orange)
                      (receptacle-type plate ?plate)

@@ -1,4 +1,4 @@
-;A rolled maki sushi roll filled with tuna, nori and rice, served in a plate.
+; A rolled maki sushi roll filled with tuna, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -9,7 +9,7 @@
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-;A rolled maki sushi roll filled with tuna, cucumber, nori and rice, served in a plate.
+; A rolled maki sushi roll filled with tuna, cucumber, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?tuna - food ?cucumber - food  ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -23,7 +23,7 @@
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?tuna ?plate)))
-;A rolled maki sushi roll filled with salmon, cucumber, nori and rice, served in a plate.
+; A rolled maki sushi roll filled with salmon, cucumber, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?cucumber - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -37,7 +37,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?salmon ?plate)))
-;A rolled maki sushi roll filled with cucumber, nori and rice, served in a plate.
+; A rolled maki sushi roll filled with cucumber, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?cucumber - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -49,7 +49,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?cucumber ?plate)))
-;A rolled maki sushi roll filled with tuna, salmon, nori and rice, served in a plate.
+; A rolled maki sushi roll filled with tuna, salmon, nori and rice, served in a plate.
         (exists (?nori - food ?rice - food ?tuna - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)

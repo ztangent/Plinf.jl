@@ -1,4 +1,4 @@
-;A tuna salad sandwich made of tuna mixed with mayo, layered in bread with tomato, lettuce, and cheese.
+; A tuna salad sandwich made of tuna mixed with mayo, layered in bread with tomato, lettuce, and cheese.
         (exists (?bread - food ?tuna - food ?cheese - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -17,7 +17,7 @@
                  (in-receptacle ?tomato ?plate)
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)))
-;A tuna melt sandwich made of tuna mixed with mayo, layered in bread and grilled with cheese.
+; A tuna melt sandwich made of tuna mixed with mayo, layered in bread and grilled with cheese.
         (exists (?bread - food ?tuna - food ?cheese - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -32,14 +32,14 @@
                  (in-receptacle ?tuna ?plate)
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)))
-;A side of fries.
+; A side of fries.
         (exists (?potato - food ?plate - receptacle)
                 (and (food-type potato ?potato)
                      (receptacle-type plate ?plate)
                      (prepared slice ?potato)
                      (cooked deep-fry ?potato)
                      (in-receptacle ?potato ?plate)))
-;A tuna salad sandwich made of tuna mixed with mayo, layered in bread with tomato, lettuce, cheese, served with a side of fries.
+; A tuna salad sandwich made of tuna mixed with mayo, layered in bread with tomato, lettuce, cheese, served with a side of fries.
         (exists (?bread - food ?tuna - food ?potato - food ?cheese - food ?lettuce - food ?tomato - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)
@@ -62,7 +62,7 @@
                  (in-receptacle ?mayonnaise ?plate)
                  (in-receptacle ?cheese ?plate)
                  (in-receptacle ?potato ?plate)))
-;A tuna melt sandwich made of tuna mixed with mayo, layered in bread and grilled with cheese, served with a side of fries.
+; A tuna melt sandwich made of tuna mixed with mayo, layered in bread and grilled with cheese, served with a side of fries.
         (exists (?bread - food ?tuna - food ?potato - food ?cheese - food ?mayonnaise - food ?plate - receptacle ?mixing-bowl - receptacle)
             (and (food-type tuna ?tuna)
                  (food-type bread ?bread)

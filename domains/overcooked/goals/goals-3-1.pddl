@@ -1,4 +1,4 @@
-;A grilled cheese sandwich made of sliced cheese grilled with bread.
+; A grilled cheese sandwich made of sliced cheese grilled with bread.
         (exists (?bread - food ?cheese - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type cheese ?cheese)
@@ -7,7 +7,7 @@
                      (cooked-with grill ?bread ?cheese)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?cheese ?plate)))
-;A sandwich made of sliced ham and cheese with bread.
+; A sandwich made of sliced ham and cheese with bread.
         (exists (?ham - food ?bread - food ?cheese - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -18,7 +18,7 @@
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?cheese ?plate)))
-;A sandwich made of sliced ham, cheese, lettuce, and tomato with bread.
+; A sandwich made of sliced ham, cheese, lettuce, and tomato with bread.
         (exists (?ham - food ?bread - food ?cheese - food ?lettuce - food ?tomato - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -35,7 +35,7 @@
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?cheese ?plate)))
-;A sandwich made of sliced ham, cheese, lettuce, tomato, and onion with bread.
+; A sandwich made of sliced ham, cheese, lettuce, tomato, and onion with bread.
         (exists (?ham - food ?bread - food ?cheese - food ?lettuce - food ?tomato - food ?onion - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -55,7 +55,7 @@
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?cheese ?plate)))
-;A sandwich made of sliced ham and cheese grilled with bread.
+; A sandwich made of sliced ham and cheese grilled with bread.
         (exists (?ham - food ?bread - food ?cheese - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)

@@ -19,35 +19,42 @@
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 tomato1 chop-loc)
 (prepare slice board1 knife1 ham1 chop-loc)
-; They slice the tomato and ham.
-(move chop-loc food-loc)
-(pick-up pineapple1 food-loc)
-(move food-loc chop-loc)
-(place-in pineapple1 board1 chop-loc)
-(prepare chop board1 knife1 pineapple1 chop-loc)
-; They chop the pineapple.
-(move food-loc chop-loc)
 (put-down knife1 chop-loc)
-(pick-up board1 chop-loc)
-(move chop-loc tray-loc)
-(transfer board1 tray1 tray-loc)
-(move tray-loc food-loc)
-(put-down board1 food-loc)
+; They find tomato and ham, then slice them in the chopping board.
+(move chop-loc food-loc)
+(pick-up cheese1 food-loc)
+(move food-loc chop-loc)
+(place-in cheese1 board1 chop-loc)
+; They pick up cheese and place it on the chopping board.
+(move chop-loc mix-loc)
 (pick-up mixing-bowl1 mix-loc)
 (move mix-loc tray-loc)
 (transfer mixing-bowl1 tray1 tray-loc)
 (put-down mixing-bowl1 tray-loc)
-; They transfer the egg and flour mixture to the tray, and the sliced tomato and ham and choppped pineapple as well.
+; They go to the mixing bowl, pick it up, then transfer the egg and flour mixture to the tray.
+(move tray-loc chop-loc)
+(pick-up board1 chop-loc)
+(move chop-loc tray-loc)
+(transfer board1 tray1 tray-loc)
+; They transfer everything from the chopping board onto the tray.
 (move tray-loc food-loc)
-(pick-up cheese1 food-loc)
+(put-down board1 food-loc)
+(pick-up pineapple1 food-loc)
+(place-in pineapple1 board1 food-loc)
+(move food-loc chop-loc)
+(pick-up knife1 chop-loc)
+(move chop-loc food-loc)
+(prepare chop board1 knife1 pineapple1 food-loc)
+(put-down knife1 food-loc)
+; They put down the chopping board, place pineapple in the chopping board, and chop it.
+(take-out pineapple1 board1 food-loc)
 (move food-loc tray-loc)
-(place-in cheese1 tray1 tray-loc)
-; They add cheese to the tray.
+(place-in pineapple1 tray1 tray-loc)
 (pick-up tray1 tray-loc)
 (move tray-loc oven-loc)
 (put-down tray1 oven-loc)
 (cook bake tray1 oven1 oven-loc)
-; They bake the tray in the oven.
+; They place the chopped pineapple into the tray, then bake the tray in the oven.
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)

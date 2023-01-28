@@ -1,4 +1,4 @@
-;A classic cheeseburger made of grilled beef, sliced cheese, and a fresh hamburger bun, served with a side of fries on a plate.
+; A classic cheeseburger made of grilled beef, sliced cheese, and a fresh hamburger bun, served with a side of fries on a plate.
         (exists (?hamburger-bun - food ?beef - food ?cheese - food ?potato - food ?plate - receptacle)
                 (and (food-type beef ?beef)
                      (food-type hamburger-bun ?hamburger-bun)
@@ -13,7 +13,7 @@
                      (in-receptacle ?beef ?plate)
                      (in-receptacle ?cheese ?plate)
                      (in-receptacle ?potato ?plate)))
-;A classic cheeseburger made of grilled beef, sliced cheese, and a fresh hamburger bun, served on a plate.
+; A classic cheeseburger made of grilled beef, sliced cheese, and a fresh hamburger bun, served on a plate.
         (exists (?hamburger-bun - food ?beef - food ?cheese - food ?plate - receptacle)
                 (and (food-type beef ?beef)
                      (food-type hamburger-bun ?hamburger-bun)
@@ -24,7 +24,7 @@
                      (in-receptacle ?hamburger-bun ?plate)
                      (in-receptacle ?beef ?plate)
                      (in-receptacle ?cheese ?plate)))
-;A classic hamburger made of grilled beef, sliced onion, and a fresh hamburger bun, served on a plate.
+; A classic hamburger made of grilled beef, sliced onion, and a fresh hamburger bun, served on a plate.
         (exists (?hamburger-bun - food ?beef - food ?onion - food ?potato - food ?plate - receptacle)
                 (and (food-type beef ?beef)
                      (food-type onion ?onion)
@@ -36,7 +36,7 @@
                      (in-receptacle ?hamburger-bun ?plate)
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?beef ?plate)))
-;A classic hamburger made of grilled beef and a fresh hamburger bun, served with a side of fries on a plate.
+; A classic hamburger made of grilled beef and a fresh hamburger bun, served with a side of fries on a plate.
         (exists (?hamburger-bun - food ?beef - food ?potato - food ?plate - receptacle)
                 (and (food-type beef ?beef)
                      (food-type hamburger-bun ?hamburger-bun)
@@ -48,7 +48,7 @@
                      (in-receptacle ?hamburger-bun ?plate)
                      (in-receptacle ?beef ?plate)
                      (in-receptacle ?potato ?plate)))
-;A side of fries on a plate.
+; A side of fries on a plate.
         (exists (?potato - food ?plate - receptacle)
                 (and (food-type potato ?potato)
                      (receptacle-type plate ?plate)

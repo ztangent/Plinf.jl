@@ -1,4 +1,4 @@
-;A pepperoni sausage pizza made of mozarella cheese, tomato sauce, sliced pepperoni, and pizza dough, all baked in an oven.
+; A pepperoni sausage pizza made of mozarella cheese, tomato sauce, sliced pepperoni, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -18,7 +18,7 @@
                  (in-receptacle ?sausage ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-;A chesse pizza made of mozarella cheese, tomato sauce, and pizza dough, all baked in an oven.
+; A chesse pizza made of mozarella cheese, tomato, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -34,7 +34,7 @@
                  (in-receptacle ?cheese ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-;A chicken pizza made of mozarella cheese, tomato sauce, sliced chicken, and pizza dough, all baked in an oven.
+; A chicken pizza made of mozarella cheese, tomato, sliced chicken, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?chicken - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -54,7 +54,7 @@
                  (in-receptacle ?chicken ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-;Breadsticks made of dough baked in an oven.
+; Breadsticks made of dough baked in an oven.
         (exists (?egg - food ?flour - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -63,7 +63,7 @@
                  (cooked-with bake ?egg ?flour)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-;Cheesesticks made of cheese and dough baked in an oven.
+; Cheesesticks made of cheese and dough baked in an oven.
         (exists (?egg - food ?flour - food ?cheese - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)

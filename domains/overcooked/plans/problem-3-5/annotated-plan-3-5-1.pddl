@@ -19,7 +19,7 @@
 (pick-up board1 chop-loc)
 (move chop-loc plate-loc)
 (transfer board1 plate1 plate-loc)
-; They place the sliced cheese, tomato and lettuce in the plate.
+; They place the sliced cheese, tomato and lettuce in a plate.
 (move plate-loc food-loc)
 (put-down board1 food-loc)
 (pick-up chicken1 food-loc)
@@ -30,10 +30,10 @@
 (pick-up pan1 stove-loc)
 (move stove-loc plate-loc)
 (transfer pan1 plate1 plate-loc)
-; They grab the grilled chicken from the pan and transfer it to the plate.
+; They transfer the grilled chicken from the pan to the plate.
 (move plate-loc food-loc)
 (put-down pan1 food-loc)
 (pick-up bread1 food-loc)
 (move food-loc plate-loc)
 (place-in bread1 plate1 plate-loc)
-; They pick up the bread and place it in the plate with the grilled chicken, and sliced cheese, tomato, and lettuce.
+; They pick up the bread and place it in the plate with the grilled chicken, sliced cheese, tomato, and lettuce.

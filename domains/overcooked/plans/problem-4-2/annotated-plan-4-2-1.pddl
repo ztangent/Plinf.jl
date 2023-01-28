@@ -7,8 +7,18 @@
 (move food-loc mix-loc)
 (place-in egg1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; They mix the flour and egg in the mixing bowl.
-(move mix-loc food-loc)
+; They mix the flour and egg in the mixing bowl to become a dough.
+(pick-up mixing-bowl1 mix-loc)
+(move mix-loc tray-loc)
+(transfer mixing-bowl1 tray1 tray-loc)
+(put-down mixing-bowl1 tray-loc)
+; They transfer the egg-and-flour dough to the tray.
+(move tray-loc food-loc)
+(pick-up cheese1 food-loc)
+(move food-loc tray-loc)
+(place-in cheese1 tray1 tray-loc)
+; They pick up cheese and add it to the tray.
+(move tray-loc food-loc)
 (pick-up sausage1 food-loc)
 (move food-loc chop-loc)
 (place-in sausage1 board1 chop-loc)
@@ -19,29 +29,19 @@
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 sausage1 chop-loc)
 (prepare slice board1 knife1 tomato1 chop-loc)
-; They slice tomato and sausage on the chopping board.
 (put-down knife1 chop-loc)
+; They slice tomato and sausage on the chopping board.
 (pick-up board1 chop-loc)
 (move chop-loc tray-loc)
 (transfer board1 tray1 tray-loc)
 (put-down board1 tray-loc)
-(move tray-loc mix-loc)
-(pick-up mixing-bowl1 mix-loc)
-(move mix-loc tray-loc)
-(transfer mixing-bowl1 tray1 tray-loc)
-(put-down mixing-bowl1 tray-loc)
-; They transfer the flour and egg mixture to the tray and the sliced tomato and sausage as well.
-(move tray-loc food-loc)
-(pick-up cheese1 food-loc)
-(move food-loc tray-loc)
-(place-in cheese1 tray1 tray-loc)
-; They add the cheese to the tray.
+; They transfer the sliced tomato and sausage from the chopping board to the tray.
 (pick-up tray1 tray-loc)
 (move tray-loc oven-loc)
 (put-down tray1 oven-loc)
 (cook bake tray1 oven1 oven-loc)
-; Then they bake the tray with the egg and flour mixture, sliced tomato and sausage, and cheese.
+; They bake everything on the tray in an oven.
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)
-; They transfer the baked egg and flour mixture, sliced tomato and sausage, and cheese from the tray to the plate.
+; They transfer the baked contents of the tray to a plate.

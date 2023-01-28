@@ -20,7 +20,7 @@
 (place-in cheese1 board1 chop-loc)
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 cheese1 chop-loc)
-; They pick up cheese and slice on the chopping board.
+; They pick up cheese and slice it on the chopping board.
 (put-down knife1 chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc plate-loc)
@@ -47,5 +47,4 @@
 (pick-up basket1 fryer-loc)
 (move fryer-loc plate-loc)
 (transfer basket1 plate1 plate-loc)
-(put-down basket1 food-loc)
 ; They transfer the fried slices of potato to the plate with the hamburger bun, grilled beef, and cheese.

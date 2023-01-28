@@ -7,13 +7,13 @@
 (move food-loc mix-loc)
 (place-in egg1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; They grab the flour and egg and mix it in a mixing bowl.
+; They take the flour and egg and mix it into a dough in a mixing bowl.
 (pick-up mixing-bowl1 mix-loc)
 (move mix-loc tray-loc)
-(transfer mixing-bowl1 tray1 tray1-loc)
+(transfer mixing-bowl1 tray1 tray-loc)
 (put-down mixing-bowl1 tray-loc)
-; Then they transfer the egg and flour mix to the tray.
-(move tray1-loc food-loc)
+; They transfer the egg-and-flour dough to the tray.
+(move tray-loc food-loc)
 (pick-up tomato1 food-loc)
 (move food-loc chop-loc)
 (place-in tomato1 board1 chop-loc)
@@ -22,9 +22,9 @@
 ; They pick up tomato and slice it in the chopping board.
 (put-down knife1 chop-loc)
 (take-out tomato1 board1 chop-loc)
-(move chop-loc tray1-loc)
-(place-in tomato1 tray1 tray1-loc)
-; They place the sliced tomato on the egg and flour on the tray.
+(move chop-loc tray-loc)
+(place-in tomato1 tray1 tray-loc)
+; They place the sliced tomato on the tray with the dough.
 (pick-up tray1 tray-loc)
 (move tray-loc food-loc)
 (put-down tray1 food-loc)
@@ -37,8 +37,8 @@
 (move food-loc oven-loc)
 (put-down tray1 oven-loc)
 (cook bake tray1 oven1 oven-loc)
-; Then they bake the tray in the oven.
+; They bake the tray in the oven.
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)
-; They take the baked pan of egg and flour, with sliced tomato, cheese, and basil, and transfer it to the plate.
+; They transfer everything on the baking tray to the plate.

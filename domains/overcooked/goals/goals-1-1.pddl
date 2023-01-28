@@ -1,4 +1,4 @@
-;A salad made of sliced green leaf lettuce, served on a plate.
+; A salad made of sliced green leaf lettuce, served on a plate.
         (exists (?lettuce - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (receptacle-type plate ?plate)

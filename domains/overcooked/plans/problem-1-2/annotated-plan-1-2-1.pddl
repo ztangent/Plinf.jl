@@ -10,11 +10,9 @@
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 lettuce1 chop-loc)
 (prepare slice board1 knife1 tomato1 chop-loc)
-; (prepared slice lettuce1) (prepared slice tomato1)
 ; They slice the lettuce and tomato.
 (put-down knife1 chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc plate-loc)
 (transfer board1 plate1 plate-loc)
-; (in-receptacle lettuce1 plate1) (in-receptacle tomato1 plate1)
-; They transfer the sliced lettuce and tomato from the chopping board to the plate
+; They transfer the sliced lettuce and tomato from the chopping board to the plate.

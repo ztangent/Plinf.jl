@@ -22,4 +22,4 @@
 (pick-up pot1 stove-loc)
 (move stove-loc plate-loc)
 (transfer pot1 plate1 plate-loc)
-; They transfer the cooked rice to the plate of sliced tuna.Í
+; They transfer the cooked rice to the plate of sliced tuna.
