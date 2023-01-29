@@ -163,7 +163,7 @@ GOAL_PROMPT = replace(GOAL_PROMPT, "\n" => " ")
 KITCHEN_NAMES = [
     "salad bar", 
     "sushi bar",
-    "delicatassen",
+    "delicatessen",
     "pizzeria",
     "patisserie"
 ]
@@ -199,11 +199,14 @@ USE_INIT = true
 
 # Prompt example type
 # One of [:pddl, :eng, :pddl2eng, :eng2pddl, :pddl_eng, :eng_pddl]
-EXAMPLE_TYPE = :eng_pddl
+EXAMPLE_TYPE = :pddl
 N_EXAMPLES = 1
 
 # Temperature of generated completion
 TEMPERATURE = 1.0
+
+# Model to request completions from
+MODEL = "text-davinci-003"
 
 # Initialize data frame
 df = DataFrame(
@@ -233,7 +236,7 @@ df_types = eltype.(eachcol(df))
 datetime = Dates.format(Dates.now(), "yyyy-mm-ddTHH-MM-SS")
 header_options =
     join(string.(Int[USE_PREDICATES, USE_ACTIONS, USE_ACTIONS, USE_OBJECTS]))
-df_path = "recipes_gpt3_pddl_" * "temp_$(TEMPERATURE)_" *
+df_path = "recipes_gpt3_pddl_$(MODEL)_" * "temp_$(TEMPERATURE)_" *
           "options_$(header_options)_" * "example_type_$(EXAMPLE_TYPE)_" * 
           "$(datetime).csv"
 df_path = joinpath(@__DIR__, df_path)
@@ -290,7 +293,7 @@ for (problem_path, description_path) in zip(PROBLEMS, DESCRIPTIONS)
     println("---")
     println("Requesting $N_REPEATS completions through OpenAI API...")
     completions = gpt3_batch_complete(
-        prompt, N_REPEATS, 5;
+        prompt, N_REPEATS, 10;
         max_tokens=512, stop=stop, temperature=TEMPERATURE,
         verbose=true, persistent=true
     )
