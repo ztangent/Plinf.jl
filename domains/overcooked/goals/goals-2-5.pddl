@@ -13,7 +13,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?avocado ?plate)
                      (in-receptacle ?crab ?plate)))
-; A sushi roll made from tuna, nori, and rice.
+; A tuna sushi roll made from tuna, nori, and rice.
         (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -24,7 +24,7 @@
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?tuna ?plate)))
-; A sushi roll made from avocado, tuna, salmon, nori and rice. 
+; Assorted sushi rolls made from avocado, tuna, salmon, nori and rice. 
         (exists (?avocado - food  ?nori - food ?rice - food ?tuna - food ?salmon - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -40,7 +40,7 @@
                      (in-receptacle ?tuna ?plate)
                      (in-receptacle ?avocado ?plate)
                      (in-receptacle ?salmon ?plate)))
-; A sushi roll made from crab, nori, and rice.
+; A crab sushi roll made from crab, nori, and rice.
         (exists (?nori - food ?rice - food ?crab - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)
@@ -51,7 +51,7 @@
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?crab ?plate)))
-; A sushi roll made from cucumber, avocado, nori and rice.
+; An avocado sushi roll made from cucumber, avocado, nori and rice.
         (exists (?avocado - food  ?nori - food ?rice - food ?cucumber - food ?plate - receptacle)
                 (and (food-type nori ?nori)
                      (food-type rice ?rice)

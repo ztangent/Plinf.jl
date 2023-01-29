@@ -18,7 +18,7 @@
                  (in-receptacle ?sausage ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; A chesse pizza made of mozarella cheese, tomato, and pizza dough, all baked in an oven.
+; A cheese pizza made of mozarella cheese, tomato, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)

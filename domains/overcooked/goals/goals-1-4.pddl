@@ -15,7 +15,7 @@
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?salad-dressing ?plate)))
-; A salad made of sliced tomato and cucumber and served in a plate.
+; Sliced tomato and cucumber salad, served in a plate.
         (exists (?cucumber - food ?tomato - food ?plate - receptacle)
                 (and (food-type cucumber ?cucumber)
                      (food-type tomato ?tomato)
@@ -24,7 +24,7 @@
                      (prepared slice ?tomato)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?tomato ?plate)))
-; A salad made of sliced cucumber topped with salad dressing and served in a plate
+; Sliced cucumber salad topped with salad dressing and served in a plate
         (exists (?cucumber - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type cucumber ?cucumber)
                      (food-type salad-dressing ?salad-dressing)
@@ -32,7 +32,7 @@
                      (prepared slice ?cucumber)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?salad-dressing ?plate)))
-; A salad made of sliced lettuce, tomato, and cucumber, topped with a salad dressing and served in a plate.
+; Sliced lettuce, tomato, and cucumber salad, topped with salad dressing and served in a plate.
         (exists (?lettuce - food ?tomato - food ?cucumber - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato)
@@ -45,7 +45,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?salad-dressing ?plate)))
-; A salad made of sliced onion, tomato, and lettuce and served in a plate. 
+; Sliced onion, tomato, and lettuce salad, served in a plate. 
         (exists (?lettuce - food ?tomato - food ?onion - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato)

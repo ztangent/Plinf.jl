@@ -51,7 +51,7 @@
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?mayonnaise ?plate)
                      (in-receptacle ?lettuce ?plate)))
-; A sandwich consisting of grilled bacon, sliced ham, sliced lettuce, slice tomato, sliced onion, layered with mayonnaise in bread.
+; A sandwich consisting of grilled bacon, sliced ham, sliced lettuce, sliced tomato, sliced onion, layered with mayonnaise in bread.
         (exists (?bread - food ?bacon - food ?lettuce - food ?ham - food ?onion - food ?tomato - food ?mayonnaise - food ?plate - receptacle)
                 (and (food-type bacon ?bacon)
                      (food-type bread ?bread)

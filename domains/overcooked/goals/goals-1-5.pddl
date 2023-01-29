@@ -28,7 +28,7 @@
                      (receptacle-type plate ?plate)
                      (prepared slice ?avocado)
                      (in-receptacle ?avocado ?plate)))
-; A salad with sliced lettuce, sliced tomato, sliced cucumber, sliced onion, and salad dressing.
+; A salad of sliced lettuce, tomato, cucumber, and onion, topped with salad dressing.
         (exists (?lettuce - food ?tomato - food ?cucumber - food ?onion - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type lettuce ?lettuce)
                      (food-type tomato ?tomato)

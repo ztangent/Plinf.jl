@@ -22,7 +22,7 @@
                      (in-receptacle ?pineapple ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; A meatlover's pizza made with mozarella cheese, tomato sauce, ham, beef, and sausage baked on pizza dough made from egg and flour.
+; Meat lover's pizza made with mozarella cheese, tomato sauce, ham, beef, and sausage baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?beef - food ?ham - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -50,7 +50,7 @@
                      (in-receptacle ?sausage ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; A ham pizza made with mozarella cheese, tomato sauce and ham, baked on pizza dough made from egg and flour.
+; Ham pizza made with mozarella cheese, tomato sauce and ham, baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?ham - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
@@ -70,7 +70,7 @@
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; A pepperoni pizza made with mozarella cheese, tomato sauce, and sausage baked on pizza dough made from egg and flour.
+; Pepperoni pizza made with mozarella cheese, tomato sauce, and sausage baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?sausage - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -90,7 +90,7 @@
                  (in-receptacle ?sausage ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; A cheese pizza made with mozarella cheese and tomato sauce, baked on pizza dough made from egg and flour.
+; Cheese pizza made with mozarella cheese and tomato sauce, baked on pizza dough made from egg and flour.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)

@@ -26,7 +26,7 @@
                      (in-receptacle ?sausage ?plate)
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)))
-; A pizza made of mozarella cheese, tomato sauce, chopped beef, and pizza dough, all baked in an oven.
+; A beef pizza made of mozarella cheese, tomato sauce, chopped beef, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?beef - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -62,7 +62,7 @@
                  (in-receptacle ?beef ?plate)
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?flour ?plate)))
-; A pizza made of mozarella cheese, tomato sauce, sliced sausage, chopped beef, and pizza dough, all baked in an oven.
+; A beef and pepperoni pizza made of mozarella cheese, tomato sauce, sliced sausage, chopped beef, and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?beef - food ?sausage - food  ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)
@@ -86,7 +86,7 @@
                  (in-receptacle ?egg ?plate)
                  (in-receptacle ?sausage ?plate)
                  (in-receptacle ?flour ?plate)))
-; A pizza made of mozarella cheese, tomato sauce and pizza dough, all baked in an oven.
+; A cheese pizza made of mozarella cheese, tomato sauce and pizza dough, all baked in an oven.
         (exists (?egg - food ?flour - food ?tomato - food ?cheese - food ?plate - receptacle)
             (and (food-type egg ?egg)
                  (food-type flour ?flour)

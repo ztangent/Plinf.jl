@@ -9,7 +9,6 @@
                      (in-receptacle ?nori ?plate)
                      (in-receptacle ?rice ?plate)
                      (in-receptacle ?salmon ?plate)))
-    
 ; A tuna roll made of sliced raw tuna, boiled rice, and nori.
         (exists (?nori - food ?rice - food ?tuna - food ?plate - receptacle)
                 (and (food-type nori ?nori)

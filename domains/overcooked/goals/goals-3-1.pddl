@@ -7,7 +7,7 @@
                      (cooked-with grill ?bread ?cheese)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?cheese ?plate)))
-; A sandwich made of sliced ham and cheese with bread.
+; A ham and cheese sandwich, made of sliced ham and cheese with bread.
         (exists (?ham - food ?bread - food ?cheese - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -18,7 +18,7 @@
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?cheese ?plate)))
-; A sandwich made of sliced ham, cheese, lettuce, and tomato with bread.
+; A ham, cheese, and veggie sandwich, made of sliced ham, cheese, lettuce, and tomato with bread.
         (exists (?ham - food ?bread - food ?cheese - food ?lettuce - food ?tomato - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -35,7 +35,7 @@
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?cheese ?plate)))
-; A sandwich made of sliced ham, cheese, lettuce, tomato, and onion with bread.
+; A ham, cheese, and veggie sandwich with onion, made of sliced ham, cheese, lettuce, tomato, and onion with bread.
         (exists (?ham - food ?bread - food ?cheese - food ?lettuce - food ?tomato - food ?onion - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)
@@ -55,7 +55,7 @@
                      (in-receptacle ?bread ?plate)
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?cheese ?plate)))
-; A sandwich made of sliced ham and cheese grilled with bread.
+; A grilled ham and cheese sandwich made of sliced ham and cheese grilled with bread.
         (exists (?ham - food ?bread - food ?cheese - food ?plate - receptacle)
                 (and (food-type bread ?bread)
                      (food-type ham ?ham)

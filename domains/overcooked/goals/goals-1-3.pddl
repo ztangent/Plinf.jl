@@ -16,7 +16,7 @@
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?tomato ?plate)))
-; A salad made of sliced tomato and cucumber.
+; Sliced tomato and cucumber salad.
         (exists (?tomato - food ?cucumber - food ?plate - receptacle)
                 (and (food-type tomato ?tomato)
                      (food-type cucumber ?cucumber)
@@ -25,7 +25,7 @@
                      (prepared slice ?cucumber)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?tomato ?plate)))
-; A salad made of chopped onion, sliced cucumber, and crumbled feta cheese.
+; Chopped onion and sliced cucumber salad, with crumbled feta cheese.
         (exists (?cucumber - food ?onion - food ?feta-cheese - food ?plate - receptacle)
                 (and (food-type onion ?onion)
                      (food-type cucumber ?cucumber)
@@ -37,7 +37,7 @@
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?cucumber ?plate)
                      (in-receptacle ?feta-cheese ?plate)))
-; A salad made of sliced tomato and crumbled feta cheese.
+; Tomato salad made of sliced tomato and crumbled feta cheese.
         (exists (?feta-cheese - food ?tomato - food ?plate - receptacle)
                 (and (food-type feta-cheese ?feta-cheese)
                      (food-type tomato ?tomato)
@@ -46,7 +46,7 @@
                      (prepared crumble ?feta-cheese)
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?feta-cheese ?plate)))
-; A salad made of chopped olives and crumbled feta cheese.
+; Olive salad made of chopped olives and crumbled feta cheese.
         (exists (?olive - food ?feta-cheese - food ?plate - receptacle)
                 (and (food-type olive ?olive)
                      (food-type feta-cheese ?feta-cheese)

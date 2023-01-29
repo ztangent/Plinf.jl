@@ -25,7 +25,7 @@
                      (in-receptacle ?egg ?plate)
                      (in-receptacle ?flour ?plate)
                      (in-receptacle ?peach ?plate)))
-; Jelly filled donut made from eggs, flour mixed together and deep fried and filled with grape jelly.
+; Grape jelly donut made from egg and flour dough, filled with grape jelly, and deep fried.
         (exists (?egg - food ?grape - food ?flour - food ?plate - receptacle)
                 (and (food-type egg ?egg)
                      (food-type flour ?flour)
