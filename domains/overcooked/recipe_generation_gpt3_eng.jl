@@ -20,7 +20,7 @@ function recipe_stop_condition(tokens)
     end
     # Check if last line begins with "Serve:"
     last_line = tokens[i] == "\n" ? join(tokens[i+1:end]) : join(tokens[i:end])
-    if length(last_line) >= 6 && last_line[1:6] == "Serve:"
+    if match(r"Serve:.*", last_line) !== nothing
         return true
     else
         return false

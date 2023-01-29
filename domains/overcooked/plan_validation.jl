@@ -45,6 +45,3 @@ for (path1, path2) in zip(problem_paths, plan_paths)
         println("❌ $(basename(path2)) fails to achieve the goal")
     end
 end
-
-plan, annotations, annotation_idxs =
-    load_plan(joinpath(@__DIR__, "plans/problem-3-3/annotated-plan-3-3-1.pddl"))
