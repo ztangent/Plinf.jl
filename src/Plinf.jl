@@ -3,8 +3,8 @@ module Plinf
 using Base: @kwdef
 using Parameters: @unpack
 
-using Random, Gen
 using Julog, PDDL, SymbolicPlanners
+using Random, Gen, GenParticleFilters
 
 using DocStringExtensions
 
