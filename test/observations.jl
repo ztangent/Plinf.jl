@@ -27,7 +27,8 @@ bw_params = observe_params(
 )
 bw_terms = collect(keys(bw_params))
 
-obs_choices = state_choicemap(bw_state, blocksworld, bw_terms, nothing)
+obs_choices =
+    state_choicemap(bw_state, bw_terms; addr=nothing, domain=blocksworld)
 @test obs_choices[pddl"(handempty)"] == true
 @test obs_choices[pddl"(ontable a)"] == true
 @test obs_choices[pddl"(clear b)"] == true
@@ -35,7 +36,7 @@ obs_choices = state_choicemap(bw_state, blocksworld, bw_terms, nothing)
 @test obs_choices[pddl"(on a b)"] == false
 
 # Test grounded observation model
-bw_params = ground_obs_params(bw_params, bw_state, blocksworld)
+bw_params = ground_obs_params(bw_params, blocksworld, bw_state)
 bw_terms = collect(keys(bw_params))
 
 obs_choices = state_choicemap(bw_state, blocksworld, bw_terms, nothing)
