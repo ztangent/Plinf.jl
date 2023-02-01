@@ -2,6 +2,9 @@ export pf_replan_move_accept!, pf_replan_move_reweight!
 export pf_goal_move_accept!, pf_goal_move_reweight!
 export pf_mixed_move_accept!, pf_mixed_move_reweight!
 
+"Null rejuvenation kernel that always returns original trace."
+null_kernel(trace::Trace) = trace, false
+
 "Error-driven rejuvenation proposal that samples new partial plans."
 @gen function replan_move_proposal(trace::Trace, use_obs::Bool=true)
     # Unpack trace
