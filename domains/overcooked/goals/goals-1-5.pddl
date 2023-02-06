@@ -46,7 +46,7 @@
                      (in-receptacle ?tomato ?plate)
                      (in-receptacle ?salad-dressing ?plate)))
 ; Greek salad made of chopped tomato, olives, onion, cucumber, and crumbled feta cheese.
-        (exists (?onion - food ?tomato - food ?cucumber - food ?olive - food ?feta-cheese - food ?salad-dressing - food ?knife - tool ?glove - tool ?plate - receptacle)
+        (exists (?onion - food ?tomato - food ?cucumber - food ?olive - food ?feta-cheese - food ?salad-dressing - food ?plate - receptacle)
                 (and (food-type olive ?olive)
                      (food-type tomato ?tomato)
                      (food-type cucumber ?cucumber)
