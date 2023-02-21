@@ -1,6 +1,7 @@
 using Base: @kwdef
 using PDDL, SymbolicPlanners
 import SymbolicPlanners: Planner, OrderedSolution
+import SymbolicPlanners: precompute!, compute, is_precomputed
 
 include("recipe_utils.jl")
 
@@ -79,6 +80,58 @@ function SymbolicPlanners.solve(
         return NullSolution()
     end
     return OvercookedPlannerSolution(plan, subplans, subgoals)
+end
+
+"Custom landmark-based heuristic for Overcooked problems."
+@kwdef mutable struct OvercookedHeuristic{H <: Heuristic, F} <: Heuristic
+    heuristic::H = FFHeuristic() # Sub-heuristic to evaluate distance to each subgoal 
+    op::F = sum # Aggregation operator for sub-heuristic costs
+    ordering::Symbol = :predicate # How to order subgoals
+    subgoals::Dict{UInt,Vector{Vector{Term}}} = Dict{UInt,Vector{Vector{Term}}}()
+end
+
+function precompute!(h::OvercookedHeuristic,
+                     domain::Domain, state::State, spec::Specification)
+    precompute!(h.heuristic, domain, state, spec)
+    return h
+end
+
+function precompute!(h::OvercookedHeuristic,
+                     domain::Domain, state::State)
+    precompute!(h.heuristic, domain, state)
+    return h
+end
+
+is_precomputed(h::OvercookedHeuristic) = is_precomputed(h.heuristic)
+
+function compute(h::OvercookedHeuristic,
+                 domain::Domain, state::State, spec::Specification)
+    # Compute subgoals if not already cached
+    spec_hash = hash(spec)
+    subgoals = get!(h.subgoals, spec_hash) do 
+        # Dequantify and simplify goal condition
+        statics = PDDL.infer_static_fluents(domain)
+        goal = Compound(:and, SymbolicPlanners.get_goal_terms(spec))
+        goal = PDDL.to_nnf(PDDL.dequantify(goal, domain, state, statics))
+        goal = PDDL.simplify_statics(goal, domain, state, statics)
+        # If there are multiple ways of satisfying goal, pick the first
+        if PDDL.is_dnf(goal)
+            goal = goal.args[1]
+        end
+        # Order into subgoals
+        if h.ordering == :predicate
+            subgoals = order_subgoals_by_predicate(goal)
+            subgoals = filter(sg -> !isempty(sg), subgoals)
+        elseif h.ordering == :cluster
+            subgoals = order_subgoals_by_cluster(goal)
+        else
+            error("Unrecognized ordering flag: $(planner.ordering)")
+        end
+        return subgoals
+    end
+    # Compute and aggregate heuristic values across subgoals
+    hvals = (compute(h.heuristic, domain, state, sg) for sg in subgoals)
+    return length(subgoals) == 0 ? 0 : h.op(hvals)
 end
 
 "Orders subgoals in a recipe by predicate type."
