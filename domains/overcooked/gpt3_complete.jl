@@ -3,7 +3,7 @@ using HTTP, JSON3
 
 "Call the OpenAI JSON API for GPT-3 and return the results."
 function gpt3_complete(
-    prompt::String, n_completions::Int=1;
+    prompt, n_completions::Int=1;
     endpoint::String = "https://api.openai.com/v1/completions",
     api_key::String = get(ENV, "OPENAI_API_KEY", ""),
     model::String = "text-davinci-003",
@@ -79,6 +79,32 @@ function gpt3_batch_complete(
     return completions
 end
 
+"Make batched requests to the OpenAI API to reach prompt quota."
+function gpt3_multi_prompt_api_call(
+    prompts::AbstractVector{<:Union{AbstractString, AbstractVector{Int}}};
+    batch_size::Int=min(length(prompts), 16),
+    verbose::Bool=false,
+    options...
+)
+    n_remaining = length(prompts)
+    choices = JSON3.Object[]
+    for batch in Iterators.partition(prompts, batch_size)
+        n_request = length(batch)
+        n_remaining -= n_request
+        if verbose
+            println("Making $n_request requests ($n_remaining remaining)...")
+        end
+        response = gpt3_complete(batch; verbose=verbose, options...)
+        n_received = length(choices)
+        resize!(choices, n_received + n_request)
+        for choice in response.choices
+            idx = n_received + choice.index + 1
+            choices[idx] = choice
+        end
+    end
+    return choices
+end
+
 "Find the index of a completion's last token, including the stop sequence."
 function find_stop_index(completion, n_stop_tokens::Int=1)
     if completion.finish_reason == "length"
@@ -96,7 +122,13 @@ end
 function extract_logprobs(completion, n_stop_tokens::Int=1)
     stop_idx = find_stop_index(completion, n_stop_tokens)
     logprobs = completion.logprobs.token_logprobs[1:stop_idx]
-    return isempty(logprobs) ? 0.0 : sum(logprobs)
+    if isempty(logprobs) 
+        return 0.0
+    elseif logprobs[1] !== nothing
+        return sum(logprobs)
+    else
+        return sum(logprobs[2:end])
+    end
 end
 
 "Extract tokens and logprobs in a completion until a stop condition."
@@ -113,3 +145,19 @@ function extract_tokens_until_stop(completion, stop_condition)
     return tokens, logprobs
 end
 
+"Call the OpenAI JSON API for GPT-3 and return the results."
+function gpt3_eval_completion_logprobs(
+    prompt::String, completions;
+    verbose=false, options... # Other options
+)
+    # Construct texts to evaluate
+    strs = [prompt * s for s in completions]
+    push!(strs, prompt)
+    # Send to OpenAI API for evaluation
+    choices = gpt3_multi_prompt_api_call(strs; 
+        logprobs=0, max_tokens=0, echo=true,
+        verbose=verbose, options...
+    )
+    logprobs = [extract_logprobs(c, 0) for c in choices]
+    return [lp - logprobs[end] for lp in logprobs[1:end-1]]
+end
