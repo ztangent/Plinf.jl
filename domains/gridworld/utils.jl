@@ -1,4 +1,5 @@
 using DataStructures: OrderedDict
+using Gen: ParticleFilterState
 
 pos_to_terms(pos) = @julog([xpos == $(pos[1]), ypos == $(pos[2])])
 goal_to_pos(term) = (term.args[1].args[2].name, term.args[2].args[2].name)
@@ -11,6 +12,12 @@ function get_goal_probs(traces, weights, goal_idxs=[])
         goal_probs[goal_idx] = prob + exp(w)
     end
     return goal_probs
+end
+
+function get_goal_probs(pf_state::ParticleFilterState, goal_idxs=[])
+    traces = get_traces(pf_state)
+    weights = get_log_norm_weights(pf_state)
+    return get_goal_probs(traces, weights, goal_idxs)
 end
 
 function print_goal_probs(goal_probs)
