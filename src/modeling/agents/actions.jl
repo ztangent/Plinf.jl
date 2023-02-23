@@ -112,7 +112,7 @@ const policy_dist = PolicyDistribution()
 @inline Gen.random(::PolicyDistribution, policy, state) =
     SymbolicPlanners.rand_action(policy, state)
 @inline Gen.logpdf(::PolicyDistribution, act::Term, policy, state) =
-    SymbolicPlanners.get_action_prob(policy, state, act)
+    log(SymbolicPlanners.get_action_prob(policy, state, act))
 
 # Always return no-op for null solutions
 @inline Gen.random(::PolicyDistribution, ::NullSolution, state) =

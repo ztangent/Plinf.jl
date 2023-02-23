@@ -230,7 +230,7 @@ function act_choicemap_pairs(
     return choices_vec
 end
 
-"Split an iterabale into segments / batches at the specified indices."
+"Split an iterable into segments / batches at the specified indices."
 function batch_split(iter, split_idxs)
     @assert all(split_idxs .<= length(iter))
     split_idxs = [0; split_idxs]
