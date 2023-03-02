@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently have eggs, flour, tomato, cheese, sausage, beef, chicken, a knife, a chopping board, a stove, a tray, an oven and a plate.
+Goal:
+A meat lover's pizza made of mozarella cheese, tomato sauce, sliced sausage, chopped chicken, chopped beef, and pizza dough, all baked in an oven.

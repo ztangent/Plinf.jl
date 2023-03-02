@@ -1,0 +1,6 @@
+kitchen_name,temperature,n_train_recipes_per_kitchen,valid_mean,pddl_parse_error_mean,non_existent_predicates_mean,non_existent_objects_mean,goal_unreachable_mean,frac_unique,frac_unique_valid,entropy_valid,frac_unique_out_of_valid
+salad bar,1.0,3,0.792,0.056,0.0,0.144,0.008,0.508,0.356,18.63707730604623,0.44949494949494945
+sushi bar,1.0,3,0.64,0.024,0.0,0.336,0.0,0.644,0.324,19.913935653903813,0.50625
+delicatassen,1.0,3,0.484,0.16,0.0,0.244,0.112,0.8320000000000001,0.476,27.990632929408342,0.9834710743801652
+pizzeria,1.0,3,0.656,0.044,0.0,0.196,0.104,0.8400000000000001,0.556,20.989597994786582,0.8475609756097562
+patisserie,1.0,3,0.456,0.12,0.0,0.42,0.004,0.74,0.32,20.48023533293172,0.7017543859649122

@@ -1,0 +1,21 @@
+Initial State: 
+
+whiskey, seltzer, ice, lemon, knife, cutting board, Highball glass
+
+Root Recipe:
+The Whiskey Highball
+2 ounces scotch
+6 ounces cold seltzer
+Garnish: 1 lemon wedge
+Pour the scotch into a Highball glass, then add 3 ice cubes. Stir for 3 seconds. Add the
+seltzer and stir once. Garnish with the lemon wedge.
+
+Ideal recipe:
+2 ounces Hakushu 12-year Japanese whisky
+4 ounces cold seltzer
+
+Pour the whisky into a Highball glass and add 1 ice cube. Let sit for 3 seconds. Add the
+seltzer and stir once. No garnish.
+
+
+Goal:

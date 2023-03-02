@@ -1,0 +1,36 @@
+Initial State: Someone is in a bar and wants to make a drink. They currently have: 
+
+bourbon, sugar, Angostura, lemon, orange, peeler, muddle, rocks glass, cutting board, stirring glass 
+ 
+Root Recipe: 
+The Old Fashioned
+1 sugar cube
+2 dashes Angostura bitters
+2 ounces bourbon
+Garnish: 1 lemon twist and 1 orange twist
+
+Muddle the sugar cube and bitters in an Old-Fashioned glass. Add the bourbon and 1
+large ice cube and stir until chilled. Garnish with the lemon and orange twists.
+
+Ideal Recipe:
+2 ounces Elijah Craig Small Batch bourbon
+1 teaspoon Demerara Gum Syrup (this page)
+2 dashes Angostura bitters
+1 dash Bitter Truth aromatic bitters
+Garnish: 1 orange twist and 1 lemon twist
+
+Stir all the ingredients over ice, then strain into a double Old-Fashioned glass over 1
+large ice cube. Express the orange twist over the drink, then gently rub it around the rim of
+the glass and place it into the drink. Express the lemon twist over the drink, then place it
+into the drink
+
+Goal:
+Get rocks glass
+Muddle the sugar in glass
+Pour bourbon into glass
+Add large format ice into glass
+Stir ingredients
+Peel orange
+Twist orange(peel)
+Garnish with orange peel
+

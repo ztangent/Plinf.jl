@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently have ice, milk, chocolate, eggs, flour, apples, honey, strawberries, watermelon, grapes, peaches, oranges, a knife, a chopping board, a stove, a blender and a glass.
+Goal:
+Baked apple pie made of sliced apples baked in dough made from egg and flour.
