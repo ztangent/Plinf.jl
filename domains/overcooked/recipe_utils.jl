@@ -197,3 +197,26 @@ function recipe_overlap(recipe1::Term, recipe2::Term)
     end
     return max_iou
 end
+
+function distinguish_recipes(recipes::Vector{Vector{Term}})
+    # Combine all recipe terms
+    all_terms = reduce(union, recipes)
+    # Add negations for all terms not in each recipe
+    new_recipes = map(recipes) do old
+        new = copy(old)
+        diff = setdiff(all_terms, old)
+        for term in diff
+            push!(new, Compound(:not, [term]))
+        end
+        return new
+    end
+    return new_recipes
+end
+
+function distinguish_recipes(specs::AbstractVector{<:Specification})
+    recipes = SymbolicPlanners.get_goal_terms.(specs)
+    new_recipes = distinguish_recipes(recipes)
+    new_specs = [SymbolicPlanners.set_goal_terms(s, t)
+                 for (s, t) in zip(specs, new_recipes)]
+    return new_specs
+end

@@ -18,7 +18,7 @@
                      (in-receptacle ?tuna ?plate)))
 ; Grilled salmon, served on a plate.
         (exists (?salmon - food ?plate - receptacle)
-                (and (food-type tuna ?salmon)
+                (and (food-type salmon ?salmon)
                      (receptacle-type plate ?plate)
                      (cooked grill ?salmon)
                      (in-receptacle ?salmon ?plate)))

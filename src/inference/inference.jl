@@ -1,101 +1,146 @@
-export world_importance_sampler, world_particle_filter
+import Gen: ParticleFilterState
 
-using GenParticleFilters
+export SequentialInversePlanSearch, SIPS
+export sips_init, sips_run, sips_step!
 
 include("utils.jl")
+include("choicemaps.jl")
 include("kernels.jl")
 
-"Generate weighted importance samples over a world model."
-function world_importance_sampler(
-        world_init::WorldInit, world_config::WorldConfig,
-        obs_traj::Vector{<:State}, obs_terms::Vector{<:Term}, n_samples::Int;
-        use_proposal=true, strata=nothing, callback=nothing)
-    @unpack domain = world_config
-    # Construct choicemaps from observed trajectory
-    n_obs = length(obs_traj)
-    obs_choices = traj_choicemaps(obs_traj, domain, obs_terms;
-                                  as_choicemap=true)
-    # Initialize traces of world model
-    init_traces, _ = strata == nothing ?
-        unzip(generate(init_world_model, (world_init, world_config))
-              for i in 1:n_samples) :
-        enumerate_traces(init_world_model, (world_init, world_config), strata)
-    # Compute importance sample for each initial trace
-    traces = Vector{Trace}(undef, n_samples)
-    weights = Vector{Float64}(undef, n_samples)
-    for i in 1:n_samples
-        init_idx = mod(i-1, length(init_traces)) + 1
-        world_state = get_retval(init_traces[init_idx])
-        init_choices = choicemap()
-        set_submap!(init_choices, :init, get_choices(init_traces[init_idx]))
-        @unpack agent_config = world_config
-        env_state = init_traces[init_idx][:env]
-        agent_state, _ = init_traces[init_idx][:agent]
-        # Set-up data-driven proposal associated with the planner
-        prop_args = (1, n_obs, agent_state, env_state,
-                     agent_config, obs_traj)
-        # Propose choices
-        prop_choices, prop_weight, _ = use_proposal ?
-            propose(agent_propose_range, prop_args) : (choicemap(), 0.0, 0.0)
-        constraints = merge(obs_choices, init_choices, prop_choices)
-        # Sample from model given constraints
-        model_args = (n_obs, world_init, world_config)
-        traces[i], model_weight = generate(world_model, model_args, constraints)
-        weights[i] = model_weight - prop_weight
-    end
-    # Normalize weights
-    lml_est = logsumexp(weights) - log(n_samples)
-    weights = lognorm(weights)
-    # Run callback on sampled traces
-    if callback != nothing
-        callback(n_obs, obs_traj[end], traces, weights)
-    end
-    # Return traces and their weights
-    return traces, weights, lml_est
+"""
+    SequentialInversePlanSearch(
+        world_config::WorldConfig;
+        options...
+    )
+
+Constructs a sequential inverse plan search (SIPS) particle filtering algorithm
+for the agent-environment model defined by `world_config`.
+
+# Arguments
+
+$(FIELDS)
+"""
+@kwdef struct SequentialInversePlanSearch{W <: WorldConfig, K}
+    "Configuration of world model to perform inference over."
+    world_config::W
+    "Trigger condition for resampling particles: `[:none, :periodic, :always, :ess]``."
+    resample_cond::Symbol = :ess
+    "Resampling method: `[:multinomial, :residual, :stratified]`."
+    resample_method::Symbol = :multinomial
+    "Trigger condition for rejuvenating particles `[:none, :periodic, :always, :ess]`."
+    rejuv_cond::Symbol = :none
+    "Rejuvenation kernel."
+    rejuv_kernel::K = null_kernel
+    "Effective sample size threshold fraction for resampling and rejuvenation."
+    ess_threshold::Float64 = 0.25
+    "Period for resampling and rejuvenation."
+    period::Int = 1
 end
 
-"Online inference over a world model using a particle filter."
-function world_particle_filter(
-        world_init::WorldInit, world_config::WorldConfig,
-        obs_traj::Vector{<:State}, obs_terms::Vector{<:Term}, n_particles::Int;
-        batch_size::Int=1, strata=nothing, callback=nothing,
-        act_proposal=nothing, act_proposal_args=(),
-        ess_threshold::Float64=1/4, resample=true, rejuvenate=nothing)
-    # Construct choicemaps from observed trajectory
-    @unpack domain = world_config
-    n_obs = length(obs_traj)
-    obs_choices = traj_choicemaps(obs_traj, domain, obs_terms;
-                                  batch_size=batch_size)
-    # Initialize particle filter
-    world_args = (world_init, world_config)
-    argdiffs = (UnknownChange(), NoChange(), NoChange())
-    pf_state =  initialize_pf_stratified(world_model, (0, world_args...),
-                                         choicemap(), strata, n_particles)
-    # Compute times for each batch
-    timesteps = collect(batch_size:batch_size:n_obs)
-    if timesteps[end] != n_obs push!(timesteps, n_obs) end
-    # Feed new observations batch-wise
-    for (batch_i, t) in enumerate(timesteps)
-        if resample && get_ess(pf_state) < (n_particles * ess_threshold)
-            @debug "Resampling..."
-            pf_residual_resample!(pf_state)
-            if rejuvenate != nothing rejuvenate(pf_state) end
-        end
-        if act_proposal == nothing
-            pf_update!(pf_state, (t, world_args...),
-                       argdiffs, obs_choices[batch_i])
-        else
-            pf_update!(pf_state, (t, world_args...), argdiffs,
-                       obs_choices[batch_i], propose_act,
-                       (obs_traj[t], act_proposal, act_proposal_args))
-        end
-        if callback != nothing # Run callback on current traces
-            trs, ws = get_traces(pf_state), lognorm(get_log_weights(pf_state))
-            callback(t, obs_traj[t], trs, ws)
-        end
+const SIPS = SequentialInversePlanSearch
+
+SIPS(world_config; kwargs...) =SIPS(; world_config=world_config, kwargs...)
+
+"""
+    (::SIPS)(n_particles, observations, [timesteps]; kwargs...)
+    (::SIPS)(n_particles, t_obs_iter; kwargs...)
+
+Run a SIPS particle filter given a series of observation choicemaps and
+timesteps, or an iterator over timestep-observation pairs. Returns the final
+particle filter state.
+"""
+(sips::SIPS)(args...; kwargs...) = sips_run(sips, args...; kwargs...)
+
+"Gets current model timestep from a particle filter state."
+function get_model_timestep(pf_state::ParticleFilterState)
+    return Gen.get_args(get_traces(pf_state)[1])[1]
+end
+
+"Decides whether to resample or rejuvenate based on trigger conditions."
+function sips_trigger_cond(sips::SIPS, cond::Symbol,
+                           t::Int, pf_state::ParticleFilterState)
+    if cond == :always
+        return true
+    elseif cond == :periodic
+        return mod(t, sips.period) == 0
+    elseif cond == :ess
+        n_particles = length(get_traces(pf_state))
+        return get_ess(pf_state) < (n_particles * sips.ess_threshold)
     end
-    # Return particles and their weights
-    traces, weights = get_traces(pf_state), lognorm(get_log_weights(pf_state))
-    lml_est = logsumexp(get_log_weights(pf_state)) - log(n_particles)
-    return traces, weights, lml_est
+    return false
+end
+
+"SIPS particle filter initialization."
+function sips_init(
+    sips::SIPS, n_particles::Int;
+    init_timestep::Int = 0,
+    init_obs::ChoiceMap=EmptyChoiceMap(), 
+    init_strata=nothing,
+    init_proposal=nothing,
+    init_proposal_args=()
+)
+    args = (init_timestep, sips.world_config)
+    if !isnothing(init_strata)
+        pf_state = pf_init_stratified(world_model, args, init_obs,
+                                      init_strata, n_particles)
+    elseif !isnothing(init_proposal)
+        pf_state = pf_initialize(world_model, args, init_obs,
+                                 init_proposal, init_proposal_args,
+                                 n_particles)
+    else
+        pf_state = pf_initialize(world_model, args, init_obs, n_particles)
+    end
+    return pf_state
+end
+
+"SIPS particle filter step."
+function sips_step!(
+    pf_state::ParticleFilterState, sips::SIPS,
+    t::Int, observations::ChoiceMap=EmptyChoiceMap()
+)
+    # Update particle filter with new observations
+    argdiffs = (UnknownChange(), NoChange())
+    pf_update!(pf_state, (t, sips.world_config), argdiffs, observations)
+    # Optionally resample
+    if sips_trigger_cond(sips, sips.resample_cond, t, pf_state)
+        pf_resample!(pf_state, sips.resample_method)
+    end
+    # Optionally rejuvenate
+    if sips_trigger_cond(sips, sips.rejuv_cond, t, pf_state)
+        pf_rejuvenate!(pf_state, sips.rejuv_kernel)
+    end    
+    return pf_state
+end
+
+"""
+    sips_run(sips, n_particles, observations, [timesteps]; kwargs...)
+    sips_run(sips, n_particles, t_obs_iter; kwargs...)
+
+Run a SIPS particle filter, given a series of observations and timesteps, or
+an iterator over timestep-observation pairs. Returns the final particle filter
+state.
+"""
+function sips_run(
+    sips::SIPS, n_particles::Int, t_obs_iter;
+    init_args, callback = (t, obs, pf_state) -> nothing
+)
+    # Initialize particle filter
+    pf_state = sips_init(sips, n_particles; init_args...)
+    callback(get_model_timestep(pf_state), EmptyChoiceMap(), pf_state)
+    # Iterate over timesteps and observations
+    for (t::Int, obs::ChoiceMap) in t_obs_iter
+        pf_state = sips_step!(pf_state, sips, t, obs)
+        callback(t, obs, pf_state)
+    end
+    # Return final particle filter state
+    return pf_state
+end
+
+function sips_run(
+    sips::SIPS, n_particles::Int,
+    observations::AbstractVector{<:ChoiceMap},
+    timesteps=1:length(observations);
+    kwargs...
+)
+    return sips_run(sips, n_particles, zip(timesteps, observations); kwargs...)
 end
