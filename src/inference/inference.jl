@@ -3,9 +3,8 @@ import Gen: ParticleFilterState
 export SequentialInversePlanSearch, SIPS
 export sips_init, sips_run, sips_step!
 
-include("utils.jl")
 include("choicemaps.jl")
-include("kernels.jl")
+include("rejuvenate.jl")
 
 """
     SequentialInversePlanSearch(
@@ -30,7 +29,7 @@ $(FIELDS)
     "Trigger condition for rejuvenating particles `[:none, :periodic, :always, :ess]`."
     rejuv_cond::Symbol = :none
     "Rejuvenation kernel."
-    rejuv_kernel::K = null_kernel
+    rejuv_kernel::K = NullKernel()
     "Effective sample size threshold fraction for resampling and rejuvenation."
     ess_threshold::Float64 = 0.25
     "Period for resampling and rejuvenation."
@@ -74,21 +73,29 @@ end
 function sips_init(
     sips::SIPS, n_particles::Int;
     init_timestep::Int = 0,
-    init_obs::ChoiceMap=EmptyChoiceMap(), 
+    init_obs::ChoiceMap=EmptyChoiceMap(),
     init_strata=nothing,
     init_proposal=nothing,
     init_proposal_args=()
 )
     args = (init_timestep, sips.world_config)
-    if !isnothing(init_strata)
-        pf_state = pf_init_stratified(world_model, args, init_obs,
-                                      init_strata, n_particles)
-    elseif !isnothing(init_proposal)
-        pf_state = pf_initialize(world_model, args, init_obs,
-                                 init_proposal, init_proposal_args,
-                                 n_particles)
+    if isnothing(init_strata)
+        if isnothing(init_proposal)
+            pf_state = pf_initialize(world_model, args, init_obs, n_particles)
+        else
+            pf_state = pf_initialize(world_model, args, init_obs,
+                                     init_proposal, init_proposal_args,
+                                     n_particles)
+        end       
     else
-        pf_state = pf_initialize(world_model, args, init_obs, n_particles)
+        if isnothing(init_proposal)
+            pf_state = pf_initialize(world_model, args, init_obs, init_strata,
+                                     n_particles)
+        else
+            pf_state = pf_initialize(world_model, args, init_obs, init_strata,
+                                     init_proposal, init_proposal_args,
+                                     n_particles)
+        end
     end
     return pf_state
 end
@@ -108,7 +115,7 @@ function sips_step!(
     # Optionally rejuvenate
     if sips_trigger_cond(sips, sips.rejuv_cond, t, pf_state)
         pf_rejuvenate!(pf_state, sips.rejuv_kernel)
-    end    
+    end
     return pf_state
 end
 

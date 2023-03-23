@@ -19,6 +19,7 @@ SymbolicPlanners = "b6fe5377-9711-4fad-95b0-be4eed71ecbb"
 
 [compat]
 Gen = "0.4"
+GenParticleFilters = "0.2.0"
 Julog = "0.1.4"
 PDDL = "0.2.0"
 julia = "1.3"
