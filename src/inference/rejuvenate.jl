@@ -53,7 +53,7 @@ struct MixtureKernel{Ks <: Tuple} <: RejuvenationKernel
 end
 
 MixtureKernel(probs, subkernels) =
-    MixtureKernel(probs, convert(Tuple, subkernels))
+    MixtureKernel(probs, Tuple(collect(subkernels)))
 MixtureKernel(probs, k::Union{Function,RejuvenationKernel}, ks...) =
     MixtureKernel(probs, (k, ks...))
 
@@ -65,8 +65,8 @@ end
 """
     ReplanKernel(n::Int=1)
 
-Performs Metropolis-Hastings resimulation moves on the agent's planning steps
-for the past `n` steps, starting from the earliest of those steps.
+Performs a single Metropolis-Hastings resimulation move on the agent's planning
+steps for the past `n` steps.
 """
 struct ReplanKernel <: RejuvenationKernel
     n::Int
@@ -75,12 +75,10 @@ end
 ReplanKernel() = ReplanKernel(1)
 
 function (kernel::ReplanKernel)(trace::Trace)
-    accept = false
     n_steps = Gen.get_args(trace)[1]
-    for t in (n_steps-kernel.n+1):n_steps
-        trace, accept = mh(trace, select(:timestep => t => :agent => :plan))
-    end
-    return trace, accept
+    start = max(n_steps-kernel.n+1, 1)
+    sel = select((:timestep => t => :agent => :plan for t in start:n_steps)...)
+    return mh(trace, sel)
 end
 
 """
@@ -109,7 +107,8 @@ RecentGoalKernel() = RecentGoalKernel(1)
 function (kernel::RecentGoalKernel)(trace::Trace)
     accept = false
     n_steps = Gen.get_args(trace)[1]
-    for t in (n_steps-kernel.n+1):n_steps
+    start = max(n_steps-kernel.n+1, 1)
+    for t in start:n_steps
         trace, accept = mh(trace, select(:timestep => t => :agent => :goal))
     end
     return trace, accept
