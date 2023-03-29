@@ -28,15 +28,19 @@ start_pos = (state[pddl"xpos"], state[pddl"ypos"])
 manhattan = ManhattanHeuristic(@pddl("xpos", "ypos"))
 
 # Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(manhattan)
+planner = AStarPlanner(manhattan, save_search=true, save_search_order=true)
 sol = planner(domain, state, goal)
 
+# Visualize resulting plan
 plan = collect(sol)
 plt = render(state; start=start_pos, goals=goal_pos, plan=plan)
-anim = anim_traj(sol.traj, plt)
-@assert satisfy(domain, traj[end], goal) == true
+anim = anim_trajectory(sol.trajectory, plt)
+@assert satisfy(domain, sol.trajectory[end], goal) == true
 
-#--- Goal Inference Setup ---#
+# Visualise search process
+anim = anim_search(state, sol, start=start_pos, goals=goal_pos)
+
+#--- Model Configuration ---#
 
 # Specify possible goals
 goal_set = [(1, 1), (8, 1), (8, 8)]
@@ -48,7 +52,9 @@ goal_names = [string(g) for g in goal_set]
 @gen function goal_prior()
     Specification(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
 end
-goal_strata = Dict((:init=>:agent=>:goal=>:goal) => collect(1:length(goals)))
+# Construct iterator over goal choicemaps for stratified sampling
+goal_addr = :init => :agent => :goal => :goal
+goal_strata = choiceproduct((goal_addr, 1:length(goals)))
 
 # Cache domain for faster performance
 domain = CachedDomain(domain)
@@ -58,9 +64,12 @@ manhattan = ManhattanHeuristic(@pddl("xpos", "ypos"))
 planner = ProbAStarPlanner(manhattan, search_noise=0.1)
 agent_config = AgentConfig(
     domain, planner;
-    goal_config = StaticGoalConfig(goal_prior), # Assume fixed goal over time
-    replan_args = (budget_dist_args=(2, 0.05, 1),), # Assume random search budget
-    act_epsilon = 0.05,  # Assume a small amount of action noise
+    # Assume fixed goal over time
+    goal_config = StaticGoalConfig(goal_prior),
+    # Assume random replanning, random search budget
+    replan_args = (prob_replan=0.1, budget_dist_args=(2, 0.05, 1),),
+    # Assume a small amount of action noise
+    act_epsilon = 0.05,
 )
 
 # Assume Gaussian observation noise around agent's location
@@ -73,6 +82,8 @@ world_config = WorldConfig(
     env_config = PDDLEnvConfig(domain, state),
     obs_config = MarkovObsConfig(domain, obs_params)
 )
+
+#--- Online Goal Inference ---#
 
 # Sample a trajectory as the ground truth (no observation noise)
 likely_traj = true
@@ -91,24 +102,25 @@ else
 end
 plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
 plt = render!(obs_traj, plt; alpha=0.5)
-anim = anim_traj(obs_traj, plt)
+anim = anim_trajectory(obs_traj, plt)
 
-#--- Online Goal Inference ---#
-
+# Define callback function
 callback = (t, obs, pf_state) -> begin
     print("t=$t\t")
     print_goal_probs(get_goal_probs(pf_state, 1:length(goal_set)))
+    # display(render_cb(t, obs, pf_state; canvas=plt, goal_colors=goal_colors))
 end
 
-obs_choices = state_choicemap_vec(obs_traj, obs_terms; batch_size=3)
+t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
 
 # Configure SIPS particle filter
-sips = SIPS(world_config, resample_cond=:ess)
+sips = SIPS(world_config, resample_cond=:always, rejuv_cond=:always,
+            rejuv_kernel=ReplanKernel(2))
 
 # Run a particle filter to perform online goal inference
 n_samples = 60
 pf_state = sips(
-    n_samples, obs_choices;
+    n_samples, t_obs_iter;
     init_args=(init_strata=goal_strata,),
     callback=callback
 )

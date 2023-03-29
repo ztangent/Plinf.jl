@@ -112,24 +112,24 @@ function render_pos!(state::State, plt=nothing;
 end
 
 "Render planned trajectories for each (weighted) trace of the world model."
-function render_traces!(traces, weights=nothing, plt=nothing;
+function render_traces!(pf_state::ParticleFilterState, plt=nothing;
                         goal_colors=cgrad(:plasma)[1:3:30], max_alpha=0.75,
                         kwargs...)
-    weights = weights == nothing ? lognorm(get_score.(traces)) : weights
-    for (tr, w) in zip(traces, weights)
-        world_traj = get_retval(tr)
-        plan_traj = [ws.agent_state.plan_state for ws in world_traj]
-        env_traj = extract_traj(plan_traj)
+    for (tr, w) in zip(get_traces(pf_state), get_norm_weights(pf_state))
+        t = Gen.get_args(tr)[1]
+        plan_state = tr[:timestep => t => :agent => :plan]
+        t_offset = t - plan_state.init_step + 1
+        future_traj = plan_state.sol.trajectory[t_offset+1:end]
         color = goal_colors[tr[:init => :agent => :goal => :goal]]
-        render!(env_traj; alpha=max_alpha*exp(w), color=color, radius=0.175)
+        render!(future_traj; alpha=max_alpha*w, color=color, radius=0.175)
     end
 end
 
 ## Gridworld animation functions ##
 
-"Render animation of state trajectory/ies."
-function anim_traj(trajs, canvas=nothing, animation=nothing;
-                   show=true, fps=3, kwargs...)
+"Render animation of state trajectory or trajectories."
+function anim_trajectory(trajs, canvas=nothing, animation=nothing;
+                         show=true, fps=3, kwargs...)
     if isa(trajs, Vector{<:State}) trajs = [trajs] end
     canvas = canvas == nothing ?
         render(trajs[1][1]; show_objs=false, kwargs...) : canvas
@@ -147,26 +147,25 @@ function anim_traj(trajs, canvas=nothing, animation=nothing;
 end
 
 "Animate planner node expansions during tree search."
-function anim_plan(trace, canvas, animation=nothing; show=true, fps=10,
-                   node_radius=0.1, search_color=:red, search_alpha=0.5,
-                   plan_color=:blue, plan_alpha=0.5, kwargs...)
-    plt = deepcopy(canvas)
-    animation = animation == nothing ? Animation() : animation
-    # Unpack choices and retval of trace
-    choices, (_, traj) = isa(trace, Trace) ? (get_choices(trace), tr[]) : trace
-    node_choices = OrderedDict(get_values_shallow(choices))
-    sort!(filter!(p -> p[1][1] == :state, node_choices))
-    # Render each node expanded in sequence
-    for state in values(node_choices)
-        height = size(state[pddl"walls"])[1]
-        x, y = state[pddl"xpos"], state[pddl"ypos"]
+function anim_search(
+    state::State, sol::PathSearchSolution, animation=Animation();
+    show=true, fps=10, node_radius=0.1,
+    search_color=:red, search_alpha=0.5,
+    plan_color=:blue, plan_alpha=0.5, kwargs...
+)
+    plt = render(state; kwargs...)
+    # Sequentially render each node expanded during search
+    for node_id in sol.search_order
+        state = sol.search_tree[node_id].state
+        height = size(state[pddl"(walls)"])[1]
+        x, y = state[pddl"(xpos)"], state[pddl"(ypos)"]
         dot = make_circle(x, height-y+1, node_radius)
         plt = plot!(plt, dot, color=search_color, alpha=search_alpha,
                     linealpha=0, legend=false)
         frame(animation, plt)
     end
     # Render final plan
-    plt = render!(traj, plt; alpha=plan_alpha,
+    plt = render!(sol.trajectory, plt; alpha=plan_alpha,
                   color=plan_color, radius=node_radius*1.5)
     if show display(plt) end
     frame(animation, plt)
@@ -291,13 +290,22 @@ end
 ## Particle filter callback functions ##
 
 "Callback function that renders each state."
-function render_cb(t::Int, state, traces, weights; canvas=nothing, kwargs...)
+function render_cb(t::Int, obs, pf_state; canvas=nothing, kwargs...)
+    # Get observed state
+    obs_addr = t == 0 ? :init => :obs : :timestep => t => :obs 
+    obs_state = pf_state.traces[1][obs_addr]
     # Render canvas if not provided
-    plt = canvas == nothing ? render(state; kwargs...) : deepcopy(canvas)
+    plt = isnothing(canvas) ? render(obs_state; kwargs...) : deepcopy(canvas)
     # Render agent's current position
-    render_pos!(state, plt; kwargs...)
-    # Render predicted trajectories
-    render_traces!(traces, weights, plt; kwargs...)
+    render_pos!(obs_state, plt; kwargs...)
+    if t > 0
+        # # Render agent's previous position
+        # obs_addr = t == 1 ? :init => :obs : :timestep => t-1 => :obs 
+        # obs_state = pf_state.traces[1][obs_addr]
+        # render_pos!(obs_state, plt; alpha=0.5, kwargs...)
+        # Render predicted trajectories
+        render_traces!(pf_state, plt; kwargs...)
+    end
     title!(plt, "t = $t")
     return plt
 end

@@ -15,9 +15,12 @@ function get_goal_probs(traces, weights, goal_idxs=[])
 end
 
 function get_goal_probs(pf_state::ParticleFilterState, goal_idxs=[])
-    traces = get_traces(pf_state)
-    weights = get_log_norm_weights(pf_state)
-    return get_goal_probs(traces, weights, goal_idxs)
+    goal_probs = proportionmap(pf_state, :init => :agent => :goal => :goal)
+    goal_probs = OrderedDict(goal_probs)
+    for idx in goal_idxs
+        goal_probs[idx] = 0.0
+    end
+    return goal_probs
 end
 
 function print_goal_probs(goal_probs)
