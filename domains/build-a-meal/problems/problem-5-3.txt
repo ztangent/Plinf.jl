@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently ohave flour, eggs, honey, milk, chocolate, strawberry, vanilla, a knife, a chopping board, a stove, a mixing bowl, an mixer, a frying basket, a deep fryer, an oven and a plate.
+Goal:
+A tasty chocolate donut made from eggs, flour, and chocolate, mixed together and then deep fried.

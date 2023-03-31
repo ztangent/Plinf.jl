@@ -1,0 +1,4 @@
+Initial State:
+Someone is in the kitchen and wants to make a meal. They currently have eggs, flour, mushrooms, onion, olives, chicken, beef, tomato, cheese, sausage, chicken, ham, pineapple, olive, a knife, a chopping board, a stove, a tray, an oven and a plate.
+Goal:
+Hawaiian style pizza made with mozarella cheese, tomato sauce, ham, and pineapple, baked on pizza dough made from egg and flour.
