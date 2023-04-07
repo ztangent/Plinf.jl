@@ -18,7 +18,7 @@ function get_goal_probs(pf_state::ParticleFilterState, goal_idxs=[])
     goal_probs = proportionmap(pf_state, :init => :agent => :goal => :goal)
     goal_probs = OrderedDict(goal_probs)
     for idx in goal_idxs
-        goal_probs[idx] = 0.0
+        get!(goal_probs, idx, 0.0)
     end
     return goal_probs
 end

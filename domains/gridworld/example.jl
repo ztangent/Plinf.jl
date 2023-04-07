@@ -1,10 +1,10 @@
 using Julog, PDDL, Printf
 using SymbolicPlanners, Plinf
 using Gen, GenParticleFilters
+using PDDLViz, GLMakie
 
 include("utils.jl")
 include("ascii.jl")
-include("render.jl")
 
 #--- Initial Setup ---#
 
@@ -22,6 +22,21 @@ goal = [problem.goal]
 goal_pos = goal_to_pos(problem.goal)
 start_pos = (state[pddl"xpos"], state[pddl"ypos"])
 
+#--- Define Renderer ---#
+
+# Construct gridworld renderer
+loc_colors = PDDLViz.colorschemes[:vibrant]
+renderer = PDDLViz.GridworldRenderer(
+    agent_renderer = (d, s) -> HumanGraphic(color=:black),
+    locations = [
+        (start_pos..., "start", loc_colors[1]),
+        (goal_pos..., "goal", loc_colors[2]),
+    ]
+)
+
+# Visualize initial state
+canvas = renderer(domain, state)
+
 #--- Visualize Plans ---#
 
 # Set up Manhattan heuristic on x and y positions
@@ -33,12 +48,14 @@ sol = planner(domain, state, goal)
 
 # Visualize resulting plan
 plan = collect(sol)
-plt = render(state; start=start_pos, goals=goal_pos, plan=plan)
-anim = anim_trajectory(sol.trajectory, plt)
+canvas = renderer(canvas, domain, state, plan)
 @assert satisfy(domain, sol.trajectory[end], goal) == true
 
-# Visualise search process
-anim = anim_search(state, sol, start=start_pos, goals=goal_pos)
+# Visualise search tree
+canvas = renderer(canvas, domain, state, plan, show_trajectory=false)
+
+# Animate plan
+anim = anim_plan(renderer, domain, state, plan; format="mp4", framerate=5)
 
 #--- Model Configuration ---#
 
@@ -47,6 +64,12 @@ goal_set = [(1, 1), (8, 1), (8, 8)]
 goals = [pos_to_terms(g) for g in goal_set]
 goal_colors = [:orange, :magenta, :blue]
 goal_names = [string(g) for g in goal_set]
+
+# Update renderer to include goal locations
+renderer.locations = [
+    [(start_pos..., "start", loc_colors[1])];
+    [(g..., "goal", loc_colors[i]) for (i, g) in enumerate(goal_set)]
+]
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
@@ -100,15 +123,14 @@ else
     sol3 = astar(domain, sol2.trajectory[end], pos_to_terms((5, 1)))
     obs_traj = [sol1.trajectory[2:end]; sol2.trajectory[2:end]; sol3.trajectory[2:end]]
 end
-plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
-plt = render!(obs_traj, plt; alpha=0.5)
-anim = anim_trajectory(obs_traj, plt)
+canvas = renderer(domain, [state; obs_traj])
+anim = anim_trajectory!(canvas, renderer, domain, [state; obs_traj];
+                        format="mp4", framerate=5)
 
 # Define callback function
 callback = (t, obs, pf_state) -> begin
     print("t=$t\t")
     print_goal_probs(get_goal_probs(pf_state, 1:length(goal_set)))
-    # display(render_cb(t, obs, pf_state; canvas=plt, goal_colors=goal_colors))
 end
 
 t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
