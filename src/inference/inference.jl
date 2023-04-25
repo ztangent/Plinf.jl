@@ -3,8 +3,10 @@ import Gen: ParticleFilterState
 export SequentialInversePlanSearch, SIPS
 export sips_init, sips_run, sips_step!
 
+include("utils.jl")
 include("choicemaps.jl")
 include("rejuvenate.jl")
+include("callbacks.jl")
 
 """
     SequentialInversePlanSearch(

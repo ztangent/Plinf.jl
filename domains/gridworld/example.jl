@@ -1,4 +1,4 @@
-using Julog, PDDL, Printf
+using PDDL, Printf
 using SymbolicPlanners, Plinf
 using Gen, GenParticleFilters
 using PDDLViz, GLMakie
@@ -128,18 +128,23 @@ canvas = renderer(domain, obs_traj)
 anim = anim_trajectory!(canvas, renderer, domain, obs_traj;
                         format="gif", framerate=5)
 
-# Define callback function
-callback = (t, obs, pf_state) -> begin
-    print("t=$t\t")
-    print_goal_probs(get_goal_probs(pf_state, 1:length(goal_set)))
-end
+# Define callback functions
+print_cb = PrintStatsCallback(
+    (goal_addr, 1:length(goals));
+    header="t\tP(A)\tP(B)\tP(C)\n"
+);
+logger_cb = DataLoggerCallback(
+    t = (t, pf) -> t,
+    goal_probs = pf -> probvec(pf, goal_addr, 1:length(goals)) 
+)
+callback = CombinedCallback(print_cb, logger_cb)
 
 # Construct iterator over observation timesteps and choicemaps 
 t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
 
 # Configure SIPS particle filter
-sips = SIPS(world_config, resample_cond=:always, rejuv_cond=:always,
-            rejuv_kernel=ReplanKernel(2))
+sips = SIPS(world_config, resample_cond=:periodic, rejuv_cond=:periodic,
+            rejuv_kernel=ReplanKernel(2), period=5)
 
 # Run particle filter to perform online goal inference
 n_samples = 60
@@ -147,4 +152,4 @@ pf_state = sips(
     n_samples, t_obs_iter;
     init_args=(init_strata=goal_strata,),
     callback=callback
-)
+);
