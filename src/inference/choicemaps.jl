@@ -45,7 +45,7 @@ function state_choicemap(
         obs_terms = ground_obs_terms(obs_terms, domain, state)
     end
     # Construct choicemap
-    choices = choicemap((t => state[t] for t in obs_terms)...)
+    choices = choicemap((term => state[term] for term in obs_terms)...)
     if addr !== nothing
         outer_choices = choicemap()
         set_submap!(outer_choices, addr, choices)
@@ -57,6 +57,8 @@ end
 """
     state_choicemap_vec(
         states, obs_terms;
+        include_init = true,
+        init_addr = :init => :obs,
         addr_fn = t -> :timestep => t => :obs,
         batch_size = 1,
         split_idxs = nothing
@@ -65,25 +67,39 @@ end
 Construct a vector of Gen choicemaps from observed fluent terms in a sequence of
 PDDL `states`. Each term will serve as the choice's base address.
 
-The function `addr_fn` will be used to construct a hierarchical address from
-the index of each state. By default, observed terms for the `t`th state will be
-under the address `:timestep => t => :obs`.
+The `init_addr` argument determines the address of the initial observation.
+If `include_init` is `true`, the first element of `states` will be converted to
+a choicemap for the initial observation (i.e. timestep 0), which is returned 
+as the first element of the vector. Otherwise, the first element of `states`
+will be treated as the observation for timestep 1. 
 
-The `batch_size` variable determines how many states are batched into a single
-choicemap. By default, each state has its own choicemap. If `batch_size` is set
-to `:all`, all states are returned in a single choicemap.
+The function `addr_fn` will be used to construct a hierarchical address from
+the index of each (non-initial) state. By default, observed terms for the `t`th
+state will be under the address `:timestep => t => :obs`, where `t = 1`
+corresponds to the first element of `states` if `include_init` is `false`, and
+to the second element otherwise.
+
+The `batch_size` variable determines how many (non-initial) states are
+batched into a single choicemap. By default, each state has its own choicemap.
+If `batch_size` is set to `:all`, all states are returned in a single choicemap.
 
 Instead of specifying `batch_size`, a list of `split_idxs` to specify the
 indices at which a state trajectory should be split into batches.
 """
 function state_choicemap_vec(
     states::AbstractVector{<:State}, obs_terms::AbstractVector{<:Term};
-    addr_fn = t-> :timestep => t => :obs,
+    include_init = true, init_addr = :init => :obs,
+    addr_fn = t -> :timestep => t => :obs,
     batch_size = 1, split_idxs = nothing, domain = nothing
 )
     # Ground terms if domain is provided
     if domain !== nothing
         obs_terms = ground_obs_terms(obs_terms, domain, state)
+    end
+    # Construct initial choices
+    if include_init
+        init_choices = state_choicemap(states[1], obs_terms; addr=init_addr)
+        states = states[2:end]
     end
     # Partition states into batches
     if split_idxs !== nothing
@@ -99,7 +115,11 @@ function state_choicemap_vec(
             state_choices = state_choicemap(state, obs_terms; addr=nothing)
             set_submap!(choices, addr_fn(t), state_choices)
         end
-        return choices
+        return choices::DynamicChoiceMap
+    end
+    # Add initial choice map
+    if include_init
+        pushfirst!(choices_vec, init_choices)
     end
     return choices_vec
 end
@@ -107,6 +127,8 @@ end
 """
     state_choicemap_pairs(
         states, obs_terms;
+        include_init = true,
+        init_addr = :init => :obs,
         addr_fn = t -> :timestep => t => :obs,
         batch_size = 1,
         split_idxs = nothing
@@ -117,16 +139,27 @@ in a sequence of PDDL `states`, where `t` is the last timestep of the batch
 of states represented by each choicemap. Each term will serve as the
 choice's base address.
 
+If `include_init` is `true`, the first element of `states` will be converted to
+a choicemap for the initial observation (i.e. `t = 0`), which is returned 
+as the first element of the vector. Otherwise, the first element of `states`
+will be treated as the observation for `t = 1`.
+
 See [`state_choicemap_vec`](@ref) for explanation of other arguments.
 """
 function state_choicemap_pairs(
     states::AbstractVector{<:State}, obs_terms::AbstractVector{<:Term};
+    include_init = true, init_addr = :init => :obs,
     addr_fn = t-> :timestep => t => :obs,
     batch_size = 1, split_idxs = nothing, domain = nothing
 )
     # Ground terms if domain is provided
     if domain !== nothing
         obs_terms = ground_obs_terms(obs_terms, domain, state)
+    end
+    # Construct initial choices
+    if include_init
+        init_choices = state_choicemap(states[1], obs_terms; addr=init_addr)
+        states = states[2:end]
     end
     # Partition states into batches
     if split_idxs !== nothing
@@ -144,7 +177,11 @@ function state_choicemap_pairs(
             state_choices = state_choicemap(state, obs_terms; addr=nothing)
             set_submap!(choices, addr_fn(t), state_choices)
         end
-        return t_batch => choices
+        return (t_batch => choices)::Pair{Int, DynamicChoiceMap}
+    end
+    # Merge initial choice map into first choicemap
+    if include_init
+        pushfirst!(t_choice_pairs, 0 => init_choices)
     end
     return t_choice_pairs
 end

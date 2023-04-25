@@ -17,7 +17,7 @@ for the agent-environment model defined by `world_config`.
 
 # Arguments
 
-$(FIELDS)
+$(TYPEDFIELDS)
 """
 @kwdef struct SequentialInversePlanSearch{W <: WorldConfig, K}
     "Configuration of world model to perform inference over."
@@ -129,8 +129,19 @@ state.
 """
 function sips_run(
     sips::SIPS, n_particles::Int, t_obs_iter;
-    init_args, callback = (t, obs, pf_state) -> nothing
+    init_args = Dict{Symbol, Any}(),
+    callback = (t, obs, pf_state) -> nothing
 )
+    # Extract initial observation from iterator
+    if first(t_obs_iter)[1] == 0
+        _, init_obs = first(t_obs_iter)
+        if !(init_args isa Dict{Symbol, Any})
+            init_args = Dict{Symbol, Any}(pairs(init_args))
+        end
+        init_args[:init_timestep] = 0
+        init_args[:init_obs] = init_obs
+        t_obs_iter = Iterators.drop(t_obs_iter, 1)
+    end
     # Initialize particle filter
     pf_state = sips_init(sips, n_particles; init_args...)
     callback(get_model_timestep(pf_state), EmptyChoiceMap(), pf_state)
@@ -146,8 +157,16 @@ end
 function sips_run(
     sips::SIPS, n_particles::Int,
     observations::AbstractVector{<:ChoiceMap},
-    timesteps=1:length(observations);
+    timesteps=nothing;
     kwargs...
 )
+    if isnothing(timesteps) && !isempty(observations)
+        init_obs = first(observations)
+        if has_submap(init_obs, :init) && !has_submap(init_obs, :timestep)
+            timesteps = 0:length(observations)-1
+        else
+            timesteps = 1:length(observations)
+        end
+    end
     return sips_run(sips, n_particles, zip(timesteps, observations); kwargs...)
 end
