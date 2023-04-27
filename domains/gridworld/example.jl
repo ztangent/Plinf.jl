@@ -73,7 +73,8 @@ renderer.locations = [
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
-    Specification(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
+    goal ~ uniform_discrete(1, length(goals))
+    return Specification(goals[goal])
 end
 # Construct iterator over goal choicemaps for stratified sampling
 goal_addr = :init => :agent => :goal => :goal
@@ -128,23 +129,47 @@ canvas = renderer(domain, obs_traj)
 anim = anim_trajectory!(canvas, renderer, domain, obs_traj;
                         format="gif", framerate=5)
 
-# Define callback functions
+# Define callback functions for printing and logging data
 print_cb = PrintStatsCallback(
     (goal_addr, 1:length(goals));
     header="t\tP(A)\tP(B)\tP(C)\n"
-);
-logger_cb = DataLoggerCallback(
-    t = (t, pf) -> t,
-    goal_probs = pf -> probvec(pf, goal_addr, 1:length(goals)) 
 )
-callback = CombinedCallback(print_cb, logger_cb)
+logger_cb = DataLoggerCallback(
+    t = (t, pf) -> t::Int,
+    goal_probs = pf -> probvec(pf, goal_addr, 1:length(goals))::Vector{Float64},
+    lml_est = pf -> log_ml_estimate(pf)::Float64,
+)
+
+# Define callback functions for plotting
+figure = Figure(resolution=(800, 400))
+goal_bars_cb = PlotCallback(
+    barplot, figure[1, 1],
+    (t, pf) -> probvec(pf, goal_addr, 1:length(goals))::Vector{Float64};
+    color = goal_colors,
+    axis = (xlabel="Goal", ylabel = "Probability", limits=(nothing, (0, 1)), 
+            xticks=(1:length(goals), goal_names))
+)
+goal_lines_cb = DataLoggerPlotCallback(
+    series, figure[1, 2], logger_cb, :goal_probs, ps -> reduce(hcat, ps),
+    color = goal_colors,
+    axis = (xlabel="Time", ylabel = "Probability", limits=(nothing, (0, 1)))
+)
+
+# Combine all callback functions
+sleep_cb = (t, obs, pf) -> sleep(0.1)
+callback = CombinedCallback(
+    print_cb, logger_cb, goal_bars_cb, goal_lines_cb, sleep_cb
+)
 
 # Construct iterator over observation timesteps and choicemaps 
 t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
 
 # Configure SIPS particle filter
-sips = SIPS(world_config, resample_cond=:periodic, rejuv_cond=:periodic,
+sips = SIPS(world_config, resample_cond=:none, rejuv_cond=:periodic,
             rejuv_kernel=ReplanKernel(2), period=5)
+
+# Empty logger of data
+empty!(logger_cb)
 
 # Run particle filter to perform online goal inference
 n_samples = 60

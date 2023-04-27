@@ -1,5 +1,6 @@
 export SIPSCallback, CombinedCallback
 export PrintStatsCallback, DataLoggerCallback
+export PlotCallback, DataLoggerPlotCallback
 
 import DataStructures: OrderedDict
 
@@ -124,12 +125,18 @@ end
 
 function DataLoggerCallback(loggers::AbstractDict; verbose = false, io = stdout)
     loggers = OrderedDict{Symbol, Any}(loggers)
-    return DataLoggerCallback(loggers, Dict{Symbol, Any}(), verbose, io)
+    # Initialize data store for each logger
+    data = Dict{Symbol, Any}()
+    for (name, logger) in loggers
+        T = Union{Base.return_types(logger)...}
+        data[name] = Vector{T}()
+    end
+    return DataLoggerCallback(loggers, data, verbose, io)
 end
 
 function DataLoggerCallback(;verbose = false, io = stdout, loggers...)
     loggers = OrderedDict{Symbol, Any}(pairs(loggers))
-    return DataLoggerCallback(loggers, Dict{Symbol, Any}(), verbose, io)
+    return DataLoggerCallback(loggers; verbose=verbose, io=io)
 end
 
 function (cb::DataLoggerCallback)(t::Int, obs, pf_state)
@@ -192,4 +199,116 @@ function (cb::DataLoggerCallback)(t::Int, obs, pf_state)
     end
 end
 
-Base.empty!(cb::DataLoggerCallback) = empty!(cb.data)
+function Base.empty!(cb::DataLoggerCallback)
+    for v in values(cb.data)
+        empty!(v)
+    end
+    return cb
+end
+
+mutable struct PlotCallback{P, T, U} <: SIPSCallback
+    plot_type::P
+    grid_pos::GridPosition
+    logger::T
+    converter::U
+    kwargs::Dict
+    data_source::Any
+    data_obs::Union{Observable, Nothing}
+    has_plot::Bool
+end
+
+function PlotCallback(
+    plot_type_or_fn::Union{Type, Function},
+    grid_pos_or_fig::Union{GridPosition, Figure},
+    logger::Function, converter = identity; kwargs...    
+)
+    plot_type = plot_type_or_fn isa Type ?
+        plot_type_or_fn : Combined{plot_type_or_fn}
+    grid_pos = grid_pos_or_fig isa GridPosition ?
+        grid_pos_or_fig : grid_pos_or_fig[1, 1]
+    kwargs = Dict(kwargs...)
+    data_source = nothing
+    data_obs = nothing
+    has_plot = false
+    return PlotCallback(plot_type, grid_pos, logger, converter,
+                        kwargs, data_source, data_obs, has_plot)
+end
+
+function PlotCallback(
+    plot_type_or_fn::Union{Type, Function},
+    logger::Function, converter = identity; kwargs...    
+)
+    return PlotCallback(plot_type_or_fn, Figure(), logger, converter; kwargs...)
+end
+
+function DataLoggerPlotCallback(
+    plot_type_or_fn::Union{Type, Function},
+    grid_pos_or_fig::Union{GridPosition, Figure},
+    logger_cb::DataLoggerCallback, logger_var::Symbol,
+    converter = identity; kwargs...
+)
+    plot_type = plot_type_or_fn isa Type ?
+        plot_type_or_fn : Combined{plot_type_or_fn}
+    grid_pos = grid_pos_or_fig isa GridPosition ?
+        grid_pos_or_fig : grid_pos_or_fig[1, 1]
+    logger = nothing
+    kwargs = Dict(kwargs...)
+    data_source = logger_cb.data[logger_var]
+    data_obs = nothing
+    has_plot = false
+    return PlotCallback(plot_type, grid_pos, logger, converter,
+                        kwargs, data_source, data_obs, has_plot)
+end
+
+function DataLoggerPlotCallback(
+    plot_type_or_fn::Union{Type, Function},
+    logger_cb::DataLoggerCallback, logger_var::Symbol,
+    converter = identity; kwargs...
+)
+    return DataLoggerPlotCallback(
+        plot_type_or_fn, Figure(), logger_cb, logger_var,
+        converter, kwargs...
+    )
+end
+
+function (cb::PlotCallback)(t::Int, obs, pf_state)
+    if !isnothing(cb.logger) # Update data using logger if one is defined 
+        if applicable(cb.logger, t, obs, pf_state)
+            val = cb.logger(t, obs, pf_state)
+        elseif applicable(cb.logger, t, pf_state)
+            val = cb.logger(t, pf_state)
+        elseif applicable(cb.logger, pf_state)
+            val = cb.logger(pf_state)
+        else
+            error("Logger cannot be called on arguments.")
+        end
+        if isnothing(cb.data_obs)
+            cb.data_obs = Observable(cb.converter(val))
+        else
+            cb.data_obs[] = cb.converter(val)
+        end
+    else # Otherwise update data from data source
+        if isnothing(cb.data_source)
+            error("No data source defined.")
+        end
+        if isnothing(cb.data_obs)
+            cb.data_obs = Observable(cb.converter(cb.data_source))
+        else
+            cb.data_obs[] = cb.converter(cb.data_source)
+        end
+    end
+    # Create plot if one doesn't already exist
+    if !cb.has_plot
+        if isempty(contents(cb.grid_pos))
+            plot(cb.plot_type, cb.grid_pos, cb.data_obs; cb.kwargs...)
+        else
+            plot!(cb.plot_type, cb.grid_pos, cb.data_obs; cb.kwargs...)
+        end
+        cb.has_plot = true
+    end
+    # Reset limits for axis
+    ax = contents(cb.grid_pos)[1]
+    reset_limits!(ax)
+    # Return figure associated with grid position
+    return cb.grid_pos.layout.parent
+end

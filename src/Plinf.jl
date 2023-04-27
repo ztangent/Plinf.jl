@@ -6,6 +6,8 @@ using Parameters: @unpack
 using PDDL, SymbolicPlanners
 using Random, Gen, GenParticleFilters
 
+using PDDLViz, Makie
+
 using Printf
 using DocStringExtensions
 
