@@ -1,7 +1,7 @@
 export SIPSCallback, CombinedCallback
 export PrintStatsCallback, DataLoggerCallback
 export PlotCallback, BarPlotCallback, SeriesPlotCallback
-export RenderCallback
+export RenderCallback, RecordCallback
 
 import DataStructures: OrderedDict
 
@@ -365,7 +365,13 @@ function (cb::PlotCallback)(t::Int, obs, pf_state)
         if isempty(contents(cb.grid_pos))
             plot(cb.plot_type, cb.grid_pos, cb.data_obs; cb.kwargs...)
         else
-            plot!(cb.plot_type, cb.grid_pos, cb.data_obs; cb.kwargs...)
+            if haskey(cb.kwargs, :axis)
+                kwargs = copy(cb.kwargs)
+                delete!(kwargs, :axis)
+            else
+                kwargs = cb.kwargs
+            end
+            plot!(cb.plot_type, cb.grid_pos, cb.data_obs; kwargs...)
         end
         cb.has_plot = true
     end
@@ -454,4 +460,35 @@ function (cb::RenderCallback)(t::Int, obs, pf_state)
     end
     # Return canvas
     return cb.canvas
+end
+
+"""
+    RecordCallback(figure::Figure; kwargs...)
+
+Callback that records frames from a figure to an animation object. Keyword
+arguments are passed to the `Animation` constructor, which can be used to 
+configure the animation `format`, `framerate` (default: `5`), etc. See 
+`Makie.record` for more details.
+"""
+struct RecordCallback <: SIPSCallback
+    figure::Figure
+    animation::PDDLViz.Animation
+end
+
+function RecordCallback(figure::Figure; framerate=5, visible=true, kwargs...)
+    animation = PDDLViz.Animation(figure; framerate=framerate,
+                                  visible=visible, kwargs...)
+    RecordCallback(figure, animation)
+end
+
+RecordCallback(canvas::Canvas; kwargs...) =
+    RecordCallback(canvas.figure; kwargs...)
+
+function (cb::RecordCallback)(t::Int, obs, pf_state)
+    # If figure is displayed, sleep for long enough to update
+    if !isempty(cb.figure.scene.current_screens)
+        sleep(0.05)
+    end
+    # Record frame to animation object
+    recordframe!(cb.animation)
 end
