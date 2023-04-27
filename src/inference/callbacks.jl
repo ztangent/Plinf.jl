@@ -1,6 +1,6 @@
 export SIPSCallback, CombinedCallback
 export PrintStatsCallback, DataLoggerCallback
-export PlotCallback, DataLoggerPlotCallback
+export PlotCallback, BarPlotCallback, SeriesPlotCallback
 
 import DataStructures: OrderedDict
 
@@ -21,21 +21,31 @@ abstract type SIPSCallback <: Function end
 
 struct CombinedCallback{T <: Tuple} <: SIPSCallback
     callbacks::T
+    sleep::Float64
 end 
 
 """
-    CombinedCallback(callbacks::Function...)
+    CombinedCallback(callbacks::Function...; sleep=0.0)
 
 Callback that combines multiple callbacks into a single callback. Each 
 constituent callback is called in order.
+
+A `sleep` duration can be specified, in which case the callback will sleep for
+up to that many seconds. If the callback takes longer than `sleep` seconds to
+execute, the sleep duration is skipped.
 """
-function CombinedCallback(callbacks::Function...)
-    return CombinedCallback(callbacks)
+function CombinedCallback(callbacks::Function...; sleep::Real = 0.0)
+    return CombinedCallback(callbacks, Float64(sleep))
 end
 
 function (cb::CombinedCallback)(t::Int, obs, pf_state)
+    t_start = time()
     for callback in cb.callbacks
         callback(t, obs, pf_state)
+    end
+    t_elapsed = time() - t_start
+    if cb.sleep > 0 && t_elapsed < cb.sleep
+        sleep(cb.sleep - t_elapsed)
     end
 end
 
@@ -206,6 +216,14 @@ function Base.empty!(cb::DataLoggerCallback)
     return cb
 end
 
+"""
+    PlotCallback
+
+Callback that plots data from the particle filter state at each timestep. Can
+be configured to plot data produced by a logger function (similar to
+[`DataLoggerCallback`](@ref)), or data that has already been logged by 
+a [`DataLoggerCallback`](@ref).
+"""
 mutable struct PlotCallback{P, T, U} <: SIPSCallback
     plot_type::P
     grid_pos::GridPosition
@@ -217,6 +235,24 @@ mutable struct PlotCallback{P, T, U} <: SIPSCallback
     has_plot::Bool
 end
 
+"""
+    PlotCallback(
+        plot::Union{Type, Function},
+        [plot_location::Union{GridPosition, Figure}],
+        logger::Function, converter = identity; kwargs...
+    )
+
+Constructs a `PlotCallback` that plots data from the particle filter state
+using the specified `plot` (e.g. `scatter`, `barplot`, `series`) at the
+specified `plot_location` (a grid position or figure). If `plot_location` is
+not specified, the plot is added to the first position of a new figure.
+
+The `logger` function is used to extract data from the particle filter state,
+and the `converter` function is used to convert the data to a format that can be
+plotted (e.g. concatenating a vector of vectors into a matrix).
+
+Keyword arguments are passed to the plotting function.
+"""
 function PlotCallback(
     plot_type_or_fn::Union{Type, Function},
     grid_pos_or_fig::Union{GridPosition, Figure},
@@ -241,7 +277,25 @@ function PlotCallback(
     return PlotCallback(plot_type_or_fn, Figure(), logger, converter; kwargs...)
 end
 
-function DataLoggerPlotCallback(
+"""
+    PlotCallback(
+        plot::Union{Type, Function},
+        [plot_location::Union{GridPosition, Figure}],
+        logger_cb::DataLoggerCallback, logger_var::Symbol,
+        converter = identity; kwargs...
+    )
+
+Constructs a `PlotCallback` that plots data stored in a `DataLoggerCallback`
+using the specified `plot` (e.g. `scatter`, `barplot`, `series`) at the
+specified `plot_location` (a grid position or figure). 
+
+The `logger_var` is the name of the variable in the `DataLoggerCallback` that
+contains the data to be plotted. The `converter` function is used to convert
+the data to a format that can be plotted.
+
+Keyword arguments are passed to the plotting function.
+"""
+function PlotCallback(
     plot_type_or_fn::Union{Type, Function},
     grid_pos_or_fig::Union{GridPosition, Figure},
     logger_cb::DataLoggerCallback, logger_var::Symbol,
@@ -260,16 +314,24 @@ function DataLoggerPlotCallback(
                         kwargs, data_source, data_obs, has_plot)
 end
 
-function DataLoggerPlotCallback(
+function PlotCallback(
     plot_type_or_fn::Union{Type, Function},
     logger_cb::DataLoggerCallback, logger_var::Symbol,
     converter = identity; kwargs...
 )
-    return DataLoggerPlotCallback(
+    return PlotCallback(
         plot_type_or_fn, Figure(), logger_cb, logger_var,
         converter, kwargs...
     )
 end
+
+"A convenience function for creating a `PlotCallback` for a `barplot`."
+BarPlotCallback(args...; kwargs...) =
+    PlotCallback(BarPlot, args...; kwargs...)
+
+"A convenience function for creating a `PlotCallback` for a `series` plot."
+SeriesPlotCallback(args...; kwargs...) =
+    PlotCallback(Series, args...; kwargs...)
 
 function (cb::PlotCallback)(t::Int, obs, pf_state)
     if !isnothing(cb.logger) # Update data using logger if one is defined 

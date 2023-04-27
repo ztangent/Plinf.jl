@@ -142,23 +142,24 @@ logger_cb = DataLoggerCallback(
 
 # Define callback functions for plotting
 figure = Figure(resolution=(800, 400))
-goal_bars_cb = PlotCallback(
-    barplot, figure[1, 1],
+goal_bars_cb = BarPlotCallback(
+    figure[1, 1],
     (t, pf) -> probvec(pf, goal_addr, 1:length(goals))::Vector{Float64};
     color = goal_colors,
     axis = (xlabel="Goal", ylabel = "Probability", limits=(nothing, (0, 1)), 
             xticks=(1:length(goals), goal_names))
 )
-goal_lines_cb = DataLoggerPlotCallback(
-    series, figure[1, 2], logger_cb, :goal_probs, ps -> reduce(hcat, ps),
+goal_lines_cb = SeriesPlotCallback(
+    figure[1, 2],
+    logger_cb, :goal_probs, # Look up :goal_probs variable from data logger
+    ps -> reduce(hcat, ps); # Convert list of vectors to matrix for plotting
     color = goal_colors,
     axis = (xlabel="Time", ylabel = "Probability", limits=(nothing, (0, 1)))
 )
 
 # Combine all callback functions
-sleep_cb = (t, obs, pf) -> sleep(0.1)
 callback = CombinedCallback(
-    print_cb, logger_cb, goal_bars_cb, goal_lines_cb, sleep_cb
+    print_cb, logger_cb, goal_bars_cb, goal_lines_cb; sleep=0.1
 )
 
 # Construct iterator over observation timesteps and choicemaps 
