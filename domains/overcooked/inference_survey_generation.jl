@@ -67,7 +67,7 @@ end
 goals_paths = filter(readdir(GOALS_DIR, join=true)) do path
     match(r"goals-\d-\d.pddl", path) !== nothing
 end
-plan_paths = [joinpath(PLANS_DIR, "problem-$i-$j", "annotated-plan-$i-$j-1.pddl")
+plan_paths = [joinpath(PLANS_DIR, "problem-$i-$j", "narrative-plan-$i-$j-1.pddl")
               for i in 1:5 for j in 1:5]
 
 # Initialize data frame

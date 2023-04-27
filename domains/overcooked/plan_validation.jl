@@ -16,7 +16,7 @@ problem_paths = filter(readdir(PROBLEM_DIR, join=true)) do path
 end
 
 # Find plan paths
-plan_paths = [joinpath(PLANS_DIR, "problem-$i-$j", "annotated-plan-$i-$j-1.pddl")
+plan_paths = [joinpath(PLANS_DIR, "problem-$i-$j", "narrative-plan-$i-$j-1.pddl")
               for i in 1:5 for j in 1:5]
 
 # Validate that each plan achieves its corresponding goal
