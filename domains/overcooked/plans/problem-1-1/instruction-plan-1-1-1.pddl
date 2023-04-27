@@ -2,7 +2,7 @@
 (pick-up lettuce1 food-loc)
 (move food-loc chop-loc)
 (place-in lettuce1 board1 chop-loc)
-; Place the lettuce in the chopping board.
+; Place the lettuce on the chopping board.
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 lettuce1 chop-loc)
 (put-down knife1 chop-loc)
