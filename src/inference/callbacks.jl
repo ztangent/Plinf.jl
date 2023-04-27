@@ -1,6 +1,7 @@
 export SIPSCallback, CombinedCallback
 export PrintStatsCallback, DataLoggerCallback
 export PlotCallback, BarPlotCallback, SeriesPlotCallback
+export RenderCallback
 
 import DataStructures: OrderedDict
 
@@ -373,4 +374,84 @@ function (cb::PlotCallback)(t::Int, obs, pf_state)
     reset_limits!(ax)
     # Return figure associated with grid position
     return cb.grid_pos.layout.parent
+end
+
+"""
+    RenderCallback(
+        renderer::Renderer, [output], domain::Domain;
+        trajectory=nothing, overlay=nothing, kwargs...
+    )
+
+Callback that renders each new PDDL `State` observed in the process of
+inference. A `Renderer` must be provided, along with a `Domain`. The `output`
+can be `Canvas`, `GridPosition`, or `Figure`. By default, a new `Canvas` is
+created. 
+
+If a `trajectory` is specified, this is used as ground truth sequence of states
+to render. Otherwise, this callback will look up the observed state from the 
+particle filter, but this may sometimes diverge from ground truth.
+
+An `overlay` function can be provided to render additional graphics on top of
+the domain. This function should have the signature:
+
+    overlay(canvas::Canvas, renderer::Renderer, domain::Domain,
+            t::Int, obs::ChoiceMap, pf_state::ParticleFilterState)
+"""
+mutable struct RenderCallback{T <: Renderer, U} <: SIPSCallback
+    renderer::T
+    canvas::Canvas
+    domain::Domain
+    trajectory::Union{Nothing, Vector{<:State}}
+    overlay::U
+    kwargs::Dict
+end
+
+function RenderCallback(
+    renderer::Renderer, canvas::Canvas, domain::Domain;
+    trajectory = nothing, overlay = nothing, kwargs...
+)
+    kwargs = Dict(kwargs...)
+    return RenderCallback(renderer, canvas, domain,
+                            trajectory, overlay, kwargs)
+end
+
+function RenderCallback(
+    renderer::Renderer, domain::Domain;
+    trajectory = nothing, overlay = nothing, kwargs...
+)
+    canvas = PDDLViz.new_canvas(renderer)
+    kwargs = Dict(kwargs...)
+    return RenderCallback(renderer, canvas, domain, trajectory, overlay, kwargs)
+end
+
+function RenderCallback(
+    renderer::Renderer, output::Union{GridPosition,Figure}, domain::Domain;
+    trajectory = nothing, overlay = nothing, kwargs...
+)
+    canvas = PDDLViz.new_canvas(renderer, output)
+    kwargs = Dict(kwargs...)
+    return RenderCallback(renderer, canvas, domain, trajectory, overlay, kwargs)
+end
+
+function (cb::RenderCallback)(t::Int, obs, pf_state)
+    # Extract state from ground-truth trajectory or particle filter
+    if cb.trajectory === nothing
+        obs_addr = t > 0 ? (:timestep => t => :obs) : (:init => :obs)
+        state = pf_state.traces[1][obs_addr]
+    else
+        state = cb.trajectory[t+1]
+    end
+    # Initialize or update animation
+    if cb.canvas.state === nothing
+        anim_initialize!(cb.canvas, cb.renderer, cb.domain, state; cb.kwargs...)
+    else
+        anim_transition!(cb.canvas, cb.renderer, cb.domain,
+                         state, PDDL.no_op, t; cb.kwargs...)
+    end
+    # Overlay additional graphics
+    if cb.overlay !== nothing
+        cb.overlay(cb.canvas, cb.renderer, cb.domain, t, obs, pf_state)
+    end
+    # Return canvas
+    return cb.canvas
 end
