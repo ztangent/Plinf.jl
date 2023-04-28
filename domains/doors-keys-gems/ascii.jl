@@ -6,7 +6,7 @@ function ascii_to_pddl(str::String, name="doors-keys-gems-problem")
     rows = split(str, "\n", keepempty=false)
     width, height = maximum(length.(strip.(rows))), length(rows)
     doors, keys, gems = Const[], Const[], Const[]
-    walls = parse_pddl("(= walls (new-bit-matrix false $width $height))")
+    walls = parse_pddl("(= walls (new-bit-matrix false $height $width))")
     init = Term[walls]
     start, goal = Term[], pddl"(true)"
     for (y, row) in enumerate(rows)
