@@ -1,5 +1,7 @@
-using PDDL, Gen, Printf
-using Plinf
+using PDDL, Printf
+using SymbolicPlanners, Plinf
+using Gen, GenParticleFilters
+using PDDLViz, GLMakie
 
 include("utils.jl")
 include("ascii.jl")
