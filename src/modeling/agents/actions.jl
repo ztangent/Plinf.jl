@@ -109,7 +109,7 @@ struct CommunicativeActState
     utterance::String
 end
 
-convert(::Type{Term}, state::CommunicativeActState) = state.action
+Base.convert(::Type{Term}, state::CommunicativeActState) = state.action
 
 """
     CommunicativeActConfig(
