@@ -91,15 +91,19 @@ agent_config = AgentConfig(
     domain, planner;
     # Assume fixed goal over time
     goal_config = StaticGoalConfig(goal_prior),
-    # Assume random replanning, random search budget
-    replan_args = (prob_replan=0.1, budget_dist_args=(2, 0.05, 1),),
+    # Assume the agent randomly replans over time
+    replan_args = (
+        prob_replan = 0.1, # Probability of replanning at each timestep
+        budget_dist = shifted_neg_binom, # Search budget distribution
+        budget_dist_args = (2, 0.05, 1) # Budget distribution parameters
+    ),
     # Assume a small amount of action noise
     act_epsilon = 0.05,
 )
 
-# Assume Gaussian observation noise around agent's location
+# Assume symmetric binomial observation noise around agent's location
 obs_terms = @pddl("(xpos)", "(ypos)")
-obs_params = ObsNoiseParams([(t, normal, 0.25) for t in obs_terms]...)
+obs_params = ObsNoiseParams([(t, sym_binom, 1) for t in obs_terms]...)
 
 # Configure world model with planner, goal prior, initial state, and obs params
 world_config = WorldConfig(
@@ -129,59 +133,26 @@ canvas = renderer(domain, obs_traj)
 anim = anim_trajectory!(canvas, renderer, domain, obs_traj;
                         format="gif", framerate=5)
 
-# Define callback functions for printing and logging data
-print_cb = PrintStatsCallback(
-    (goal_addr, 1:length(goals));
-    header="t\tP(A)\tP(B)\tP(C)\n"
-)
-logger_cb = DataLoggerCallback(
-    t = (t, pf) -> t::Int,
-    goal_probs = pf -> probvec(pf, goal_addr, 1:length(goals))::Vector{Float64},
-    lml_est = pf -> log_ml_estimate(pf)::Float64,
-)
-
-# Define callback functions for rendering and plotting
-figure = Figure(resolution=(1200, 600))
-side_layout = GridLayout(figure[1, 2])
-
-render_cb = RenderCallback(
-    renderer, figure[1, 1], domain;
-    trajectory=obs_traj, trail_length=10
-)
-
-goal_bars_cb = BarPlotCallback(
-    side_layout[1, 1],
-    pf -> probvec(pf, goal_addr, 1:length(goals))::Vector{Float64};
-    color = goal_colors,
-    axis = (xlabel="Goal", ylabel = "Probability", limits=(nothing, (0, 1)), 
-            xticks=(1:length(goals), goal_names))
-)
-
-goal_lines_cb = SeriesPlotCallback(
-    side_layout[2, 1],
-    logger_cb, :goal_probs, # Look up :goal_probs variable from data logger
-    ps -> reduce(hcat, ps); # Convert list of vectors to matrix for plotting
-    color = goal_colors, labels=goal_names,
-    axis = (xlabel="Time", ylabel = "Probability",
-            limits=((1, nothing), (0, 1)))
-)
-
-# Combine all callback functions
-callback = CombinedCallback(
-    print_cb, logger_cb,
-    render_cb, goal_bars_cb, goal_lines_cb;
-    sleep=0.2
-)
-
 # Construct iterator over observation timesteps and choicemaps 
 t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
+
+# Construct callback for logging data and visualizing inference
+callback = GridworldCombinedCallback(
+    renderer, domain;
+    goal_addr = goal_addr,
+    goal_names = goal_names,
+    goal_colors = goal_colors,
+    obs_trajectory = obs_traj,
+    print_goal_probs = true,
+    plot_goal_bars = true,
+    plot_goal_lines = true,
+    render = true,
+    record = true
+)
 
 # Configure SIPS particle filter
 sips = SIPS(world_config, resample_cond=:none, rejuv_cond=:periodic,
             rejuv_kernel=ReplanKernel(2), period=5)
-
-# Empty logger of data
-empty!(logger_cb)
 
 # Run particle filter to perform online goal inference
 n_samples = 60
@@ -190,3 +161,6 @@ pf_state = sips(
     init_args=(init_strata=goal_strata,),
     callback=callback
 );
+
+# Extract animation
+anim = callback.record.animation

@@ -20,13 +20,10 @@ intermediate results.
 """
 abstract type SIPSCallback <: Function end
 
-struct CombinedCallback{T <: Tuple} <: SIPSCallback
-    callbacks::T
-    sleep::Float64
-end 
 
 """
     CombinedCallback(callbacks::Function...; sleep=0.0)
+    CombinedCallback(; name=callback, ..., sleep=0.0)
 
 Callback that combines multiple callbacks into a single callback. Each 
 constituent callback is called in order.
@@ -35,8 +32,17 @@ A `sleep` duration can be specified, in which case the callback will sleep for
 up to that many seconds. If the callback takes longer than `sleep` seconds to
 execute, the sleep duration is skipped.
 """
+struct CombinedCallback{T <: Union{NamedTuple,Tuple}} <: SIPSCallback
+    callbacks::T
+    sleep::Float64
+end 
+
 function CombinedCallback(callbacks::Function...; sleep::Real = 0.0)
     return CombinedCallback(callbacks, Float64(sleep))
+end
+
+function CombinedCallback(; sleep::Real = 0.0, kwargs...)
+    return CombinedCallback(values(kwargs), Float64(sleep))
 end
 
 function (cb::CombinedCallback)(t::Int, obs, pf_state)
@@ -47,6 +53,21 @@ function (cb::CombinedCallback)(t::Int, obs, pf_state)
     t_elapsed = time() - t_start
     if cb.sleep > 0 && t_elapsed < cb.sleep
         sleep(cb.sleep - t_elapsed)
+    end
+end
+
+Base.getindex(cb::CombinedCallback, i::Int) = cb.callbacks[i]
+Base.length(cb::CombinedCallback) = length(cb.callbacks)
+
+function Base.getproperty(cb::CombinedCallback, name::Symbol)
+    if name == :callbacks
+        return getfield(cb, :callbacks)
+    elseif name == :sleep
+        return getfield(cb, :sleep)
+    elseif haskey(getfield(cb, :callbacks), name)
+        return getfield(cb, :callbacks)[name]
+    else
+        error("Callback $name not found")
     end
 end
 
@@ -403,7 +424,7 @@ the domain. This function should have the signature:
     overlay(canvas::Canvas, renderer::Renderer, domain::Domain,
             t::Int, obs::ChoiceMap, pf_state::ParticleFilterState)
 """
-mutable struct RenderCallback{T <: Renderer, U} <: SIPSCallback
+struct RenderCallback{T <: Renderer, U} <: SIPSCallback
     renderer::T
     canvas::Canvas
     domain::Domain
