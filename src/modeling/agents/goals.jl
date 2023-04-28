@@ -71,7 +71,7 @@ function ResamplingGoalConfig(
     init = state_dependent ? goal_prior : stateless_goal_init
     init_args = state_dependent ? () : (goal_prior,)
     step_args = (init, prob_resample)
-    return PlanConfig(init, init_args, resampling_goal_step, step_args)
+    return GoalConfig(init, init_args, resampling_goal_step, step_args)
 end
 
 """
