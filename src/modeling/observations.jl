@@ -68,6 +68,7 @@ end
 Observation initializer which depends on only the current environment state.
 """
 @gen function markov_obs_init(env_state, domain, obs_params)
+    env_state = convert(State, env_state) # Convert to PDDL state to be safe
     obs_state = {*} ~ observe_state(domain, env_state, obs_params)
     return obs_state
 end
@@ -78,6 +79,7 @@ end
 Observation step which depends on only the current environment state.
 """
 @gen function markov_obs_step(t, obs_state, env_state, domain, obs_params)
+    env_state = convert(State, env_state) # Convert to PDDL state to be safe
     obs_state = {*} ~ observe_state(domain, env_state, obs_params)
     return obs_state
 end
