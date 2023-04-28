@@ -76,6 +76,7 @@ renderer.locations = [
     goal ~ uniform_discrete(1, length(goals))
     return Specification(goals[goal])
 end
+
 # Construct iterator over goal choicemaps for stratified sampling
 goal_addr = :init => :agent => :goal => :goal
 goal_strata = choiceproduct((goal_addr, 1:length(goals)))
@@ -112,7 +113,7 @@ world_config = WorldConfig(
     obs_config = MarkovObsConfig(domain, obs_params)
 )
 
-#--- Online Goal Inference ---#
+#--- Test Trajectory Generation ---#
 
 # Generate a trajectory as the ground truth (no observation noise)
 likely_traj = true
@@ -135,6 +136,8 @@ anim = anim_trajectory!(canvas, renderer, domain, obs_traj;
 
 # Construct iterator over observation timesteps and choicemaps 
 t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
+
+#--- Online Goal Inference ---#
 
 # Construct callback for logging data and visualizing inference
 callback = GridworldCombinedCallback(

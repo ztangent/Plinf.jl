@@ -190,15 +190,15 @@ obs_params_entry(entry::Tuple{Term, Real}) =
 function ground_obs_params(params::ObsNoiseParams, domain::Domain, state::State)
     entries = Dict{Term,Tuple{Distribution, Tuple}}()
     for (term, (dist, args)) in params.entries
-        if is_ground(term)
+        if PDDL.is_ground(term)
             terms = Term[term]
         elseif term.name == :forall # Handle foralls
             cond, body = term.args
             subst = satisfiers(domain, state, cond)
-            terms = Term[substitute(body, s) for s in subst]
+            terms = Term[PDDL.substitute(body, s) for s in subst]
         else
             subst = satisfiers(domain, state, term)
-            terms = Term[substitute(term, s) for s in subst]
+            terms = Term[PDDL.substitute(term, s) for s in subst]
         end
         for t in terms
             entries[t] = (dist, args)
