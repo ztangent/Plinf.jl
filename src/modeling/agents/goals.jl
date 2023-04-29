@@ -70,9 +70,10 @@ function ResamplingGoalConfig(
 )
     init = state_dependent ? goal_prior : stateless_goal_init
     init_args = state_dependent ? () : (goal_prior,)
-    step_args = (init, prob_resample)
+    step_args = (goal_prior, prob_resample, state_dependent)
     return GoalConfig(init, init_args, resampling_goal_step, step_args)
 end
+
 
 """
     resampling_goal_step(t, goal_state, belief_state,
@@ -81,11 +82,17 @@ end
 Goal transition that resamples a goal from the (state-dependent) prior with 
 some probability `prob_resample` at each timestep.
 """
-@gen function resampling_goal_step(t, goal_state, belief_state,
-                                   goal_prior, prob_resample::Float64)
+@gen function resampling_goal_step(
+    t, goal_state, belief_state,
+    goal_prior, prob_resample::Float64, state_dependent::Bool
+)
     resample = {:resample} ~ bernoulli(prob_resample)
     if resample
-        goal_state = {*} ~ goal_prior(belief_state)
+        if state_dependent
+            goal_state = {*} ~ goal_prior(belief_state)
+        else
+            goal_state = {*} ~ goal_prior()
+        end
     end
     return goal_state
 end
