@@ -158,15 +158,15 @@ callback = DKGCombinedCallback(
     goal_colors = goal_colors,
     obs_trajectory = obs_traj,
     print_goal_probs = true,
-    plot_goal_bars = true,
-    plot_goal_lines = true,
+    plot_goal_bars = false,
+    plot_goal_lines = false,
     render = true,
     record = true
 )
 
 # Configure SIPS particle filter
 sips = SIPS(world_config, resample_cond=:ess, rejuv_cond=:periodic,
-            rejuv_kernel=ReplanKernel(2), period=5)
+            rejuv_kernel=ReplanKernel(2), period=2)
 
 # Run particle filter to perform online goal inference
 n_samples = 120
@@ -178,3 +178,14 @@ pf_state = sips(
 
 # Extract animation
 anim = callback.record.animation
+
+# Create goal inference storyboard
+storyboard = render_storyboard(
+    anim, [4, 9, 17, 21];
+    subtitles = ["(i) Initially ambiguous goal",
+                 "(ii) Red eliminated upon key pickup",
+                 "(iii) Yellow most likely upon unlock",
+                 "(iv) Switch to blue upon backtracking"],
+    xlabels = ["t = 4", "t = 9", "t = 17", "t = 21"],
+    xlabelsize = 20, subtitlesize = 24
+)

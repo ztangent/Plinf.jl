@@ -1,4 +1,6 @@
 using DataStructures: OrderedDict
+using PDDLViz: RGBA, to_color, set_alpha
+using Base: @kwdef
 
 import SymbolicPlanners: compute, get_goal_terms
 
@@ -99,6 +101,7 @@ function DKGCombinedCallback(
     obs_trajectory = nothing,
     print_goal_probs::Bool = true,
     render::Bool = true,
+    inference_overlay = true,
     plot_goal_bars::Bool = false,
     plot_goal_lines::Bool = false,
     record::Bool = false,
@@ -123,18 +126,26 @@ function DKGCombinedCallback(
     end
     # Construct render callback
     if render
-        figure = Figure(resolution=(600, 600))
+        figure = Figure(resolution=(600, 700))
+        if inference_overlay
+            function trace_color_fn(tr)
+                goal_idx = tr[goal_addr]
+                return goal_colors[goal_idx]
+            end
+            overlay = DKGInferenceOverlay(trace_color_fn=trace_color_fn)
+        end
         callbacks[:render] = RenderCallback(
             renderer, figure[1, 1], domain;
-            trajectory=obs_trajectory, trail_length=10
+            trajectory=obs_trajectory, trail_length=10,
+            overlay = inference_overlay ? overlay : nothing
         )
     end
     # Construct plotting callbacks
     if plot_goal_bars || plot_goal_lines
         if render
-            resize!(figure, (1200, 600))
+            resize!(figure, (1200, 700))
         else
-            figure = Figure(resolution=(600, 600))
+            figure = Figure(resolution=(600, 700))
         end
         side_layout = GridLayout(figure[1, 2])
     end
@@ -171,4 +182,106 @@ function DKGCombinedCallback(
     # Combine all callback functions
     callback = CombinedCallback(;sleep=sleep, callbacks...)
     return callback
+end
+
+"""
+    DKGInferenceOverlay(; kwargs...)
+
+Inference overlay renderer for the doors, keys and gems domain.
+
+# Keyword Arguments
+
+- `show_state = true`: Whether to show the current estimated state distribution.
+- `show_future_states = true`: Whether to show future predicted states.
+- `max_future_steps = 50`: Maximum number of future steps to render.
+- `trace_color_fn = tr -> :red`: Function to determine the color of a trace.
+"""
+@kwdef mutable struct DKGInferenceOverlay
+    show_state::Bool = true
+    show_future_states::Bool = true
+    max_future_steps::Int = 50
+    trace_color_fn::Function = tr -> :red
+    color_obs::Vector = Observable[]
+    state_obs::Vector = Observable[]
+    future_obs::Vector = Observable[]
+end
+
+function (overlay::DKGInferenceOverlay)(
+    canvas::Canvas, renderer::GridworldRenderer, domain::Domain,
+    t::Int, obs::ChoiceMap, pf_state::ParticleFilterState
+)
+    traces = get_traces(pf_state)
+    weights = get_norm_weights(pf_state)
+    # Render future states (skip t = 0 since plans are not yet available) 
+    if overlay.show_future_states && t > 0
+        for (i, (tr, w)) in enumerate(zip(traces, weights))
+            # Get current belief, goal, and plan
+            belief_state = tr[:timestep => t => :agent => :belief]
+            goal_state = tr[:timestep => t => :agent => :goal]
+            plan_state = tr[:timestep => t => :agent => :plan]
+            # Rollout planning solution until goal is reached
+            state = convert(State, belief_state)
+            spec = convert(Specification, goal_state)
+            sol = plan_state.sol
+            future_states = Vector{typeof(state)}()
+            for _ in 1:overlay.max_future_steps
+                act = best_action(sol, state)
+                if ismissing(act) break end
+                state = transition(domain, state, act)
+                push!(future_states, state)
+                if is_goal(spec, domain, state) break end
+            end
+            # Render or update future states
+            color = overlay.trace_color_fn(tr)
+            future_obs = get(overlay.future_obs, i, nothing)
+            color_obs = get(overlay.color_obs, i, nothing)
+            if isnothing(future_obs)
+                future_obs = Observable(future_states)
+                color_obs = Observable(to_color((color, w)))
+                push!(overlay.future_obs, future_obs)
+                push!(overlay.color_obs, color_obs)
+                options = renderer.trajectory_options
+                object_colors=fill(color_obs, length(options[:tracked_objects]))
+                type_colors=fill(color_obs, length(options[:tracked_types]))
+                render_trajectory!(
+                    canvas, renderer, domain, future_obs;
+                    track_markersize=0.5, agent_color=color_obs,
+                    object_colors=object_colors, type_colors=type_colors
+                )
+            else
+                future_obs[] = future_states
+                color_obs[] = to_color((color, w))
+            end
+        end
+    end
+    # Render current state's agent location
+    if overlay.show_state
+        for (i, (tr, w)) in enumerate(zip(traces, weights))
+            # Get current inferred environment state
+            env_state = t == 0 ? tr[:init => :env] : tr[:timestep => t => :env]
+            state = convert(State, env_state)
+            # Construct or update color observable
+            color = overlay.trace_color_fn(tr)
+            color_obs = get(overlay.color_obs, i, nothing)
+            if isnothing(color_obs)
+                color_obs = Observable(to_color((color, w)))
+            else
+                color_obs[] = to_color((color, w))
+            end
+            # Render or update state
+            state_obs = get(overlay.state_obs, i, nothing)
+            if isnothing(state_obs)
+                state_obs = Observable(state)
+                push!(overlay.state_obs, state_obs)
+                _trajectory = @lift [$state_obs]
+                render_trajectory!(
+                    canvas, renderer, domain, _trajectory;
+                    agent_color=color_obs, track_markersize=0.5,
+                    track_stopmarker='◈'  
+                ) 
+            else
+                state_obs[] = state
+            end
+        end
+    end
 end
