@@ -86,6 +86,7 @@ logs data and visualizes inference for the doors, keys and gems domain.
 - `obs_trajectory = nothing`: Ground truth / observed trajectory.
 - `print_goal_probs = true`: Whether to print goal probabilities.
 - `render = true`: Whether to render the gridworld.
+- `inference_overlay = true`: Whether to render inference overlay.
 - `plot_goal_bars = false`: Whether to plot goal probabilities as a bar chart.
 - `plot_goal_lines = false`: Whether to plot goal probabilities over time.
 - `record = false`: Whether to record the figure.

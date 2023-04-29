@@ -134,6 +134,13 @@ canvas = renderer(domain, obs_traj)
 anim = anim_trajectory!(canvas, renderer, domain, obs_traj;
                         format="gif", framerate=5)
 
+# Create storyboard 
+storyboard = render_storyboard(
+    anim, [3, 8, 12, 17],
+    xlabels=["t = 3", "t = 8", "t = 12", "t = 17"],
+    xlabelsize=24
+)
+
 # Construct iterator over observation timesteps and choicemaps 
 t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
 
@@ -150,15 +157,16 @@ callback = GridworldCombinedCallback(
     plot_goal_bars = true,
     plot_goal_lines = true,
     render = true,
+    inference_overlay = true,
     record = true
 )
 
 # Configure SIPS particle filter
 sips = SIPS(world_config, resample_cond=:none, rejuv_cond=:periodic,
-            rejuv_kernel=ReplanKernel(2), period=5)
+            rejuv_kernel=ReplanKernel(2), period=2)
 
 # Run particle filter to perform online goal inference
-n_samples = 60
+n_samples = 120
 pf_state = sips(
     n_samples, t_obs_iter;
     init_args=(init_strata=goal_strata,),
@@ -167,3 +175,7 @@ pf_state = sips(
 
 # Extract animation
 anim = callback.record.animation
+
+# Add goal inference probabilities to storyboard
+goal_probs = reduce(hcat, callback.logger.data[:goal_probs])
+storyboard_goal_lines!(storyboard, goal_probs, [4, 9, 17, 21])
