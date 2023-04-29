@@ -62,6 +62,7 @@ anim = anim_plan(renderer, domain, state, plan;
 # Specify possible goals
 goal_set = [(1, 1), (8, 1), (8, 8)]
 goals = [pos_to_terms(g) for g in goal_set]
+goal_specs = [Specification(g) for g in goals]
 goal_colors = [:orange, :magenta, :blue]
 goal_names = ["A", "B", "C"]
 
@@ -74,7 +75,7 @@ renderer.locations = [
 # Define uniform prior over possible goals
 @gen function goal_prior()
     goal ~ uniform_discrete(1, length(goals))
-    return Specification(goals[goal])
+    return goal_specs[goal]
 end
 
 # Construct iterator over goal choicemaps for stratified sampling

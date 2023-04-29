@@ -108,6 +108,9 @@ function (cb::PrintStatsCallback)(t::Int, obs, pf_state)
     end
     @printf(cb.io, "t = %d\t", t)
     for (addr, support) in zip(cb.addrs, cb.supports)
+        if addr isa Function
+            addr = addr(t, pf_state)
+        end
         if support == :discrete || support isa AbstractVector
             # Print probabilities of each discrete value
             if support == :discrete
@@ -115,8 +118,8 @@ function (cb::PrintStatsCallback)(t::Int, obs, pf_state)
             else
                 probs = probvec(pf_state, addr, support)
             end
-            for val in support
-                @printf(cb.io, "%0.3f\t", get(probs, val, 0.0))
+            for p in probs
+                @printf(cb.io, "%0.3f\t", p)
             end
         elseif support == :continuous
             # Print mean and variance of continuous valued address

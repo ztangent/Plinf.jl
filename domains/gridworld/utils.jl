@@ -10,6 +10,24 @@ pos_to_terms(pos::Tuple{Int, Int}) =
 goal_to_pos(term::Term) =
     (term.args[1].args[2].name, term.args[2].args[2].name)
 
+"Returns address of the most recent goal."
+function most_recent_goal_addr(t::Int, pf_state)
+    if t == 0
+        return :init => :agent => :goal
+    else
+        return :timestep => t => :agent => :goal
+    end
+end
+
+function most_recent_goal_addr(trace::Trace)
+    t = get_args(trace)[1]
+    if t == 0
+        return :init => :agent => :goal
+    else
+        return :timestep => t => :agent => :goal
+    end
+end
+
 """
     GridworldCombinedCallback(renderer, domain; kwargs...)
 
@@ -37,6 +55,7 @@ function GridworldCombinedCallback(
     goal_addr = :init => :agent => :goal => :goal,
     goal_names = ["A", "B", "C"],
     goal_colors = [:orange, :magenta, :blue],
+    goal_support = 1:length(goal_names), 
     obs_trajectory = nothing,
     print_goal_probs::Bool = true,
     render::Bool = true,
@@ -50,16 +69,21 @@ function GridworldCombinedCallback(
 )
     callbacks = OrderedDict{Symbol, SIPSCallback}()
     n_goals = length(goal_names)
+    # Helper function to get goal probabilities
+    function get_goal_probs(t::Int, pf_state)
+        addr = goal_addr isa Function ? goal_addr(t, pf_state) : goal_addr
+        return probvec(pf_state, addr, goal_support)::Vector{Float64}
+    end
     # Construct data logger callback
     callbacks[:logger] = DataLoggerCallback(
         t = (t, pf) -> t::Int,
-        goal_probs = pf -> probvec(pf, goal_addr, 1:n_goals)::Vector{Float64},
+        goal_probs = get_goal_probs,
         lml_est = pf -> log_ml_estimate(pf)::Float64,
     )
     # Construct print callback
     if print_goal_probs
         callbacks[:print] = PrintStatsCallback(
-            (goal_addr, 1:n_goals);
+            (goal_addr, goal_support);
             header="t\t" * join(goal_names, "\t") * "\n"
         )
     end
@@ -67,11 +91,19 @@ function GridworldCombinedCallback(
     if render
         figure = Figure(resolution=(600, 600))
         if inference_overlay
-            function trace_color_fn(tr)
+            function static_goal_color_fn(tr)
                 goal_idx = tr[goal_addr]
                 return goal_colors[goal_idx]
             end
-            overlay = GridworldInferenceOverlay(trace_color_fn=trace_color_fn)
+            function dyn_goal_color_fn(tr)
+                addr = goal_addr(tr)
+                goal_spec = tr[addr]
+                goal_idx = findfirst(==(goal_spec), goal_support)
+                return goal_colors[goal_idx]
+            end
+            overlay = goal_addr isa Function ?
+                GridworldInferenceOverlay(trace_color_fn=dyn_goal_color_fn) :
+                GridworldInferenceOverlay(trace_color_fn=static_goal_color_fn)
         end
         callbacks[:render] = RenderCallback(
             renderer, figure[1, 1], domain;
@@ -90,8 +122,7 @@ function GridworldCombinedCallback(
     end
     if plot_goal_bars
         callbacks[:goal_bars] = BarPlotCallback(
-            side_layout[1, 1],
-            pf -> probvec(pf, goal_addr, 1:n_goals)::Vector{Float64};
+            side_layout[1, 1], get_goal_probs;
             color = goal_colors,
             axis = (xlabel="Goal", ylabel = "Probability",
                     limits=(nothing, (0, 1)), 
