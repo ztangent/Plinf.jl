@@ -191,4 +191,4 @@ storyboard = render_storyboard(
     xlabelsize = 20, subtitlesize = 24
 );
 goal_probs = reduce(hcat, callback.logger.data[:goal_probs])[:, 1:25]
-storyboard_goal_lines!(storyboard, goal_probs, [4, 9, 17, 21])
+storyboard_goal_lines!(storyboard, goal_probs, [4, 9, 17, 21], show_legend=true)

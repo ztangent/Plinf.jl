@@ -292,6 +292,7 @@ function storyboard_goal_lines!(
     storyboard::Figure, goal_probs, ts=Int[];
     goal_names = ["(has gem1)", "(has gem2)", "(has gem3)"],
     goal_colors = PDDLViz.colorschemes[:vibrant][1:length(goal_names)],
+    show_legend = false
 )
     n_rows, n_cols = size(storyboard.layout)
     width, height = size(storyboard.scene)
@@ -300,8 +301,12 @@ function storyboard_goal_lines!(
         storyboard[n_rows+1, 1:n_cols], goal_probs,
         color = goal_colors, labels=goal_names,
         axis = (xlabel="Time", ylabel = "Probability",
-                limits=((1, nothing), (0, 1)))
+                limits=((1, size(goal_probs, 2)), (0, 1)))
     )
+    # Add legend to subplot
+    if show_legend
+        axislegend("Goals", framevisible=false)
+    end
     # Add vertical lines at timesteps
     if !isempty(ts)
         vlines!(ax, ts, color=:black, linestyle=:dash)

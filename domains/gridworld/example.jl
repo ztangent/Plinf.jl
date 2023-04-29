@@ -178,4 +178,5 @@ anim = callback.record.animation
 
 # Add goal inference probabilities to storyboard
 goal_probs = reduce(hcat, callback.logger.data[:goal_probs])
-storyboard_goal_lines!(storyboard, goal_probs, [4, 9, 17, 21])
+resize!(storyboard, (2400, 600))
+storyboard_goal_lines!(storyboard, goal_probs, [3, 8, 12, 17], show_legend=true)
