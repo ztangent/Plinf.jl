@@ -191,13 +191,13 @@ Inference overlay renderer for the doors, keys and gems domain.
 
 # Keyword Arguments
 
-- `show_state = true`: Whether to show the current estimated state distribution.
+- `show_state = false`: Whether to show the current estimated state distribution.
 - `show_future_states = true`: Whether to show future predicted states.
 - `max_future_steps = 50`: Maximum number of future steps to render.
 - `trace_color_fn = tr -> :red`: Function to determine the color of a trace.
 """
 @kwdef mutable struct DKGInferenceOverlay
-    show_state::Bool = true
+    show_state::Bool = false
     show_future_states::Bool = true
     max_future_steps::Int = 50
     trace_color_fn::Function = tr -> :red
@@ -276,12 +276,40 @@ function (overlay::DKGInferenceOverlay)(
                 _trajectory = @lift [$state_obs]
                 render_trajectory!(
                     canvas, renderer, domain, _trajectory;
-                    agent_color=color_obs, track_markersize=0.5,
-                    track_stopmarker='◈'  
+                    agent_color=color_obs, track_markersize=0.6,
+                    track_stopmarker='▣' 
                 ) 
             else
                 state_obs[] = state
             end
         end
     end
+end
+
+"Adds a subplot to a storyboard with a line plot of goal probabilities."
+function storyboard_goal_lines!(
+    storyboard::Figure, goal_probs, ts=Int[];
+    goal_names = ["(has gem1)", "(has gem2)", "(has gem3)"],
+    goal_colors = PDDLViz.colorschemes[:vibrant][1:length(goal_names)],
+)
+    n_rows, n_cols = size(storyboard.layout)
+    width, height = size(storyboard.scene)
+    # Add goal probability subplot
+    ax, _ = series(
+        storyboard[n_rows+1, 1:n_cols], goal_probs,
+        color = goal_colors, labels=goal_names,
+        axis = (xlabel="Time", ylabel = "Probability",
+                limits=((1, nothing), (0, 1)))
+    )
+    # Add vertical lines at timesteps
+    if !isempty(ts)
+        vlines!(ax, ts, color=:black, linestyle=:dash)
+        positions = [(t + 0.1, 0.85) for t in ts]
+        labels = ["t = $t" for t in ts]
+        text!(ax, positions; text=labels, color = :black, fontsize=14)
+    end
+    # Resize figure to fit new plot
+    rowsize!(storyboard.layout, n_rows+1, Auto(0.25))
+    resize!(storyboard, (width, height * 1.3))
+    return storyboard
 end

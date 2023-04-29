@@ -161,6 +161,7 @@ callback = DKGCombinedCallback(
     plot_goal_bars = false,
     plot_goal_lines = false,
     render = true,
+    inference_overlay = true,
     record = true
 )
 
@@ -188,4 +189,6 @@ storyboard = render_storyboard(
                  "(iv) Switch to blue upon backtracking"],
     xlabels = ["t = 4", "t = 9", "t = 17", "t = 21"],
     xlabelsize = 20, subtitlesize = 24
-)
+);
+goal_probs = reduce(hcat, callback.logger.data[:goal_probs])[:, 1:25]
+storyboard_goal_lines!(storyboard, goal_probs, [4, 9, 17, 21])
