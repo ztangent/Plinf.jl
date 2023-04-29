@@ -1,9 +1,9 @@
-using Julog, PDDL, Gen, Printf
-using Plinf
+using PDDL, Printf
+using SymbolicPlanners, Plinf
+using Gen, GenParticleFilters
+using PDDLViz, GLMakie
 
 include("utils.jl")
-include("ascii.jl")
-include("render.jl")
 
 #--- Initial Setup ---#
 
@@ -21,149 +21,163 @@ goal = [problem.goal]
 goal_pos = goal_to_pos(problem.goal)
 start_pos = (state[pddl"xpos"], state[pddl"ypos"])
 
+#--- Define Renderer ---#
+
+# Construct gridworld renderer
+loc_colors = PDDLViz.colorschemes[:vibrant]
+renderer = PDDLViz.GridworldRenderer(
+    agent_renderer = (d, s) -> HumanGraphic(color=:black),
+    locations = [
+        (start_pos..., "start", loc_colors[1]),
+        (goal_pos..., "goal", loc_colors[3]),
+    ]
+)
+
+# Visualize initial state
+canvas = renderer(domain, state)
+
 #--- Visualize Plans ---#
 
 # Set up Manhattan heuristic on x and y positions
-manhattan = ManhattanHeuristic(@julog[xpos, ypos])
+manhattan = ManhattanHeuristic(@pddl("xpos", "ypos"))
 
 # Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(heuristic=manhattan)
-plan, traj = planner(domain, state, goal)
-println("== Plan ==")
-display(plan)
-plt = render(state; start=start_pos, goals=goal_pos, plan=plan)
-anim = anim_traj(traj, plt)
-@assert satisfy(domain, traj[end], goal) == true
+planner = AStarPlanner(manhattan, save_search=true, save_search_order=true)
+sol = planner(domain, state, goal)
 
-# Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=manhattan, trace_states=true)
-plt = render(state; start=start_pos, goals=goal_pos)
-tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
-anim = anim_plan(tr, plt)
+# Visualize resulting plan
+plan = collect(sol)
+canvas = renderer(canvas, domain, state, plan)
+@assert satisfy(domain, sol.trajectory[end], goal) == true
 
-# Visualize distribution over trajectories induced by planner
-trajs = [planner(domain, state, goal)[2] for i in 1:20]
-anim = anim_traj(trajs, plt; alpha=0.1)
+# Visualise search tree
+canvas = renderer(canvas, domain, state, sol, show_trajectory=false)
 
-# Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=manhattan, trace_states=true)
-replanner = Replanner(planner=astar, persistence=(2, 0.95))
-plt = render(state; start=start_pos, goals=goal_pos)
-tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))
-anim = anim_replan(tr, plt)
+# Animate plan
+anim = anim_plan(renderer, domain, state, plan;
+                 format="gif", framerate=5, trail_length=10)
 
-# Visualize distribution over trajectories induced by replanner
-trajs = [replanner(domain, state, goal)[2] for i in 1:20]
-anim = anim_traj(trajs, plt; alpha=0.1)
-
-#--- Goal Inference Setup ---#
+#--- Model Configuration ---#
 
 # Specify possible goals
 goal_set = [(1, 1), (8, 1), (8, 8)]
 goals = [pos_to_terms(g) for g in goal_set]
+goal_specs = [Specification(g) for g in goals]
 goal_colors = [:orange, :magenta, :blue]
-goal_names = [string(g) for g in goal_set]
+goal_names = ["A", "B", "C"]
+
+# Update renderer to include goal locations
+renderer.locations = [
+    [(start_pos..., "start", loc_colors[1])];
+    [(g..., goal_names[i], goal_colors[i]) for (i, g) in enumerate(goal_set)]
+]
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
-    Specification(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
+    goal ~ uniform_discrete(1, length(goals))
+    return goal_specs[goal]
 end
-goal_strata = Dict((:init=>:agent=>:goal=>:goal) => collect(1:length(goals)))
 
-# Assume either a planning agent or replanning agent as a model
-manhattan = ManhattanHeuristic(@julog[xpos, ypos])
-planner = ProbAStarPlanner(heuristic=manhattan, search_noise=0.1)
-replanner = Replanner(planner=planner, persistence=(2, 0.95))
-agent_planner = replanner # planner
-rejuvenate = agent_planner == planner ? nothing : pf_replan_move_accept!
+# Construct iterator over goal choicemaps for stratified sampling
+goal_addr = :init => :agent => :goal => :goal
+goal_strata = choiceproduct((goal_addr, 1:length(goals)))
 
-# Configure agent model with goal prior and planner
-act_noise = 0.05 # Assume a small amount of action noise
-agent_init = AgentInit(agent_planner, goal_prior)
-agent_config = AgentConfig(domain, agent_planner, act_noise=act_noise)
+# Compile and cache domain for faster performance
+domain, state = PDDL.compiled(domain, state)
+domain = CachedDomain(domain)
 
-# Assume Gaussian observation noise around agent's location
+# Configure agent model with domain, planner, and goal prior
+manhattan = ManhattanHeuristic(@pddl("xpos", "ypos"))
+planner = ProbAStarPlanner(manhattan, search_noise=0.1)
+agent_config = AgentConfig(
+    domain, planner;
+    # Assume fixed goal over time
+    goal_config = StaticGoalConfig(goal_prior),
+    # Assume the agent randomly replans over time
+    replan_args = (
+        prob_replan = 0.1, # Probability of replanning at each timestep
+        budget_dist = shifted_neg_binom, # Search budget distribution
+        budget_dist_args = (2, 0.05, 1) # Budget distribution parameters
+    ),
+    # Assume a small amount of action noise
+    act_epsilon = 0.05,
+)
+
+# Assume symmetric binomial observation noise around agent's location
 obs_terms = @pddl("(xpos)", "(ypos)")
-obs_params = observe_params([(t, normal, 0.25) for t in obs_terms]...)
+obs_params = ObsNoiseParams([(t, sym_binom, 1) for t in obs_terms]...)
 
 # Configure world model with planner, goal prior, initial state, and obs params
-world_init = WorldInit(agent_init, state, state)
-world_config = WorldConfig(domain, agent_config, obs_params)
+world_config = WorldConfig(
+    agent_config = agent_config,
+    env_config = PDDLEnvConfig(domain, state),
+    obs_config = MarkovObsConfig(domain, obs_params)
+)
 
-# Sample a trajectory as the ground truth (no observation noise)
-likely_traj = false
+#--- Test Trajectory Generation ---#
+
+# Generate a trajectory as the ground truth (no observation noise)
+likely_traj = true
 if likely_traj
-    # Construct a trajectory sampled from the prior
-    goal = goals[uniform_discrete(1, length(goals))]
-    _, traj = replanner(domain, state, goal)
-    traj = traj[1:min(20, length(traj))]
+    # Construct an optimal trajectory to goal B
+    astar = AStarPlanner(manhattan)
+    sol = astar(domain, state, pos_to_terms((8, 1)))
+    obs_traj = sol.trajectory
 else
-    # Construct plan that is highly unlikely under the prior
-    _, seg1 = AStarPlanner()(domain, state, pos_to_terms((4, 5)))
-    _, seg2 = AStarPlanner()(domain, seg1[end], pos_to_terms((3, 5)))
-    _, seg3 = AStarPlanner()(domain, seg2[end], pos_to_terms((5, 1)))
-    traj = [seg1; seg2[2:end]; seg3[2:end]][1:end]
+    # Construct suboptimal trajectory that is highly unlikely under the prior
+    astar = AStarPlanner(manhattan)
+    sol1 = astar(domain, state, pos_to_terms((4, 5)))
+    sol2 = astar(domain, sol1.trajectory[end], pos_to_terms((3, 5)))
+    sol3 = astar(domain, sol2.trajectory[end], pos_to_terms((5, 1)))
+    obs_traj = [sol1.trajectory; sol2.trajectory[2:end]; sol3.trajectory[2:end]]
 end
-plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
-plt = render!(traj, plt; alpha=0.5)
-anim = anim_traj(traj, plt)
+canvas = renderer(domain, obs_traj)
+anim = anim_trajectory!(canvas, renderer, domain, obs_traj;
+                        format="gif", framerate=5)
 
-#--- Offline Goal Inference ---#
+# Create storyboard 
+storyboard = render_storyboard(
+    anim, [3, 8, 12, 17],
+    xlabels=["t = 3", "t = 8", "t = 12", "t = 17"],
+    xlabelsize=24
+)
 
-# Run importance sampling to infer the likely goal
-n_samples = 60
-traces, weights, lml_est =
-    world_importance_sampler(world_init, world_config,
-                             traj, obs_terms, n_samples;
-                             use_proposal=true, strata=goal_strata);
-
-# Plot sampled trajectory for each trace
-plt = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
-render_traces!(traces, weights, plt; goal_colors=goal_colors)
-plt = render!(traj[1:9], plt; alpha=0.5) # Plot original trajectory on top
-
-# Compute posterior probability of each goal
-goal_probs = get_goal_probs(traces, weights, 1:length(goal_set))
-println("Posterior probabilities:")
-for (goal, prob) in zip(goal_set, values(sort(goal_probs)))
-    @printf "Goal: %s\t Prob: %0.3f\n" goal prob
-end
-
-# Plot bar chart of goal probabilities
-plot_goal_bars!(goal_probs, goal_names, goal_colors)
+# Construct iterator over observation timesteps and choicemaps 
+t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
 
 #--- Online Goal Inference ---#
 
-# Set up visualization and logging callbacks for online goal inference
-anim = Animation() # Animation to store each plotted frame
-goal_probs = [] # Buffer of goal probabilities over time
-plotters = [ # List of subplot callbacks:
-    render_cb,
-    goal_lines_cb,
-    # goal_bars_cb,
-    # plan_lengths_cb,
-    # particle_weights_cb,
-]
-canvas = render(state; start=start_pos, goals=goal_set, goal_colors=goal_colors)
-callback = (t, s, trs, ws) -> begin
-    multiplot_cb(t, s, trs, ws, plotters;
-                 canvas=canvas, animation=anim, show=true,
-                 goal_colors=goal_colors, goal_probs=goal_probs,
-                 goal_names=goal_names)
-    print("t=$t\t")
-    print_goal_probs(get_goal_probs(trs, ws, 1:length(goal_set)))
-end
+# Construct callback for logging data and visualizing inference
+callback = GridworldCombinedCallback(
+    renderer, domain;
+    goal_addr = goal_addr,
+    goal_names = goal_names,
+    goal_colors = goal_colors,
+    obs_trajectory = obs_traj,
+    print_goal_probs = true,
+    plot_goal_bars = true,
+    plot_goal_lines = true,
+    render = true,
+    inference_overlay = true,
+    record = true
+)
 
-# Set up action proposal to handle potential action noise
-act_proposal = act_noise > 0 ? forward_act_proposal : nothing
-act_proposal_args = (act_noise,)
+# Configure SIPS particle filter
+sips = SIPS(world_config, resample_cond=:none, rejuv_cond=:periodic,
+            rejuv_kernel=ReplanKernel(2), period=2)
 
-# Run a particle filter to perform online goal inference
-n_samples = 60
-traces, weights =
-    world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          rejuvenate=nothing, callback=callback,
-                          strata=goal_strata, act_proposal=act_proposal,
-                          act_proposal_args=act_proposal_args);
-# Show animation of goal inference
-gif(anim; fps=3)
+# Run particle filter to perform online goal inference
+n_samples = 120
+pf_state = sips(
+    n_samples, t_obs_iter;
+    init_args=(init_strata=goal_strata,),
+    callback=callback
+);
+
+# Extract animation
+anim = callback.record.animation
+
+# Add goal inference probabilities to storyboard
+goal_probs = reduce(hcat, callback.logger.data[:goal_probs])
+resize!(storyboard, (2400, 600))
+storyboard_goal_lines!(storyboard, goal_probs, [3, 8, 12, 17], show_legend=true)

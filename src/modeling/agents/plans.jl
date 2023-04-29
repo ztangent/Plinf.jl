@@ -3,6 +3,8 @@
 export PlanState
 export PlanConfig, DetermReplanConfig, ReplanConfig, ReplanPolicyConfig
 
+import SymbolicPlanners: NullSpecification, NullGoal
+
 """
     PlanState
 
@@ -17,9 +19,11 @@ struct PlanState
     init_step::Int
     "Solution returned by the planner."
     sol::Solution
+    "Specification that the solution is intended to satisfy."
+    spec::Specification
 end
 
-PlanState() = PlanState(0, NullSolution())
+PlanState() = PlanState(0, NullSolution(), NullGoal())
 
 "Returns whether an action is planned for step `t` at a `belief_state`."
 has_action(plan_state::PlanState, t::Int, belief_state) =
@@ -57,6 +61,17 @@ struct PlanConfig{T,U,V}
     step_args::V
 end
 
+"""
+    default_plan_init(belief_state, goal_state)
+
+Default plan initialization, which returns a `PlanState` with a `NullSolution`
+and the initial goal specification (i.e. no planning is done on the zeroth
+timestep).
+"""
+function default_plan_init(belief_state, goal_state)
+    return PlanState(0, NullSolution(), convert(Specification, goal_state))
+end
+
 # Static planning configuration #
 
 """
@@ -64,7 +79,7 @@ end
 
 Constructs a `PlanConfig` that never updates the initial plan.
 """
-function StaticPlanConfig(init=PlanState(), init_args=())
+function StaticPlanConfig(init=default_plan_init, init_args=())
     return PlanConfig(init, init_args, static_plan_step, ())
 end
 
@@ -83,8 +98,8 @@ Plan transition that returns the previous plan state without modification.
 Constructs a `PlanConfig` that deterministically replans only when necessary.
 """
 function DetermReplanConfig(domain::Domain, planner::Planner)
-    init = PlanState(0, NullSolution())
-    return PlanConfig(init, (), determ_replan_step, (domain, planner))
+    return PlanConfig(default_plan_init, (),
+                      determ_replan_step, (domain, planner))
 end
 
 """
@@ -98,13 +113,14 @@ a fixed budget.
     t::Int, plan_state::PlanState, belief_state::State, goal_state,
     domain::Domain, planner::Planner
 )   
+    spec = convert(Specification, goal_state)
     # Return original plan if an action is already computed
-    if has_action(plan_state, t, belief_state)
+    if (has_action(plan_state, t, belief_state) &&
+        (plan_state.spec === spec || plan_state.spec == spec))
         return plan_state
     else # Otherwise replan from the current belief state
-        spec = convert(Specification, goal_state)
         sol = planner(domain, belief_state, spec)
-        return PlanState(t, sol)
+        return PlanState(t, sol, spec)
     end
 end
 
@@ -128,10 +144,9 @@ function ReplanConfig(
     budget_dist::Distribution = shifted_neg_binom,
     budget_dist_args::Tuple = (2, 0.05, 1)
 )
-    init = PlanState(0, NullSolution())
     step_args = (domain, planner, prob_replan,
                  budget_var, budget_dist, budget_dist_args)
-    return PlanConfig(init, (), replan_step, step_args)
+    return PlanConfig(default_plan_init, (), replan_step, step_args)
 end
 
 default_budget_var(::Planner) = :max_time
@@ -153,8 +168,12 @@ whether to replan, and replanning uses a randomly sampled resource budget.
     budget_dist::Distribution=shifted_neg_binom,
     budget_dist_args::Tuple=(2, 0.05, 1)
 )   
-    # Replan with certainty if existing action does not cover current state
-    prob_replan = has_action(plan_state, t, belief_state) ? prob_replan : 1.0
+    spec = convert(Specification, goal_state)
+    # Replan with certainty if action is unplanned or goal changes
+    if (!has_action(plan_state, t, belief_state) ||
+        (plan_state.spec !== spec && plan_state.spec != spec))
+        prob_replan = 1.0
+    end
     # Sample whether to replan
     replan = {:replan} ~ bernoulli(prob_replan)
     # Sample planning resource budget
@@ -167,9 +186,8 @@ whether to replan, and replanning uses a randomly sampled resource budget.
         planner = copy(planner)
         setproperty!(planner, budget_var, budget)
         # Compute and return new plan
-        spec = convert(Specification, goal_state)
         sol = planner(domain, belief_state, spec)
-        return PlanState(t, sol)
+        return PlanState(t, sol, spec)
     end
 end
 
@@ -194,10 +212,9 @@ function ReplanPolicyConfig(
     budget_dist::Distribution = shifted_neg_binom,
     budget_dist_args::Tuple = (2, 0.05, 1)
 )
-    init = PlanState(0, NullPolicy())
     step_args = (domain, planner, prob_replan, prob_refine,
                  budget_var, budget_dist, budget_dist_args)
-    return PlanConfig(init, (), policy_step, step_args)
+    return PlanConfig(default_plan_init, (), policy_step, step_args)
 end
 
 default_budget_var(::RealTimeDynamicPlanner) = :max_depth
@@ -222,8 +239,11 @@ or refinement is performed up to randomly sampled maximum resource budget.
     budget_dist::Distribution=shifted_neg_binom,
     budget_dist_args::Tuple=(2, 0.05, 1)
 )
-    # Replan with certainty if existing action does not cover current state
-    if !has_action(plan_state, t, belief_state) || plan_state.sol isa NullPolicy
+    spec = convert(Specification, goal_state)
+    # Replan with certainty if action is unplanned or goal changes
+    if (!has_action(plan_state, t, belief_state) ||
+        plan_state.sol isa NullPolicy ||
+        (plan_state.spec !== spec && plan_state.spec != spec))
         prob_replan = 1.0
         prob_refine = 0.0
     end
@@ -240,17 +260,15 @@ or refinement is performed up to randomly sampled maximum resource budget.
         planner = copy(planner)
         setproperty!(planner, budget_var, budget)
         # Compute and return new plan
-        spec = convert(Specification, goal_state)
         sol = planner(domain, belief_state, spec)
-        return PlanState(t, sol)
+        return PlanState(t, sol, spec)
     elseif replan == 3 # Refine existing solution
         # Set new resource budget
         planner = copy(planner)
         setproperty!(planner, budget_var, budget)
         # Refine existing solution
-        spec = convert(Specification, goal_state)
         sol = copy(plan_state.sol)
         refine!(sol, planner, domain, belief_state, spec)
-        return PlanState(plan_state.init_step, sol)
+        return PlanState(plan_state.init_step, sol, spec)
     end
 end

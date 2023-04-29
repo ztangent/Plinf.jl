@@ -68,6 +68,7 @@ end
 Observation initializer which depends on only the current environment state.
 """
 @gen function markov_obs_init(env_state, domain, obs_params)
+    env_state = convert(State, env_state) # Convert to PDDL state to be safe
     obs_state = {*} ~ observe_state(domain, env_state, obs_params)
     return obs_state
 end
@@ -78,6 +79,7 @@ end
 Observation step which depends on only the current environment state.
 """
 @gen function markov_obs_step(t, obs_state, env_state, domain, obs_params)
+    env_state = convert(State, env_state) # Convert to PDDL state to be safe
     obs_state = {*} ~ observe_state(domain, env_state, obs_params)
     return obs_state
 end
@@ -190,15 +192,15 @@ obs_params_entry(entry::Tuple{Term, Real}) =
 function ground_obs_params(params::ObsNoiseParams, domain::Domain, state::State)
     entries = Dict{Term,Tuple{Distribution, Tuple}}()
     for (term, (dist, args)) in params.entries
-        if is_ground(term)
+        if PDDL.is_ground(term)
             terms = Term[term]
         elseif term.name == :forall # Handle foralls
             cond, body = term.args
             subst = satisfiers(domain, state, cond)
-            terms = Term[substitute(body, s) for s in subst]
+            terms = Term[PDDL.substitute(body, s) for s in subst]
         else
             subst = satisfiers(domain, state, term)
-            terms = Term[substitute(term, s) for s in subst]
+            terms = Term[PDDL.substitute(term, s) for s in subst]
         end
         for t in terms
             entries[t] = (dist, args)

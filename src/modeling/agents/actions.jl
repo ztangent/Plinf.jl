@@ -1,6 +1,7 @@
 ## Action distributions and model configurations ##
 
 export ActConfig, DetermActConfig, EpsilonGreedyActConfig, BoltzmannActConfig
+export CommunicativeActConfig, CommunicativeActState
 export policy_dist
 
 """
@@ -95,6 +96,49 @@ a specified `temperature`
     return act
 end
 
+# Joint communication / action model #
+
+"""
+    CommunicativeActState
+
+State of a communicative action model, containing an `action` term and
+`utterance` string.
+"""
+struct CommunicativeActState
+    action::Term
+    utterance::String
+end
+
+Base.convert(::Type{Term}, state::CommunicativeActState) = state.action
+
+"""
+    CommunicativeActConfig(
+        act_config::ActConfig,
+        utterance_model::GenerativeFunction
+    )
+
+Constructs an `ActConfig` which samples an action and utterance jointly,
+combined of an existing (non-communicative) `act_config` and an utterance model
+with arguments `(t, agent_state, env_state, act)`.
+"""
+function CommunicativeActConfig(
+    act_config::ActConfig, utterance_model::GenerativeFunction
+)
+    act_step = act_config.step
+    act_step_args = act_config.step_args
+    return ActConfig(communicative_act_step,
+                     (act_step, act_step_args, utterance_model))
+end
+
+@gen function communicative_act_step(t, agent_state, env_state,
+                                     act_step, act_step_args, utterance_model)
+    # Sample action
+    act = {*} ~ act_step(t, agent_state, env_state, act_step_args...)
+    # Sample utterance
+    utterance = {*} ~ utterance_model(t, agent_state, env_state, act)
+    return CommunicativeActState(act, utterance)
+end
+
 # Policy distribution #
 
 struct PolicyDistribution <: Gen.Distribution{Term} end
@@ -112,7 +156,7 @@ const policy_dist = PolicyDistribution()
 @inline Gen.random(::PolicyDistribution, policy, state) =
     SymbolicPlanners.rand_action(policy, state)
 @inline Gen.logpdf(::PolicyDistribution, act::Term, policy, state) =
-    SymbolicPlanners.get_action_prob(policy, state, act)
+    log(SymbolicPlanners.get_action_prob(policy, state, act))
 
 # Always return no-op for null solutions
 @inline Gen.random(::PolicyDistribution, ::NullSolution, state) =

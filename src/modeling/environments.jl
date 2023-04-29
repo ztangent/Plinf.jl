@@ -34,11 +34,11 @@ function StaticEnvConfig(init=nothing, init_args=())
 end
 
 """
-    static_env_step(t, env_state::State, action::Term)
+    static_env_step(t, env_state::State, action)
 
 Static environment transition that returns previous state unmodified.
 """
-@gen static_env_step(t, env_state::State, action::Term) = env_state
+@gen static_env_step(t, env_state::State, action) = env_state
 
 
 # PDDL environment model #
@@ -55,11 +55,12 @@ function PDDLEnvConfig(domain::Domain, init, init_args::Tuple=())
 end
 
 """
-    pddl_env_step(t, env_state::State, action::Term, domain::Domain)
+    pddl_env_step(t, env_state::State, act_state, domain::Domain)
 
 PDDL environment transition function with deterministic dynamics.
 """
-@gen function pddl_env_step(t, env_state::State, action::Term, domain::Domain)
+@gen function pddl_env_step(t, env_state::State, act_state, domain::Domain)
+    action = convert(Term, act_state) # Convert to action term to be safe
     if action.name == Symbol("--") || !available(domain, env_state, action)
         return env_state
     else

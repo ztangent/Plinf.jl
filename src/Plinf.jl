@@ -3,9 +3,12 @@ module Plinf
 using Base: @kwdef
 using Parameters: @unpack
 
-using Julog, PDDL, SymbolicPlanners
+using PDDL, SymbolicPlanners
 using Random, Gen, GenParticleFilters
 
+using PDDLViz, Makie
+
+using Printf
 using DocStringExtensions
 
 include("utils.jl")

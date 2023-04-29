@@ -1,9 +1,10 @@
-using Julog, PDDL, Gen, Printf
-using Plinf
+using PDDL, Printf
+using SymbolicPlanners, Plinf
+using Gen, GenParticleFilters
+using PDDLViz, GLMakie
 
 include("utils.jl")
 include("ascii.jl")
-include("render.jl")
 
 #--- Initial Setup ---#
 
@@ -15,185 +16,179 @@ path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
 domain = load_domain(joinpath(path, "domain.pddl"))
 problem = load_problem(joinpath(path, "problem-6.pddl"))
 
-# Initialize state, set goal and goal colors
+# Initialize state and construct goal specification
 state = initstate(domain, problem)
-start_pos = (state[pddl"xpos"], state[pddl"ypos"])
-goal = [problem.goal]
-goal_colors = [colorant"#D41159", colorant"#FFC20A", colorant"#1A85FF"]
-gem_terms = @pddl("gem1", "gem2", "gem3")
-gem_colors = Dict(zip(gem_terms, goal_colors))
+spec = Specification(problem)
+
+#--- Define Renderer ---#
+
+# Construct gridworld renderer
+gem_colors = PDDLViz.colorschemes[:vibrant]
+renderer = PDDLViz.GridworldRenderer(
+    resolution = (600, 700),
+    agent_renderer = (d, s) -> HumanGraphic(color=:black),
+    obj_renderers = Dict(
+        :key => (d, s, o) -> KeyGraphic(
+            visible=!s[Compound(:has, [o])]
+        ),
+        :door => (d, s, o) -> LockedDoorGraphic(
+            visible=s[Compound(:locked, [o])]
+        ),
+        :gem => (d, s, o) -> GemGraphic(
+            visible=!s[Compound(:has, [o])],
+            color=gem_colors[parse(Int, string(o.name)[end])]
+        )
+    ),
+    show_inventory = true,
+    inventory_fns = [(d, s, o) -> s[Compound(:has, [o])]],
+    inventory_types = [:item]
+)
+
+# Visualize initial state
+canvas = renderer(domain, state)
 
 #--- Visualize Plans ---#
 
 # Check that A* heuristic search correctly solves the problem
-planner = AStarPlanner(heuristic=GemHeuristic())
-plan, traj = planner(domain, state, goal)
-println("== Plan ==")
-display(plan)
-plt = render(state; start=start_pos, plan=plan, gem_colors=gem_colors)
-anim = anim_traj(traj; gem_colors=gem_colors, plan=plan)
-@assert satisfy(domain, traj[end], goal) == true
+planner = AStarPlanner(GoalManhattan(), save_search=true)
+sol = planner(domain, state, spec)
 
-# Visualize full horizon probabilistic A* search
-planner = ProbAStarPlanner(heuristic=GemHeuristic(), trace_states=true)
-plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=true)
-tr = Gen.simulate(sample_plan, (planner, domain, state, goal))
-anim = anim_plan(tr, plt)
+# Visualize resulting plan
+plan = collect(sol)
+canvas = renderer(canvas, domain, state, plan)
+@assert satisfy(domain, sol.trajectory[end], problem.goal) == true
 
-# Visualize distribution over trajectories induced by planner
-trajs = [planner(domain, state, goal)[2] for i in 1:20]
-plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=false)
-anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
+# Visualise search tree
+canvas = renderer(canvas, domain, state, sol, show_trajectory=false)
 
-# Visualize sample-based replanning search
-astar = ProbAStarPlanner(heuristic=GemHeuristic(), trace_states=true)
-replanner = Replanner(planner=astar, persistence=(2, 0.95))
-plt = render(state; start=start_pos, gem_colors=gem_colors, show_objs=true)
-tr = Gen.simulate(sample_plan, (replanner, domain, state, goal))
-anim = anim_replan(tr, plt; gem_colors=gem_colors, show_objs=false)
-
-# Visualize distribution over trajectories induced by replanner
-trajs = [replanner(domain, state, goal)[2] for i in 1:20]
-anim = anim_traj(trajs, plt; alpha=0.1, gem_colors=gem_colors)
+# Animate plan
+anim = anim_plan(renderer, domain, state, plan;
+                 format="gif", framerate=5, trail_length=10)
 
 #--- Goal Inference Setup ---#
 
 # Specify possible goals
 goals = @pddl("(has gem1)", "(has gem2)", "(has gem3)")
 goal_idxs = collect(1:length(goals))
-goal_names = [repr(g) for g in goals]
+goal_names = [write_pddl(g) for g in goals]
+goal_colors = gem_colors[goal_idxs]
 
 # Define uniform prior over possible goals
 @gen function goal_prior()
-    Specification(goals[@trace(uniform_discrete(1, length(goals)), :goal)])
+    goal ~ uniform_discrete(1, length(goals))
+    return Specification(goals[goal])
 end
-goal_strata = Dict((:init => :agent => :goal => :goal) => goal_idxs)
 
-# Assume either a planning agent or replanning agent as a model
-heuristic = GemMazeDist()
-planner = ProbAStarPlanner(heuristic=heuristic, search_noise=0.1)
-replanner = Replanner(planner=planner, persistence=(2, 0.95))
-agent_planner = replanner # planner
+# Construct iterator over goal choicemaps for stratified sampling
+goal_addr = :init => :agent => :goal => :goal
+goal_strata = choiceproduct((goal_addr, 1:length(goals)))
 
-# Configure agent model with goal prior and planner
-act_noise = 0.0
-agent_init = AgentInit(agent_planner, goal_prior)
-agent_config = AgentConfig(domain, agent_planner, act_noise=act_noise)
+# Compile and cache domain for faster performance
+domain, state = PDDL.compiled(domain, state)
+domain = CachedDomain(domain)
+
+# Configure agent model with domain, planner, and goal prior
+heuristic = RelaxedMazeDist()
+planner = ProbAStarPlanner(heuristic, search_noise=0.1)
+agent_config = AgentConfig(
+    domain, planner;
+    # Assume fixed goal over time
+    goal_config = StaticGoalConfig(goal_prior),
+    # Assume the agent randomly replans over time
+    replan_args = (
+        prob_replan = 0.1, # Probability of replanning at each timestep
+        budget_dist = shifted_neg_binom, # Search budget distribution
+        budget_dist_args = (2, 0.05, 1) # Budget distribution parameters
+    ),
+    # Assume a small amount of action noise
+    act_epsilon = 0.05,
+)
 
 # Define observation noise model
-obs_params = observe_params(
-    (pddl"(xpos)", normal, 1.0), (pddl"(ypos)", normal, 1.0),
+obs_params = ObsNoiseParams(
+    (pddl"(xpos)", normal, 1.0),
+    (pddl"(ypos)", normal, 1.0),
     (pddl"(forall (?d - door) (locked ?d))", 0.05),
     (pddl"(forall (?i - item) (has ?i))", 0.05),
-    (pddl"(forall (?i - item) (offgrid ?i))", 0.05),
+    (pddl"(forall (?i - item) (offgrid ?i))", 0.05)
 )
-obs_params = ground_obs_params(obs_params, state, domain)
+obs_params = ground_obs_params(obs_params, domain, state)
 obs_terms = collect(keys(obs_params))
 
 # Configure world model with planner, goal prior, initial state, and obs params
-world_init = WorldInit(agent_init, state, state)
-world_config = WorldConfig(domain, agent_config, obs_params)
+world_config = WorldConfig(
+    agent_config = agent_config,
+    env_config = PDDLEnvConfig(domain, state),
+    obs_config = MarkovObsConfig(domain, obs_params)
+)
+
+#--- Test Trajectory Generation ---#
 
 # Construct a trajectory with backtracking to perform inference on
-plan1, traj = planner(domain, state, pddl"(has key2)")
-plan2, traj = planner(domain, traj[end], pddl"(not (locked door2))")
-plan3, traj = planner(domain, traj[end], pddl"(has key1)")
-plan4, traj = planner(domain, traj[end], pddl"(has gem3)")
-plan = [plan1; plan2; plan3; plan4]
-traj = PDDL.simulate(domain, state, plan)
+sol1 = planner(domain, state, pddl"(has key2)")
+sol2 = planner(domain, sol1.trajectory[end], pddl"(not (locked door2))")
+sol3 = planner(domain, sol2.trajectory[end], pddl"(has key1)")
+sol4 = planner(domain, sol3.trajectory[end], pddl"(has gem3)")
+plan = [collect(sol1); collect(sol2); collect(sol3); collect(sol4)]
+obs_traj = PDDL.simulate(domain, state, plan)
 
 # Visualize trajectory
-frames = []
-anim = anim_traj(traj; gem_colors=gem_colors, plan=plan, frames=frames)
-times = [4, 9, 17, 21]
-storyboard = plot_storyboard(frames[times], nothing, times;
-                             titles=["Initially ambiguous goal",
-                                     "Red eliminated upon key pickup",
-                                     "Yellow most likely upon unlock",
-                                     "Switch to blue upon backtracking"])
+anim = anim_trajectory(renderer, domain, obs_traj;
+                       framerate=5, format="gif", trail_length=10)
+storyboard = render_storyboard(
+    anim, [4, 9, 17, 21];
+    subtitles = ["(i) Initially ambiguous goal",
+                 "(ii) Red eliminated upon key pickup",
+                 "(iii) Yellow most likely upon unlock",
+                 "(iv) Switch to blue upon backtracking"],
+    xlabels = ["t = 4", "t = 9", "t = 17", "t = 21"],
+    xlabelsize = 20, subtitlesize = 24
+)
 
-#--- Offline Goal Inference ---#
-
-# Run importance sampling to infer the likely goal
-n_samples = 30
-traces, weights, lml_est =
-    world_importance_sampler(world_init, world_config,
-                             traj, obs_terms, n_samples;
-                             use_proposal=true, strata=goal_strata);
-
-# Plot sampled trajectory for each trace
-plt = render(state; start=start_pos, gem_colors=gem_colors)
-render_traces!(traces, weights, plt; goal_colors=goal_colors)
-plt = render!(traj, plt; alpha=0.5) # Plot original trajectory on top
-
-# Compute posterior probability of each goal
-goal_probs = get_goal_probs(traces, weights, 1:length(goals))
-println("Posterior probabilities:")
-for (goal, prob) in zip(goal_names, values(sort(goal_probs)))
-    @printf "Goal: %s\t Prob: %0.3f\n" goal prob
-end
-
-# Plot bar chart of goal probabilities
-plot_goal_bars!(goal_probs, goal_names, goal_colors)
+# Construct iterator over observation timesteps and choicemaps 
+t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
 
 #--- Online Goal Inference ---#
 
-# Set up visualization and logging callbacks for online goal inference
+# Construct callback for logging data and visualizing inference
+callback = DKGCombinedCallback(
+    renderer, domain;
+    goal_addr = goal_addr,
+    goal_names = ["gem1", "gem2", "gem3"],
+    goal_colors = goal_colors,
+    obs_trajectory = obs_traj,
+    print_goal_probs = true,
+    plot_goal_bars = false,
+    plot_goal_lines = false,
+    render = true,
+    inference_overlay = true,
+    record = true
+)
 
-anim = Animation() # Animation to store each plotted frame
-keytimes = [4, 9, 17, 21] # Timesteps to save keyframes
-keyframes = [] # Buffer of keyframes to plot as a storyboard
-goal_probs = [] # Buffer of goal probabilities over time
-plotters = [ # List of subplot callbacks:
-    render_cb,
-    # goal_lines_cb,
-    # goal_bars_cb,
-    # plan_lengths_cb,
-    # particle_weights_cb,
-]
-canvas = render(state; start=start_pos, show_objs=false)
-callback = (t, s, trs, ws) -> begin
-    goal_probs_t = collect(values(sort!(get_goal_probs(trs, ws, goal_idxs))))
-    push!(goal_probs, goal_probs_t)
-    multiplot_cb(t, s, trs, ws, plotters;
-                 trace_future=true, plan=plan,
-                 start_pos=start_pos, start_dir=:down,
-                 canvas=canvas, animation=anim, show=true,
-                 keytimes=keytimes, keyframes=keyframes,
-                 gem_colors=gem_colors, goal_colors=goal_colors,
-                 goal_probs=goal_probs, goal_names=goal_names);
-    print("t=$t\t")
-    print_goal_probs(get_goal_probs(trs, ws, goal_idxs))
-end
+# Configure SIPS particle filter
+sips = SIPS(world_config, resample_cond=:ess, rejuv_cond=:periodic,
+            rejuv_kernel=ReplanKernel(2), period=2)
 
-# Set up rejuvenation moves
-goal_rejuv! = pf -> pf_goal_move_accept!(pf, goals)
-plan_rejuv! = pf -> pf_replan_move_accept!(pf)
-mixed_rejuv! = pf -> pf_mixed_move_accept!(pf, goals; mix_prob=0.25)
+# Run particle filter to perform online goal inference
+n_samples = 120
+pf_state = sips(
+    n_samples, t_obs_iter;
+    init_args=(init_strata=goal_strata,),
+    callback=callback
+);
 
-# Set up action proposal to handle potential action noise
-act_proposal = act_noise > 0 ? forward_act_proposal : nothing
-act_proposal_args = (act_noise*5,)
+# Extract animation
+anim = callback.record.animation
 
-# Run a particle filter to perform online goal inference
-n_samples = 30
-traces, weights =
-    world_particle_filter(world_init, world_config, traj, obs_terms, n_samples;
-                          resample=true, rejuvenate=nothing,
-                          callback=callback, strata=goal_strata,
-                          act_proposal=act_proposal,
-                          act_proposal_args=act_proposal_args);
-# Show animation of goal inference
-gif(anim; fps=2)
-
-## Plot storyboard of keyframes ##
-
-storyboard = plot_storyboard(
-    keyframes, goal_probs, keytimes;
-    time_lims=(1, 27), legend=false,
-    titles=["Initially ambiguous goal",
-            "Red eliminated upon key pickup",
-            "Yellow most likely upon unlock",
-            "Switch to blue upon backtracking"],
-    goal_names=["Red Gem", "Yellow Gem", "Blue Gem"],
-    goal_colors=goal_colors)
+# Create goal inference storyboard
+storyboard = render_storyboard(
+    anim, [4, 9, 17, 21];
+    subtitles = ["(i) Initially ambiguous goal",
+                 "(ii) Red eliminated upon key pickup",
+                 "(iii) Yellow most likely upon unlock",
+                 "(iv) Switch to blue upon backtracking"],
+    xlabels = ["t = 4", "t = 9", "t = 17", "t = 21"],
+    xlabelsize = 20, subtitlesize = 24
+);
+goal_probs = reduce(hcat, callback.logger.data[:goal_probs])[:, 1:25]
+storyboard_goal_lines!(storyboard, goal_probs, [4, 9, 17, 21], show_legend=true)
