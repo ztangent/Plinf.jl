@@ -43,6 +43,13 @@ function SymbolicPlanners.solve(
     if PDDL.is_dnf(goal)
         goal = goal.args[1]
     end
+    # Check if goal can be solved using subplanner heuristic
+    if hasproperty(planner.planner, :heuristic)
+        hval = planner.planner.heuristic(domain, state, goal)
+        if hval == Inf
+            return NullSolution()
+        end
+    end
     # Order into subgoals
     if planner.ordering == :predicate
         subgoals = order_subgoals_by_predicate(goal)
