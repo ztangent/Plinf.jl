@@ -34,7 +34,7 @@ descriptions, goals = load_goals(joinpath(GOALS_DIR, "goals-1-5.pddl"))
 goal_specs = [simplify_goal(Specification(g), domain, state) for g in goals]
 
 # Add served term to each goal, and distinguish the recipes
-goal_specs = add_served(goal_specs)
+goal_specs = add_served.(goal_specs)
 goal_specs = distinguish_recipes(goal_specs)
 
 # Define uniform prior over possible goals
@@ -45,14 +45,16 @@ end
 goal_addr = :init => :agent => :goal => :goal
 goal_strata = choiceproduct((goal_addr, 1:length(goals)))
 
-# Cache domain for faster performance
+# Compile and cache domain for faster performance
 domain, state = compiled(domain, state)
+cached_methods = [:available, :infer_static_fluents, :infer_affected_fluents]
+domain = CachedDomain(domain, cached_methods)
 
 # Construct a nested planning heuristic
 ff = memoized(precomputed(FFHeuristic(), domain, state)) # Base heuristic is FF
 oc_planner = OvercookedPlanner( # Overcooked planner uses FF heuristic
     planner=AStarPlanner(ff, h_mult=2.0),
-    max_time=10.0
+    max_time=10.0,
 )
 oc_heuristic = PlannerHeuristic(oc_planner) # Wrap planner in heuristic
 oc_heuristic = memoized(oc_heuristic) # Memoize heuristic for faster performance

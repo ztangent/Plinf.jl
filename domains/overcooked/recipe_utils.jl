@@ -209,22 +209,63 @@ function add_served(terms::Vector{Term})
     return terms
 end
 
-function add_served(specs::AbstractVector{<:Specification})
-    terms = SymbolicPlanners.get_goal_terms.(specs)
-    new_terms = add_served.(terms)
-    new_specs = [SymbolicPlanners.set_goal_terms(s, t)
-                 for (s, t) in zip(specs, new_terms)]
-    return new_specs
+function add_served(spec::Specification)
+    terms = SymbolicPlanners.get_goal_terms(spec)
+    new_terms = add_served(terms)
+    return SymbolicPlanners.set_goal_terms(spec, new_terms)
+end
+
+"Complete recipe terms by adding all possible combination and cooking terms."
+function complete_cluster_terms(terms::AbstractVector{<:Term})
+    recipe = Compound(:and, terms)
+    new_terms = copy(terms)
+    combined_ingredients, combined_terms =
+        extract_ingredient_clusters(recipe, Symbol("combined-with"))
+    for (c_ingredients, c_terms) in zip(combined_ingredients, combined_terms)
+        for i in c_ingredients
+            method = c_terms[1].args[1]
+            push!(new_terms, Compound(Symbol("combined"), Term[method, i]))
+        end
+        for i in c_ingredients, j in c_ingredients
+            method = c_terms[1].args[1]
+            new_term = Compound(Symbol("combined-with"), Term[method, i, j])
+            if new_term in c_terms continue end
+            push!(new_terms, new_term)
+        end
+    end
+    cooked_ingredients, cooked_terms =
+        extract_ingredient_clusters(recipe, Symbol("cooked-with"))
+    for (c_ingredients, c_terms) in zip(cooked_ingredients, cooked_terms)
+        for i in c_ingredients
+            method = c_terms[1].args[1]
+            push!(new_terms, Compound(Symbol("cooked"), Term[method, i]))
+        end
+        for i in c_ingredients, j in c_ingredients
+            method = c_terms[1].args[1]
+            new_term = Compound(Symbol("cooked-with"), Term[method, i, j])
+            if new_term in c_terms continue end
+            push!(new_terms, new_term)
+        end
+    end
+    return new_terms
+end
+
+function complete_cluster_terms(spec::Specification)
+    terms = SymbolicPlanners.get_goal_terms(spec)
+    new_terms = complete_cluster_terms(terms)
+    return SymbolicPlanners.set_goal_terms(spec, new_terms)
 end
 
 "Distinguish recipes by adding negations for all terms not in each recipe."
 function distinguish_recipes(recipes::Vector{Vector{Term}})
+    # Complete recipe terms
+    completed_recipes = map(complete_cluster_terms, recipes)
     # Combine all recipe terms
-    all_terms = reduce(union, recipes)
+    all_terms = reduce(union, completed_recipes)
     # Add negations for all terms not in each recipe
-    new_recipes = map(recipes) do old
+    new_recipes = map(recipes, completed_recipes) do old, completed
         new = copy(old)
-        diff = setdiff(all_terms, old)
+        diff = setdiff(all_terms, completed)
         for term in diff
             push!(new, Compound(:not, [term]))
         end

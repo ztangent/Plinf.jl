@@ -47,7 +47,7 @@ function SymbolicPlanners.solve(
     if hasproperty(planner.planner, :heuristic)
         hval = planner.planner.heuristic(domain, state, goal)
         if hval == Inf
-            return NullSolution()
+            return NullSolution(:failure)
         end
     end
     # Order into subgoals
@@ -64,21 +64,68 @@ function SymbolicPlanners.solve(
         if planner.verbose
             println("Subgoals: ", join(write_pddl.(goals), ", "))
         end
+        if isempty(goals)
+            push!(subplans, Term[])
+            continue
+        end
+        # Check if time limit has been exceeded
         time_elapsed = time() - start_time
         time_left = planner.max_time - time_elapsed
         if time_left < 0
             return NullSolution(:max_time)
         end
         planner.planner.max_time = time_left
+        # Check if subgoals can be solved using subplanner heuristic
+        if hasproperty(planner.planner, :heuristic)
+            hval = planner.planner.heuristic(domain, state, goals)
+            if hval == Inf
+                return NullSolution(:failure)
+            end
+        end
+        # Check if any negative goals are irreversibly satisfied
+        irreversible = (
+            :prepared, 
+            :combined, Symbol("is-combined"), Symbol("combined-with"),
+            :cooked, Symbol("is-cooked"), Symbol("cooked-with")
+        )
+        for term in goals
+            term.name != :not && continue
+            term = term.args[1]
+            if (term.name in irreversible && state[term])
+                return NullSolution(:failure)
+            end
+        end
+        # Check for negative interactions among combine and cook  goals
+        for term in goals
+            if term.name == Symbol("combined-with")
+                state[term] && continue
+                t1 = Compound(:combined, term.args[[1, 2]])
+                t2 = Compound(:combined, term.args[[1, 3]])
+                if state[t1] || state[t2]
+                    return NullSolution(:failure)
+                end
+            end
+            if term.name == Symbol("cooked-with")
+                state[term] && continue
+                t1 = Compound(:cooked, term.args[[1, 2]])
+                t2 = Compound(:cooked, term.args[[1, 3]])
+                if state[t1] || state[t2]
+                    return NullSolution(:failure)
+                end
+            end
+        end
+        # Run planner
         sol = planner.planner(domain, state, goals)
         if sol.status != :success
             return NullSolution(sol.status)
         end
+        # Collect subplan
         actions = collect(sol)
         if planner.verbose
             println("Subplan: ", join(write_pddl.(actions), ", "))
         end
         push!(subplans, actions)
+        # Advance to last state of subplan
         state = sol.trajectory[end]
     end
     plan = reduce(vcat, subplans)
@@ -153,17 +200,26 @@ function order_subgoals_by_predicate(goal::Term)
     for term in subgoals
         if term.name == :prepared
             push!(prepare_goals, term)
-        elseif term.name == :combined || term.name == Symbol("combined-with")
+        elseif term.name in (:combined, Symbol("combined-with"))
             push!(combine_goals, term)
-        elseif term.name == :cooked || term.name == Symbol("cooked-with")
+        elseif term.name in (:cooked, Symbol("cooked-with"))
             push!(cook_goals, term)
         elseif term.name == Symbol("in-receptacle")
             push!(serve_goals, term)
-        else
+        elseif term.name != :not
             push!(misc_goals, term)
         end
     end
-    return [prepare_goals, combine_goals, cook_goals, serve_goals, misc_goals]
+    all_subgoals = [prepare_goals, combine_goals, cook_goals,
+                    serve_goals, misc_goals]
+    # Ensure negative terms are added to each non-empty subgoal list
+    neg_terms = filter(t -> t.name == :not, subgoals)
+    if !isempty(neg_terms)
+        for gs in all_subgoals
+            isempty(gs) || append!(gs, neg_terms)
+        end
+    end
+    return all_subgoals
 end
 
 "Orders subgoals in a recipe by ingredient cluster."
@@ -172,13 +228,16 @@ function order_subgoals_by_cluster(goal::Term)
     # Extract ingredients and recipe terms
     ingredients = extract_ingredients(goal)
     terms = PDDL.flatten_conjs(goal)
+    # Extract negative terms
+    neg_terms = filter(t -> t.name == :not, terms)
+    setdiff!(terms, neg_terms)
     # Extract combine clusters
     combine_clusters, combine_cluster_terms = 
         extract_ingredient_clusters(goal, Symbol("combined-with"))
     for term in terms # Add ingredients cooked on their own
         term.name == :combined || continue
         pushfirst!(combine_clusters, [term.args[2]])
-        pushfirst!(combine_cluster_terms, [term])
+        pushfirst!(combine_cluster_terms, [[term]; neg_terms])
     end
     # Extract cook clusters
     cook_clusters, cook_cluster_terms = 
@@ -186,7 +245,7 @@ function order_subgoals_by_cluster(goal::Term)
     for term in terms # Add ingredients cooked on their own
         term.name == :cooked || continue
         pushfirst!(cook_clusters, [term.args[2]])
-        pushfirst!(cook_cluster_terms, [term])
+        pushfirst!(cook_cluster_terms, [[term]; neg_terms])
     end
     # Add prepare terms not in any cluster
     prepare_terms = filter(terms) do term
@@ -279,6 +338,12 @@ function order_subgoals_by_cluster(goal::Term)
     # Add all remaining terms as subgoals
     if !isempty(terms)
         push!(subgoals, terms)
+    end
+    # Ensure negative goals are added to each non-empty subgoal list
+    if !isempty(neg_terms)
+        for gs in subgoals
+            isempty(gs) || append!(gs, neg_terms)
+        end
     end
     return subgoals
 end
