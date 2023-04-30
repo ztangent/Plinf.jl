@@ -63,13 +63,16 @@
     (cooked ?m - cook-method ?f - food)
     ; Whether food items ?f1 and ?f2 were cooked together using method ?m
     (cooked-with ?m - cook-method ?f1 ?f2 - food)
+
+    ; Whether receptacle ?r has been served
+    (served ?r - receptacle)
   )
 
   ;; ACTIONS ;;
   ; Move from location ?l1 to location ?l2
   (:action move
    :parameters (?l1 ?l2 - location)
-   :precondition (agent-at-loc ?l1)
+   :precondition (and (agent-at-loc ?l1) (not (= ?l1 ?l2)))
    :effect (and (agent-at-loc ?l2) (not (agent-at-loc ?l1)))
   )
 
@@ -180,5 +183,14 @@
                                                   (not (= ?f ?f2)))
                                              (cooked-with ?m ?f ?f2))))))
   )
+
+  ; Serve receptacle ?r
+  (:action serve
+   :parameters (?r - receptacle ?l - location)
+   :precondition (and (agent-at-loc ?l) (object-at-loc ?r ?l)
+                      (not (served ?r)))
+   :effect (served ?r)
+  )
+
   ;; END ACTIONS ;;
 )

@@ -198,6 +198,26 @@ function recipe_overlap(recipe1::Term, recipe2::Term)
     return max_iou
 end
 
+"Add served term to recipe if it is not already present."
+function add_served(terms::Vector{Term})
+    any(x -> x.name == Symbol("served"), terms) && return terms
+    idx = findfirst(x -> x.name == Symbol("in-receptacle"), terms)
+    if idx === nothing return terms end
+    receptacle = terms[idx].args[2]
+    served = Compound(:served, [receptacle])
+    terms = push!(copy(terms), served)
+    return terms
+end
+
+function add_served(specs::AbstractVector{<:Specification})
+    terms = SymbolicPlanners.get_goal_terms.(specs)
+    new_terms = add_served.(terms)
+    new_specs = [SymbolicPlanners.set_goal_terms(s, t)
+                 for (s, t) in zip(specs, new_terms)]
+    return new_specs
+end
+
+"Distinguish recipes by adding negations for all terms not in each recipe."
 function distinguish_recipes(recipes::Vector{Vector{Term}})
     # Combine all recipe terms
     all_terms = reduce(union, recipes)
