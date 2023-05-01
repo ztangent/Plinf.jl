@@ -12,6 +12,11 @@ using Plinf
 using SymbolicPlanners: simplify_goal
 using GenParticleFilters: softmax
 
+DOMAIN_DIR = @__DIR__
+PROBLEM_DIR = joinpath(@__DIR__, "problems")
+GOALS_DIR = joinpath(@__DIR__, "goals")
+PLANS_DIR = joinpath(@__DIR__, "plans")
+
 # Kitchen names
 KITCHEN_NAMES = [
     "salad bar", 
@@ -36,7 +41,6 @@ PLANS = [
 ]
 
 N_GOALS_PER_PROBLEM = 5
-N_PARTICLES = 5
 
 DISTINGUISH_GOALS = true
 ACT_TEMPERATURES = 2.0 .^ collect(-1:0.5:4)
