@@ -130,6 +130,7 @@ end
     ReplanConfig(
         domain::Domain, planner::Planner;
         prob_replan::Real=0.1,
+        rand_budget::Bool = true,
         budget_var::Symbol = default_budget_var(planner),
         budget_dist::Distribution = shifted_neg_binom,
         budget_dist_args::Tuple = (2, 0.05, 1)
@@ -140,11 +141,12 @@ Constructs a `PlanConfig` that may stochastically replan at each timestep.
 function ReplanConfig(
     domain::Domain, planner::Planner;
     prob_replan::Real = 0.1,
+    rand_budget::Bool = true,
     budget_var::Symbol = default_budget_var(planner),
     budget_dist::Distribution = shifted_neg_binom,
     budget_dist_args::Tuple = (2, 0.05, 1)
 )
-    step_args = (domain, planner, prob_replan,
+    step_args = (domain, planner, prob_replan, rand_budget,
                  budget_var, budget_dist, budget_dist_args)
     return PlanConfig(default_plan_init, (), replan_step, step_args)
 end
@@ -164,6 +166,7 @@ whether to replan, and replanning uses a randomly sampled resource budget.
     t::Int, plan_state::PlanState, belief_state::State, goal_state,
     domain::Domain, planner::Planner,
     prob_replan::Real=0.1,
+    rand_budget::Bool=true,
     budget_var::Symbol=:max_nodes,
     budget_dist::Distribution=shifted_neg_binom,
     budget_dist_args::Tuple=(2, 0.05, 1)
@@ -176,15 +179,17 @@ whether to replan, and replanning uses a randomly sampled resource budget.
     end
     # Sample whether to replan
     replan = {:replan} ~ bernoulli(prob_replan)
-    # Sample planning resource budget
-    budget = {:budget} ~ budget_dist(budget_dist_args...)
+    if rand_budget # Sample planning resource budget
+        budget = {:budget} ~ budget_dist(budget_dist_args...)
+    end
     # Decide whether to replan
     if !replan # Return original plan
         return plan_state
     else # Otherwise replan from the current belief state
-        # Set new resource budget
-        planner = copy(planner)
-        setproperty!(planner, budget_var, budget)
+        if rand_budget # Set new resource budget
+            planner = copy(planner)
+            setproperty!(planner, budget_var, budget)
+        end
         # Compute and return new plan
         sol = planner(domain, belief_state, spec)
         return PlanState(t, sol, spec)
@@ -196,6 +201,7 @@ end
         domain::Domain, planner::Planner;
         prob_replan::Real = 0.05,
         prob_refine::Real = 0.2,
+        rand_budget::Bool = true,
         budget_var::Symbol = default_budget_var(planner),
         budget_dist::Distribution = shifted_neg_binom,
         budget_dist_args::Tuple = (2, 0.05, 1)
@@ -208,12 +214,13 @@ function ReplanPolicyConfig(
     domain::Domain, planner::Planner;
     prob_replan::Real = 0.05,
     prob_refine::Real = 0.2,
+    rand_budget::Bool = true,
     budget_var::Symbol = default_budget_var(planner),
     budget_dist::Distribution = shifted_neg_binom,
     budget_dist_args::Tuple = (2, 0.05, 1)
 )
     step_args = (domain, planner, prob_replan, prob_refine,
-                 budget_var, budget_dist, budget_dist_args)
+                 rand_budget, budget_var, budget_dist, budget_dist_args)
     return PlanConfig(default_plan_init, (), policy_step, step_args)
 end
 
@@ -222,19 +229,21 @@ default_budget_var(::RealTimeHeuristicSearch) = :max_nodes
 
 """
     policy_step(t, plan_state, belief_state, goal_state, domain, planner,
-                prob_replan=0.05, prob_refine=0.2,
+                prob_replan=0.05, prob_refine=0.2, rand_budget=true,
                 budget_var=:max_depth, budget_dist=shifted_neg_binom,
                 budget_dist_args=(2, 0.95, 1))
 
 Replanning step for policy-based planners. At each timestep, a decision is made 
-whether to refine the existing policy or replan from scratch. Policy computation
-or refinement is performed up to randomly sampled maximum resource budget.
+whether to refine the existing policy or replan from scratch. If `rand_budget`
+is true, policy computation or refinement is performed up to randomly sampled
+maximum resource budget.
 """
 @gen function policy_step(
     t::Int, plan_state::PlanState, belief_state::State, goal_state,
     domain::Domain, planner::Planner,
     prob_replan::Real=0.05,
     prob_refine::Real=0.2,
+    rand_budget::Bool=true,
     budget_var::Symbol=:max_depth,
     budget_dist::Distribution=shifted_neg_binom,
     budget_dist_args::Tuple=(2, 0.05, 1)
@@ -250,22 +259,25 @@ or refinement is performed up to randomly sampled maximum resource budget.
     # Sample whether to replan or refine
     probs = [1-(prob_replan+prob_refine), prob_replan, prob_refine]
     replan = {:replan} ~ categorical(probs)
-    # Sample planning resource budget
-    budget = {:budget} ~ budget_dist(budget_dist_args...)
+    if rand_budget # Sample planning resource budget
+        budget = {:budget} ~ budget_dist(budget_dist_args...)
+    end
     # Decide whether to replan or refine
     if replan == 1 # Return original plan
         return plan_state
     elseif replan == 2 # Replan from the current belief state
-        # Set new resource budget
-        planner = copy(planner)
-        setproperty!(planner, budget_var, budget)
+        if rand_budget # Set new resource budget
+            planner = copy(planner)
+            setproperty!(planner, budget_var, budget)
+        end
         # Compute and return new plan
         sol = planner(domain, belief_state, spec)
         return PlanState(t, sol, spec)
     elseif replan == 3 # Refine existing solution
-        # Set new resource budget
-        planner = copy(planner)
-        setproperty!(planner, budget_var, budget)
+        if rand_budget # Set new resource budget
+            planner = copy(planner)
+            setproperty!(planner, budget_var, budget)
+        end
         # Refine existing solution
         sol = copy(plan_state.sol)
         refine!(sol, planner, domain, belief_state, spec)

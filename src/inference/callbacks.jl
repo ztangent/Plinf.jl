@@ -318,7 +318,9 @@ The `logger_var` is the name of the variable in the `DataLoggerCallback` that
 contains the data to be plotted. The `converter` function is used to convert
 the data to a format that can be plotted.
 
-Keyword arguments are passed to the plotting function.
+Keyword arguments are passed to the plotting function. In addition, 
+`legend_title` and `legend_args` can be specified to add an `axislegend` 
+to the plot.
 """
 function PlotCallback(
     plot_type_or_fn::Union{Type, Function},
@@ -386,15 +388,18 @@ function (cb::PlotCallback)(t::Int, obs, pf_state)
     end
     # Create plot if one doesn't already exist
     if !cb.has_plot
+        kwargs = copy(cb.kwargs)
+        legend_title = get(kwargs, :legend_title, nothing)
+        legend_args = get(kwargs, :legend_args, ())
+        delete!(kwargs, :legend_title)
+        delete!(kwargs, :legend_args)
         if isempty(contents(cb.grid_pos))
-            plot(cb.plot_type, cb.grid_pos, cb.data_obs; cb.kwargs...)
-        else
-            if haskey(cb.kwargs, :axis)
-                kwargs = copy(cb.kwargs)
-                delete!(kwargs, :axis)
-            else
-                kwargs = cb.kwargs
+            ax, _ = plot(cb.plot_type, cb.grid_pos, cb.data_obs; kwargs...)
+            if legend_title !== nothing
+                axislegend(ax, ax, legend_title; legend_args...)
             end
+        else
+            delete!(kwargs, :axis)
             plot!(cb.plot_type, cb.grid_pos, cb.data_obs; kwargs...)
         end
         cb.has_plot = true
