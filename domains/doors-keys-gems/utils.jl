@@ -166,9 +166,11 @@ function DKGCombinedCallback(
             callbacks[:logger], 
             :goal_probs, # Look up :goal_probs variable
             ps -> reduce(hcat, ps); # Convert vectors to matrix for plotting
-            color = goal_colors, labels=goal_names,
+            color = goal_colors, labels = goal_names,
             axis = (xlabel="Time", ylabel = "Probability",
-                    limits=((1, nothing), (0, 1)))
+                    limits=((1, nothing), (0, 1))),
+            legend_title = "Goals",
+            legend_args = (framevisible=false, position=:rt)        
         )
     end
     # Construct recording callback
