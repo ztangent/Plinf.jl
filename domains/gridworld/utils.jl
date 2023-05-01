@@ -274,7 +274,7 @@ function storyboard_goal_lines!(
     )
     # Add legend to subplot
     if show_legend
-        axislegend("Goals", framevisible=false)
+        axislegend(ax, ax, "Goals", framevisible=false)
     end
     # Add vertical lines at timesteps
     if !isempty(ts)
