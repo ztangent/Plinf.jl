@@ -12,6 +12,10 @@ using Plinf
 using SymbolicPlanners: simplify_goal
 using GenParticleFilters: softmax
 
+include("load_goals.jl")
+include("load_plan.jl")
+include("planner.jl")
+
 DOMAIN_DIR = @__DIR__
 PROBLEM_DIR = joinpath(@__DIR__, "problems")
 GOALS_DIR = joinpath(@__DIR__, "goals")
@@ -75,7 +79,7 @@ df_path = joinpath(@__DIR__, df_path)
 domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
 
 # Iterate over kitchen types
-for (idx, kitchen_name) in collect(enumerate(KITCHEN_NAMES))[5:5]
+for (idx, kitchen_name) in collect(enumerate(KITCHEN_NAMES))
     println("== Kitchen $idx : $kitchen_name ==")
 
     # Iterate over problems and goals for each kitchen type
