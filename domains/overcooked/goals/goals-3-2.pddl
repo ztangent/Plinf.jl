@@ -65,6 +65,7 @@
                      (prepared slice ?lettuce)
                      (prepared slice ?tomato)
                      (prepared slice ?onion)
+                     (prepared slice ?ham)
                      (in-receptacle ?ham ?plate)
                      (in-receptacle ?onion ?plate)
                      (in-receptacle ?bread ?plate)

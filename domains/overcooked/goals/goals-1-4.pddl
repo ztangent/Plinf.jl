@@ -39,6 +39,7 @@
                      (food-type cucumber ?cucumber)
                      (food-type salad-dressing ?salad-dressing)
                      (receptacle-type plate ?plate)
+                     (prepared slice ?lettuce)
                      (prepared slice ?tomato)
                      (prepared slice ?cucumber)
                      (in-receptacle ?lettuce ?plate)

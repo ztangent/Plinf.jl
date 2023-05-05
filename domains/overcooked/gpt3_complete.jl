@@ -1,12 +1,13 @@
 
 using HTTP, JSON3
+using GenGPT3
 
 "Call the OpenAI JSON API for GPT-3 and return the results."
 function gpt3_complete(
     prompt, n_completions::Int=1;
     endpoint::String = "https://api.openai.com/v1/completions",
     api_key::String = get(ENV, "OPENAI_API_KEY", ""),
-    model::String = "text-davinci-003",
+    model::String = "text-davinci-002",
     temperature::Real = 1.0,
     max_tokens::Int = 2048,
     logprobs::Union{Nothing,Int} = 0,
@@ -145,19 +146,53 @@ function extract_tokens_until_stop(completion, stop_condition)
     return tokens, logprobs
 end
 
-"Call the OpenAI JSON API for GPT-3 and return the results."
+"Return the log probabilities of list of completions after a specified prompt."
 function gpt3_eval_completion_logprobs(
     prompt::String, completions;
     verbose=false, options... # Other options
 )
     # Construct texts to evaluate
     strs = [prompt * s for s in completions]
-    push!(strs, prompt)
     # Send to OpenAI API for evaluation
     choices = gpt3_multi_prompt_api_call(strs; 
         logprobs=0, max_tokens=0, echo=true,
         verbose=verbose, options...
     )
-    logprobs = [extract_logprobs(c, 0) for c in choices]
-    return [lp - logprobs[end] for lp in logprobs[1:end-1]]
+    n_prompt_tokens = length(GenGPT3.tokenize(prompt))
+    # Extract logprobs
+    logprobs = map(choices) do choice
+        return sum(choice.logprobs.token_logprobs[n_prompt_tokens+1:end])
+    end
+    return logprobs
+end
+
+"Return the (relative) log probabilities of next tokens after a prompt."
+function gpt3_eval_next_token_logprobs(
+    prompt::String, next_tokens::AbstractVector{<:AbstractString};
+    verbose=false, options... # Other options
+)
+    # Get token IDs for next tokens
+    next_tokens = map(next_tokens) do str
+        str_tokens = GenGPT3.tokenize(str)
+        if length(str_tokens) != 1
+            error("\"$str\" is not a single token.")
+        end
+        return str_tokens[1]
+    end
+    token_ids = GenGPT3.encode(next_tokens)
+    next_tokens = GenGPT3.detokenize.([[t] for t in next_tokens])
+    # Create logit bias dictionary from tokens
+    logit_bias = Dict(string(id) => 100.0 for id in token_ids)
+    # Send to OpenAI API for evaluation
+    resp = gpt3_complete(prompt; logprobs=5, max_tokens=1, echo=false,
+                         logit_bias=logit_bias, verbose=verbose, options...)
+    # Extract logprobs
+    top_logprobs = resp.choices[1].logprobs.top_logprobs[1]
+    sum_probs = sum(exp.(values(top_logprobs)))
+    n_missing = length(GenGPT3.GPT_VOCAB_LIST) - length(top_logprobs)
+    log_mean_missing_prob = log(max(0, (1.0 - sum_probs) / n_missing))
+    logprobs = map(next_tokens) do token
+        return get(top_logprobs, token, log_mean_missing_prob)
+    end
+    return logprobs
 end
