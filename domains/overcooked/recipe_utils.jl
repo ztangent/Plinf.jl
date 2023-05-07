@@ -111,6 +111,7 @@ end
 
 "Normalize recipe by converting ingredient clusters to a canonical form."
 function normalize_recipe(recipe::Term)
+    @assert recipe.name == :exists
     # Extract recipe terms from existential condition
     terms = PDDL.flatten_conjs(recipe.args[2])
     # Extract and Skolemize food variables
@@ -196,6 +197,22 @@ function recipe_overlap(recipe1::Term, recipe2::Term)
         end
     end
     return max_iou
+end
+
+function recipe_overlap(spec1::Specification, spec2::Specification)
+    recipe1 = SymbolicPlanners.get_goal_terms(spec1)[1]
+    recipe2 = SymbolicPlanners.get_goal_terms(spec2)[1]
+    return recipe_overlap(recipe1, recipe2)
+end
+
+function recipe_overlap(spec1::Specification, recipe2::Term)
+    recipe1 = SymbolicPlanners.get_goal_terms(spec1)[1]
+    return recipe_overlap(recipe1, recipe2)
+end
+
+function recipe_overlap(recipe1::Term, spec2::Specification)
+    recipe2 = SymbolicPlanners.get_goal_terms(spec2)[1]
+    return recipe_overlap(recipe1, recipe2)
 end
 
 "Add served term to recipe if it is not already present."
