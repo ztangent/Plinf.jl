@@ -1,7 +1,7 @@
 using PDDL
 using CSV, DataFrames, Dates
 
-include("goal_priors.jl")
+include("goal_prior_baseline.jl")
 include("goal_validation.jl")
 include("recipe_writing.jl")
 

@@ -26,19 +26,24 @@ df_types = eltype.(eachcol(df))
 # Define columns that correspond to experimental conditions
 condition_cols = [:model, :include_recipe_description]
 
-# Load dataframe
+# Load dataframes
+
+# GPT-3.5, with English recipe description
 df_path = "recipes_gpt3_eng_text-davinci-003_temp_1.0_nperkitchen_3_2023-01-23T17-52-40.csv"
 df_path = joinpath(@__DIR__, df_path)
 df = CSV.read(df_path, DataFrame, types=df_types)
 
+# GPT-3.5, without English recipe description
 df_path = "recipes_gpt3_eng_text-davinci-003_temp_1.0_nperkitchen_3_2023-01-27T21-03-51.csv"
 df_path = joinpath(@__DIR__, df_path)
 append!(df, CSV.read(df_path, DataFrame, types=df_types))
 
+# GPT-3, with English recipe description
 df_path = "recipes_gpt3_eng_davinci_temp_1.0_nperkitchen_3_2023-01-23T21-15-58.csv"
 df_path = joinpath(@__DIR__, df_path)
 append!(df, CSV.read(df_path, DataFrame, types=df_types))
 
+# GPT-3, without English recipe description
 df_path = "recipes_gpt3_eng_davinci_temp_1.0_nperkitchen_3_2023-01-27T22-59-36.csv"
 df_path = joinpath(@__DIR__, df_path)
 append!(df, CSV.read(df_path, DataFrame, types=df_types))
