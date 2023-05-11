@@ -40,7 +40,7 @@
 (move food-loc stove-loc)
 (transfer board1 pan1 stove-loc)
 (cook grill pan1 stove2 stove-loc)
-; They put the pan on the stove, and place the crumbled bacon on it for extra grilling.
+; They place the crumbled bacon on the pan for extra grilling using the stove.
 (move stove-loc plate-loc)
 (put-down board1 plate-loc)
 (move plate-loc stove-loc)
