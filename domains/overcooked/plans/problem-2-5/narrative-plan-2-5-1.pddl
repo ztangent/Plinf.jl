@@ -31,4 +31,4 @@
 (place-in avocado1 plate1 food-loc)
 (pick-up nori1 food-loc)
 (place-in nori1 plate1 food-loc)
-; Then they pick up cucumber, avocado, and nori, and add it to the plate of sliced crab and salmon.
+; Then they pick up cucumber, avocado, and nori, and add it to the plate of sliced crab.

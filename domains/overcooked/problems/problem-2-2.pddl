@@ -45,6 +45,7 @@
         (object-at-loc pan1 stove-loc)
         (object-at-loc pot1 stove-loc)
         (object-at-loc stove1 stove-loc)
+        (object-at-loc stove2 stove-loc)
         (object-at-loc plate1 plate-loc)
         (object-at-loc bowl1 bowl-loc)
         ; Whether receptacles are located on appliances

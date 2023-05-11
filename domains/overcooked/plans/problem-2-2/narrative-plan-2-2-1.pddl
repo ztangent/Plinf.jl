@@ -15,9 +15,7 @@
 (pick-up rice1 food-loc)
 (move food-loc stove-loc)
 (place-in rice1 pot1 stove-loc)
-(pick-up pot1 stove-loc)
-(put-down pot1 stove-loc)
-(cook boil pot1 stove1 stove-loc)
+(cook boil pot1 stove2 stove-loc)
 ; They place rice in a pot of water on the stove to boil.
 (pick-up pot1 stove-loc)
 (move stove-loc plate-loc)

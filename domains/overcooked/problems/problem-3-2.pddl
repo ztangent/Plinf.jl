@@ -60,6 +60,7 @@
         (in-appliance pan1 stove1)
         (in-appliance basket1 fryer1)
         (occupied stove1)
+        (occupied fryer1)
     )
     (:goal
         (exists (?ham - food ?bread - food ?cheese - food ?mayonnaise - food ?plate - receptacle)
