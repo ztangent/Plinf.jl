@@ -37,7 +37,7 @@
 (pick-up knife1 food-loc)
 (prepare chop board1 knife1 chicken1 food-loc)
 (prepare slice board1 knife1 sausage1 food-loc)
-; They go back to the chopping board, then slice chicken and sausage on it.
+; They go back to the chopping board, then chop chicken and slice sausage on it.
 (put-down knife1 food-loc)
 (pick-up board1 food-loc)
 (move food-loc tray-loc)
