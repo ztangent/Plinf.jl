@@ -1,0 +1,62 @@
+(move start-loc food-loc)
+(pick-up tuna1 food-loc)
+(move food-loc mix-loc)
+(place-in tuna1 mixing-bowl1 mix-loc)
+; They place tuna in the mixing bowl.
+(move mix-loc food-loc)
+(pick-up mayo1 food-loc)
+(move food-loc mix-loc)
+(place-in mayo1 mixing-bowl1 mix-loc)
+(combine mix mixing-bowl1 mixer1 mix-loc)
+; They add mayonnaise to the mixing bowl, then mix it with the tuna.
+(move mix-loc food-loc)
+(pick-up cheese1 food-loc)
+(move food-loc chop-loc)
+(place-in cheese1 board1 chop-loc)
+(pick-up knife1 chop-loc)
+(prepare slice board1 knife1 cheese1 chop-loc)
+; They find some cheese and slice it on the chopping board.
+(put-down knife1 chop-loc)
+(move chop-loc food-loc)
+(pick-up bread1 food-loc)
+(move food-loc stove-loc)
+(place-in bread1 pan1 stove-loc)
+; They pick up bread and place it a pan on the stove.
+(move stove-loc mix-loc)
+(pick-up mixing-bowl1 mix-loc)
+(move mix-loc stove-loc)
+(transfer mixing-bowl1 pan1 stove-loc)
+; They pick up the mixing bowl and transfer its contents to the pan.
+(move stove-loc chop-loc)
+(put-down mixing-bowl1 chop-loc)
+(take-out cheese1 board1 chop-loc)
+(move chop-loc stove-loc)
+(place-in cheese1 pan1 stove-loc)
+; They take the sliced cheese from the chopping board and add it to the pan.
+(cook grill pan1 stove1 stove-loc)
+(pick-up pan1 stove-loc)
+(move stove-loc plate-loc)
+(transfer pan1 plate1 plate-loc)
+; They grill everything in the pan, then transfer the contents to a plate.
+(put-down pan1 plate-loc)
+(move plate-loc food-loc)
+(pick-up potato1 food-loc)
+; They pick up a potato.
+(move food-loc chop-loc)
+(place-in potato1 board1 chop-loc)
+(pick-up knife1 chop-loc)
+(prepare slice board1 knife1 potato1 chop-loc)
+; They slice the potato on the chopping board.
+(put-down knife1 chop-loc)
+(pick-up board1 chop-loc)
+(move chop-loc fryer-loc)
+(transfer board1 basket1 fryer-loc)
+(cook deep-fry basket1 fryer1 fryer-loc)
+; They put the potato in the fryer and deep fry it.
+(move fryer-loc plate-loc)
+(put-down board1 plate-loc)
+(move plate-loc fryer-loc)
+(pick-up basket1 fryer-loc)
+(move fryer-loc plate-loc)
+(transfer basket1 plate1 plate-loc)
+; They put down the chopping board, then transfer the potato to the plate.

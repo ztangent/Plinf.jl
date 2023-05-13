@@ -2,4 +2,4 @@
 (pick-up lettuce1 food-loc)
 (move food-loc plate-loc)
 (place-in lettuce1 plate1 plate-loc)
-; (in-receptacle lettuce1 plate1)
+; They place fresh lettuce on the plate.
