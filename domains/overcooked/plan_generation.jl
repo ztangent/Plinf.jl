@@ -29,13 +29,11 @@ end
 # Generate a plan for each goal and problem
 for (ppath, gpath) in zip(problem_paths, goals_paths)
     i, j = extract_problem_idxs(ppath)
-    if (i, j) != (3, 4) continue end
     problem = load_problem(ppath)
     descriptions, goals = load_goals(gpath)
     state = initstate(domain, problem)
     heuristic = memoized(precomputed(FFHeuristic(), domain, state))
     for (k, goal) in enumerate(goals)
-        if k in [1, 3, 4] continue end
         # Compute goal heuristic to determine reachability
         hval = heuristic(domain, state, goal)
         if hval == Inf
