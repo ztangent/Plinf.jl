@@ -17,7 +17,7 @@ function recipe_term_counts_cb(pf::ParticleFilterView)
     weights = get_norm_weights(pf)
     counts = Dict{Term, Float64}()
     for (tr, w) in zip(traces, weights)
-        spec = tr[goal_addr]
+        spec = tr[:init => :agent => :goal]
         recipe = SymbolicPlanners.get_goal_terms(spec)[1]
         terms, vars = normalize_recipe(recipe)
         for term in terms
@@ -67,7 +67,7 @@ end
 function term_recall(true_goal::Term, term_counts::Dict{Term, Float64})
     terms, _ = normalize_recipe(true_goal)
     filter!(terms) do term
-        term.name in (Symbol("food-type"), Symbol("receptacle-type"))
+        !(term.name in (Symbol("food-type"), Symbol("receptacle-type")))
     end
     correct_weight = 0.0
     for term in terms

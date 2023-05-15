@@ -217,6 +217,12 @@ end
 
 "Add served term to recipe if it is not already present."
 function add_served(terms::Vector{Term})
+    if terms[1].name == :exists && length(terms) == 1
+        vars, body = terms[1].args
+        new_body = Compound(:and, add_served(body.args))
+        exists_term = Compound(:exists, Term[vars, new_body])
+        return Term[exists_term]
+    end
     any(x -> x.name == Symbol("served"), terms) && return terms
     idx = findfirst(x -> x.name == Symbol("in-receptacle"), terms)
     if idx === nothing return terms end
