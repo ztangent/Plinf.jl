@@ -7,7 +7,7 @@
 (pick-up lettuce1 food-loc)
 (move food-loc chop-loc)
 (place-in lettuce1 board1 chop-loc)
-; They the lettuce on the chopping board. This involves picking up the lettuce, moving to the chopping board, and placing the lettuce on the chopping board.
+; They place the lettuce on the chopping board. This involves picking up the lettuce, moving to the chopping board, and placing the lettuce on the chopping board.
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 lettuce1 chop-loc)
 ; They slice the lettuce. This involves picking up the knife, then using the knife to slice the lettuce.
