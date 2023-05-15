@@ -1,0 +1,20 @@
+(move start-loc food-loc)
+(pick-up potato1 food-loc)
+(move food-loc chop-loc)
+(place-in potato1 board1 chop-loc)
+(pick-up knife1 chop-loc)
+(prepare slice board1 knife1 potato1 chop-loc)
+; Slice some potato on the chopping board.
+(put-down knife1 chop-loc)
+(pick-up board1 chop-loc)
+(move chop-loc fryer-loc)
+(transfer board1 basket1 fryer-loc)
+(cook deep-fry basket1 fryer1 fryer-loc)
+; Then deep fry the potato in the fryer.
+(move fryer-loc plate-loc)
+(put-down board1 plate-loc)
+(move plate-loc fryer-loc)
+(pick-up basket1 fryer-loc)
+(move fryer-loc plate-loc)
+(transfer basket1 plate1 plate-loc)
+; Place the deep fried potato on a plate.

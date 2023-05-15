@@ -7,19 +7,19 @@
 (move food-loc mix-loc)
 (place-in egg1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; They mix egg and flour in the mixing bowl.
+; Mix egg and flour in the mixing bowl.
 (pick-up mixing-bowl1 mix-loc)
 (move mix-loc oven-loc)
 (transfer mixing-bowl1 tray1 oven-loc)
-; They transfer the egg-and-flour mixture to the tray.
+; Transfer the egg-and-flour mixture to the tray.
 (move oven-loc food-loc)
 (put-down mixing-bowl1 food-loc)
 (pick-up apple1 food-loc)
 (move food-loc oven-loc)
 (place-in apple1 tray1 oven-loc)
-; They find an apple and place it in the tray.
+; Find an apple and place it in the tray.
 (cook bake tray1 oven1 oven-loc)
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)
-; They bake the tray in the oven, then transfer the baked contents to a plate.
+; Bake the tray in the oven, then transfer the baked contents to a plate.
