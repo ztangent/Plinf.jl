@@ -12,7 +12,7 @@
 (in-receptacle beef1 pan1)
 ; They grill the pan on the stove.
 ; Number of subgoals: 1
-(cooked grill beef1)
+(forall (?f - food) (imply (in-receptacle ?f pan1) (cooked grill ?f)))
 ; They transfer the grilled beef to the plate.
 ; Number of subgoals: 1
 (in-receptacle beef1 plate1)

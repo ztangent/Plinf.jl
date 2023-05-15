@@ -3,7 +3,7 @@
 (in-receptacle rice1 pot1)
 ; They boil the pot on the stove.
 ; Number of subgoals: 1
-(cooked boil rice1)
+((forall (?f - food) (imply (in-receptacle ?f pot1) (cooked boil ?f))))
 ; After the rice is cooked, they transfer the rice to the plate.
 ; Number of subgoals: 1
 (in-receptacle rice1 plate1)

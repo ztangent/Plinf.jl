@@ -39,7 +39,7 @@
 (in-receptacle bacon1 pan1)
 ; They grill the pan on the stove.
 ; Number of subgoals: 1
-(cooked grill bacon1)
+(forall (?f - food) (imply (in-receptacle ?f pan1) (cooked grill ?f)))
 ; They transfer the bacon from the pan to the plate.
 ; Number of subgoals: 1
 (in-receptacle bacon1 plate1)
@@ -51,7 +51,7 @@
 (in-receptacle egg1 pot1)
 ; They boil the pot on the stove.
 ; Number of subgoals: 1
-(cooked boil egg1)
+(forall (?f - food) (imply (in-receptacle ?f pot1) (cooked boil ?f)))
 ; They transfer the egg from the pot to the plate.
 ; Number of subgoals: 1
 (in-receptacle egg1 plate1)
