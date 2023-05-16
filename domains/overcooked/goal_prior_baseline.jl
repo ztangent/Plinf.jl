@@ -1,5 +1,17 @@
 using Gen, PDDL, Random
 
+if !isdefined(Main, :BASELINE_RECIPE_CACHE)
+    const BASELINE_RECIPE_CACHE = Dict{UInt, Vector{Term}}()
+end
+
+@gen function cached_recipe_prior(state::State, n_recipes::Int = 200)
+    recipes = get!(BASELINE_RECIPE_CACHE, hash(state)) do
+        [initial_state_recipe_prior(state) for _ in 1:n_recipes] 
+    end
+    recipe_id ~ uniform_discrete(1, length(recipes))
+    return recipes[recipe_id]
+end
+
 @gen function initial_state_recipe_prior(state::State)
     food_types = Symbol[o.name for o in PDDL.get_objects(state, Symbol("ftype"))]
     receptacle_types = Symbol[o.name for o in PDDL.get_objects(state, Symbol("rtype"))]

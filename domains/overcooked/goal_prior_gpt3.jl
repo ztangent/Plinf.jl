@@ -1,5 +1,6 @@
 using PDDL, SymbolicPlanners
 using CSV, DataFrames, Dates
+using Random
 
 include("gpt3_complete.jl")
 include("goal_validation.jl")
@@ -13,7 +14,7 @@ PLANS_DIR = joinpath(@__DIR__, "plans")
 
 # Recipe generation instruction 
 INSTRUCTION =
-    "Below is a wide variety of recipes that can be made using only the " *
+    "Below is a list of recipes that can be made using only the " *
     "ingredients, receptacles, tools, appliances, and methods in this kitchen. " *
     "If ingredients in a recipe are not modified by any method, then they can be " * 
     "assumed to remain in store-bought form.\n\n"
@@ -176,30 +177,37 @@ function construct_quantity_modifier(quantity::Int)
 end
 construct_quantity_modifier(quantity::Nothing) = ""
 
-const GPT3_RECIPE_CACHE = Dict{String, Vector{Term}}()
+if !isdefined(Main, :GPT3_RECIPE_CACHE)
+    const GPT3_RECIPE_CACHE = Dict{String, Vector{Term}}()
+end
 
+"GPT-3 recipe prior, with caching of generated recipes."
 @gen function gpt3_recipe_prior(
     domain::Domain, problem_path::String,
     include_description::Bool = true,
-    n_recipes::Int = 50, 
+    n_recipes::Int = 200, 
     gpt3_recipe_cache::Dict = GPT3_RECIPE_CACHE
 )
     problem_name = basename(problem_path)[1:end-5]
     key = "$(problem_name)_$(include_description)"
     recipes = get!(gpt3_recipe_cache, key) do
         generate_recipes(domain, problem_path, n_recipes,
-                         include_description=include_description)
+                         include_description=include_description,
+                         verbose=true)
     end
     recipe_id ~ uniform_discrete(1, n_recipes)
     return recipes[recipe_id]
 end
 
-const GPT3_STRATIFIED_RECIPE_CACHE = Dict{String, Vector{Term}}()
+if !isdefined(Main, :GPT3_STRATIFIED_RECIPE_CACHE)
+    const GPT3_STRATIFIED_RECIPE_CACHE = Dict{String, Vector{Term}}()
+end
 
+"GPT-3 recipe prior that generates recipes in strata of different sizes."
 @gen function gpt3_stratified_recipe_prior(
     domain::Domain, problem_path::String,
     include_description::Bool = true,
-    strata = ((1, 10), (2, 10), (nothing, 30)), 
+    strata = ((1, 40), (2, 40), (nothing, 120)), 
     gpt3_recipe_cache::Dict = GPT3_STRATIFIED_RECIPE_CACHE
 )
     problem_name = basename(problem_path)[1:end-5]
@@ -214,6 +222,7 @@ const GPT3_STRATIFIED_RECIPE_CACHE = Dict{String, Vector{Term}}()
                                  verbose = true)
             append!(rs, r)
         end
+        shuffle!(rs)
         return rs
     end
     recipe_id ~ uniform_discrete(1, length(recipes))
