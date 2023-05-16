@@ -7,7 +7,7 @@
 (move food-loc mix-loc)
 (place-in flour1 mixing-bowl1 mix-loc)
 (combine mix mixing-bowl1 mixer1 mix-loc)
-; They mix the egg and flour together in the mixing bowl.
+; Mix the egg and flour together in the mixing bowl.
 (move mix-loc food-loc)
 (pick-up tomato1 food-loc)
 (move food-loc chop-loc)
@@ -21,20 +21,20 @@
 (place-in ham1 board1 chop-loc)
 (pick-up knife1 chop-loc)
 (prepare slice board1 knife1 ham1 chop-loc)
-; They slice the tomato and ham on the chopping board.
+; Slice the tomato and ham on the chopping board.
 (put-down knife1 chop-loc)
 (move chop-loc mix-loc)
 (pick-up mixing-bowl1 mix-loc)
 (move mix-loc tray-loc)
 (transfer mixing-bowl1 tray1 tray-loc)
 (put-down mixing-bowl1 tray-loc)
-; They transfer the egg and flour mixture to the tray.
+; Transfer the egg and flour mixture to the tray.
 (move tray-loc chop-loc)
 (pick-up board1 chop-loc)
 (move chop-loc tray-loc)
 (transfer board1 tray1 tray-loc)
 (put-down board1 tray-loc)
-; They pick up the chopping board and transfer its contents to the tray.
+; Pick up the chopping board and transfer its contents to the tray.
 (move tray-loc food-loc)
 (pick-up cheese1 food-loc)
 (move food-loc tray-loc)
@@ -43,8 +43,8 @@
 (move tray-loc oven-loc)
 (put-down tray1 oven-loc)
 (cook bake tray1 oven1 oven-loc)
-; They add some cheese to the tray, then bake everything in the oven.
+; Add some cheese to the tray, then bake everything in the oven.
 (pick-up tray1 oven-loc)
 (move oven-loc plate-loc)
 (transfer tray1 plate1 plate-loc)
-; After baking, they transfer the food on the tray to a plate.
+; After baking, transfer the food on the tray to a plate.

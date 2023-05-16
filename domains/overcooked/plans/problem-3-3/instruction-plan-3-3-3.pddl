@@ -1,0 +1,38 @@
+(move start-loc food-loc)
+(pick-up beef1 food-loc)
+(move food-loc stove-loc)
+(place-in beef1 pan1 stove-loc)
+(cook grill pan1 stove1 stove-loc)
+; Grill some beef in a pan on the stove.
+(pick-up pan1 stove-loc)
+(move stove-loc plate-loc)
+(transfer pan1 plate1 plate-loc)
+(move plate-loc stove-loc)
+(put-down pan1 stove-loc)
+; Transfer the beef to the plate, then return the pan to the stove.
+(move stove-loc food-loc)
+(pick-up onion1 food-loc)
+(move food-loc chop-loc)
+(place-in onion1 board1 chop-loc)
+(pick-up knife1 chop-loc)
+(prepare slice board1 knife1 onion1 chop-loc)
+; Pick up onion and slice it on the chopping board.
+(put-down knife1 chop-loc)
+(pick-up board1 chop-loc)
+(move chop-loc stove-loc)
+(transfer board1 pan1 stove-loc)
+(cook grill pan1 stove1 stove-loc)
+; Place the onion in the pan and grill it on the stove.
+(move stove-loc plate-loc)
+(put-down board1 plate-loc)
+(move plate-loc stove-loc)
+(pick-up pan1 stove-loc)
+(move stove-loc plate-loc)
+(transfer pan1 plate1 plate-loc)
+; Transfer the grilled onion to the plate.
+(put-down pan1 plate-loc)
+(move plate-loc food-loc)
+(pick-up hamburger-bun1 food-loc)
+(move food-loc plate-loc)
+(place-in hamburger-bun1 plate1 plate-loc)
+; Find a hamburger bun and add it to the plate.
