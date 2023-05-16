@@ -45,7 +45,7 @@ end
 "Returns a subgoal sequence annotated with the provided annotations."
 function write_annotated_subgoals(
     subgoals::Vector{<:Vector{<:Term}},
-    annotations::Vector{<:AbstractString},
+    annotations::Vector{<:AbstractString};
     sg_prefix = "", sg_separator = "\n", sg_suffix = "\n",
     ann_first = true, ann_prefix = "; ", ann_suffix = "\n",
     no_numbers = true, include_count = true
@@ -648,15 +648,18 @@ function llm_subgoal_logprobs(
     return trace.scores
 end
 
-"Constrained decoding of a subgoal given a prompt."
+"Constrained sampling of a subgoal given a prompt."
 function llm_subgoal_sample(
-    domain::Domain, state::State, prompt::AbstractString;
-    llm::MultiGPT3GF = MultiGPT3GF(model="babbage", max_tokens=1),
+    domain::Domain, state::State, prompt;
+    llm::MultiGPT3GF = MultiGPT3GF(model="babbage", max_tokens=0),
     no_numbers = true, temperature = 1.0,
-    subgoal_trie = construct_subgoal_trie(domain, state; no_numbers),
-    verbose = false
+    subgoal_trie = construct_subgoal_trie(domain, state; no_numbers)
 )
-    prompt = GenGPT3.id_tokenize(prompt)
+    if prompt isa AbstractString
+        prompt = GenGPT3.id_tokenize(prompt)
+    else
+        prompt = copy(prompt)
+    end
     logprobs = 0.0
     tokens = Int[]
     trie = subgoal_trie
@@ -668,7 +671,6 @@ function llm_subgoal_sample(
             trie = trie.children[token]
             push!(tokens, token)
             push!(prompt, token)
-            if verbose println(token) end
             continue
         end
         # Otherwise sample from available choices
@@ -690,10 +692,128 @@ function llm_subgoal_sample(
         push!(tokens, token)
         push!(prompt, token)
         logprobs += choice_lps[choice_idx]
-        if verbose println(token) end
     end
-    result = GenGPT3.id_detokenize(tokens)
-    return result, logprobs
+    # Randomly sample from leaf
+    result = rand(trie.value)
+    logprobs -= log(length(trie.value))
+    return result, logprobs, tokens
+end
+
+"Constrained sampling of a subgoal sequence given a prompt."
+function llm_subgoal_seq_sample(
+    domain::Domain, state::State, prompt;
+    llm::MultiGPT3GF = MultiGPT3GF(model="babbage", max_tokens=0),
+    n_subgoals_prompt = "; Number of subgoals:", n_subgoals_range = 1:5,
+    temperature = 1.0, kwargs...
+)
+    if prompt isa AbstractString
+        prompt = GenGPT3.id_tokenize(prompt)
+    else
+        prompt = copy(prompt)
+    end
+    # Sample number of subgoals
+    append!(prompt, GenGPT3.id_tokenize(n_subgoals_prompt))
+    inputs = [vcat(prompt, GenGPT3.id_tokenize(" $k\n"))
+               for k in n_subgoals_range]
+    outputs = GenGPT3.gpt3_multi_prompt_api_call(
+        inputs, model = llm.model, max_tokens = 0, echo = true
+    )
+    choice_lps = [sum(o.logprobs.token_logprobs[end-1:end]) for o in outputs]
+    if temperature != 0.0
+        choice_lps ./= temperature
+        choice_lps .-= logsumexp(choice_lps)
+        choice_idx = randboltzmann(1:length(n_subgoals_range), choice_lps)
+    else
+        choice_idx = argmax(choice_lps)
+    end
+    n_subgoals = n_subgoals_range[choice_idx]
+    prompt = inputs[choice_idx]
+    logprobs = choice_lps[choice_idx]
+    # Sample subgoals
+    subgoals = Term[]
+    for k in 1:n_subgoals
+        subgoal, subgoal_logprobs, tokens = llm_subgoal_sample(
+            domain, state, prompt; llm, temperature, kwargs...
+        )
+        logprobs += subgoal_logprobs
+        push!(subgoals, subgoal)
+        append!(prompt, tokens)
+        append!(prompt, GenGPT3.id_tokenize("\n"))
+    end
+    return subgoals, logprobs, GenGPT3.id_detokenize(prompt)
+end
+
+"Constrained sampling of a subgoal sequence with automatic prompt selection."
+function llm_subgoal_seq_sample(
+    domain::Domain, state::State,
+    annotation::String, store::DataFrame, k::Int = 3;
+    filter_fn = nothing, lift = false, reversed = true,
+    kwargs...
+)
+    # Select top-k relevant subgoal examples
+    annotated_subgoal_examples, _, _ = 
+        select_subgoal_examples(annotation, store, k; filter_fn, lift, reversed)
+    # Construct prompt from examples
+    prompt = join(annotated_subgoal_examples, "\n")
+    prompt *= "\n; " * annotation * "\n"
+    return llm_subgoal_seq_sample(domain, state, prompt; kwargs...)
+end
+
+function propose_subgoal_plan(
+    domain::Domain, state::State, annotations::Vector{<:AbstractString};
+    llm::MultiGPT3GF = MultiGPT3GF(model="babbage", max_tokens=0),
+    n_subgoals_prompt = "; Number of subgoals:",
+    n_subgoals_range = 1:5,
+    temperature = 1.0,
+    no_numbers = true,
+    subgoal_store = nothing,
+    n_subgoal_examples = 3,
+    filter_fn = nothing, lift = false, reversed = true,
+    default_prompt = "",
+    subgoal_trie = construct_subgoal_trie(domain, state; no_numbers),
+    verbose = false, kwargs...
+)
+    subgoal_plan = Vector{Term}[]
+    total_logprobs = 0.0
+    all_logprobs = Float64[]
+    # Iterate over annotations and sample subgoal sequences
+    for annotation in annotations
+        if verbose
+            println("; " * annotation)
+        end
+        # Construct prompt if necessary 
+        if isnothing(subgoal_store)
+            prompt = default_prompt * "\n; " * annotation * "\n"
+            subgoals, logprobs, new_prompt =
+                llm_subgoal_seq_sample(
+                    domain, state, prompt;
+                    llm, temperature,
+                    n_subgoals_prompt, n_subgoals_range,
+                    no_numbers, subgoal_trie, kwargs...
+                )
+        else
+            subgoals, logprobs, new_prompt =
+                llm_subgoal_seq_sample(
+                    domain, state, annotation,
+                    subgoal_store, n_subgoal_examples;
+                    filter_fn, lift, reversed,
+                    llm, temperature,
+                    n_subgoals_prompt, n_subgoals_range,
+                    no_numbers, subgoal_trie, kwargs...
+                )
+        end
+        if verbose
+            println("; Number of subgoals: ", length(subgoals))
+            for goal in subgoals
+                println(write_pddl(goal))
+            end
+            println()
+        end
+        push!(subgoal_plan, subgoals)
+        push!(all_logprobs, logprobs)
+        total_logprobs += logprobs
+    end
+    return subgoal_plan, total_logprobs, all_logprobs
 end
 
 "Constructs a subgoal trie from a list of subgoals."
@@ -703,7 +823,15 @@ function construct_subgoal_trie(subgoals::Vector{<:Term}; no_numbers=true)
         subgoal_strs = remove_numbers.(subgoal_strs)
     end
     subgoal_tokens = GenGPT3.id_tokenize.(subgoal_strs)
-    subgoal_trie = Trie(subgoal_tokens)
+    subgoal_trie = Trie{Int, Vector{Term}}()
+    for (tokens, goal) in zip(subgoal_tokens, subgoals)
+        terms = get(subgoal_trie, tokens, nothing)
+        if isnothing(terms)
+            subgoal_trie[tokens] = Term[goal]
+        else
+            push!(terms, goal)
+        end
+    end
     return subgoal_trie
 end
 
@@ -1232,7 +1360,7 @@ function construct_annotated_action_store(
     return store
 end
 
-"Read a annotated action store from a CSV file."
+"Read annotated action store from a CSV file."
 function read_annotated_action_store(path::AbstractString)
     store = CSV.read(path, DataFrame)
     store.annotation_embedding = map(store.annotation_embedding) do str
@@ -1311,4 +1439,101 @@ function select_annotated_action_examples(
     kitchen_ids = store.kitchen_id[top_k]
     problem_ids = store.problem_id[top_k]
     return examples, verbose_examples, kitchen_ids, problem_ids
+end
+
+"Construct a store of annotated subgoal examples and their text embeddings."
+function construct_annotated_subgoal_store(
+    paths::Vector{<:AbstractString};
+    kitchen_id = -1, problem_id = -1, instance_id = -1,
+    include_count = true
+)
+    # Convert to vectors
+    if !(kitchen_id isa Vector)
+        kitchen_id = fill(kitchen_id, length(paths))
+    end
+    if !(problem_id isa Vector)
+        problem_id = fill(problem_id, length(paths))
+    end
+    if !(instance_id isa Vector)
+        instance_id = fill(instance_id, length(paths))
+    end
+    kitchen_ids = Int[]
+    problem_ids = Int[]
+    instance_ids = Int[]
+    n_subgoals = Int[]
+    subgoals_strs = String[]
+    annotations = String[]
+    annotated_subgoals = String[]
+    for (k, path) in enumerate(paths)
+        # Load annotated subgoals
+        subgoals, anns = load_subgoals(path)
+        # Iterate over subgoal-annotation pairs
+        for t in eachindex(subgoals)
+            subgoals_str = join(write_pddl.(subgoals[t]), "\n")
+            ann_subgoals_str =
+                write_annotated_subgoals(subgoals[t:t], anns[t:t]; include_count)
+            push!(kitchen_ids, kitchen_id[k])
+            push!(problem_ids, problem_id[k])
+            push!(instance_ids, instance_id[k])
+            push!(n_subgoals, length(subgoals[t]))
+            push!(subgoals_strs, subgoals_str)
+            push!(annotations, anns[t])
+            push!(annotated_subgoals, ann_subgoals_str)
+        end
+    end
+    # Compute embeddings
+    embedder = GenGPT3.Embedder()
+    embeddings = embedder(annotations)
+    # Construct dataframe store
+    store = DataFrame(
+        kitchen_id = kitchen_ids,
+        problem_id = problem_ids,
+        instance_id = instance_ids,
+        n_subgoals = n_subgoals,
+        subgoals = subgoals_strs,
+        annotations = annotations,
+        annotated_subgoals = annotated_subgoals,
+        embedding = embeddings,
+    )
+    return store
+end
+
+"Read annotated subgoal store from a CSV file."
+function read_annotated_subgoal_store(path::AbstractString)
+    store = CSV.read(path, DataFrame)
+    store.embedding = map(store.embedding) do str
+        parse.(Float64, split(chop(str, head=1),','))
+    end
+    return store
+end 
+
+"Select k nearest examples to an annotation from an annotated subgoal store."
+function select_subgoal_examples(
+    annotation::AbstractString, store::DataFrame, k::Int = 5;
+    lift = false, lift_instruction = LIFT_INSTRUCTION,
+    lift_lm = GPT3GF(model="text-davinci-003", temperature=0,
+                     stop="\n", max_tokens=128),
+    filter_fn = nothing, reversed = true
+)
+    # Filter rows
+    if !isnothing(filter_fn)
+        store = filter(filter_fn, store)
+    end
+    # Lift annotation
+    if lift
+        prompt = lift_instruction * "\n\n" * annotation * "\n\n"
+        prompt *= "Rewritten:" * "\n\n"
+        annotation = lift_lm(prompt)
+        annotation = strip(annotation)
+    end
+    # Compute similarity to stored original annotations
+    embedder = GenGPT3.Embedder()
+    e = embedder(annotation)
+    sims = GenGPT3.similarity(e, store.embedding)
+    top_k = sortperm(sims, rev=true)[1:k]
+    top_k = reversed ? reverse(top_k) : top_k
+    annotated_subgoals = store.annotated_subgoals[top_k]
+    subgoals = [parse_pddl.(split(sg, "\n")) for sg in store.subgoals[top_k]]
+    annotations = store.annotations[top_k]
+    return annotated_subgoals, subgoals, annotations
 end
