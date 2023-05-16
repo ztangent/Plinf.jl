@@ -138,25 +138,29 @@ include("recipe_writing.jl")
 # Define state-dependent baseline prior over possible goals
 @gen function baseline_prior(state::State)
     recipe = {*} ~ initial_state_recipe_prior(state)
-    return Specification(recipe)
+    return add_served(Specification(recipe))
 end
 goal_addr = :init => :agent => :goal
 baseline_goal_config = StaticGoalConfig(baseline_prior, true)
+baseline_init_strata = nothing
 
 # Define LLM prior over possible goals
 include_description = true
 orig_domain = PDDL.get_source(PDDL.get_source(domain))
 @gen function gpt3_goal_prior()
     recipe = {*} ~ gpt3_stratified_recipe_prior(orig_domain, problem_path, include_description)
-    return Specification(recipe)
+    return add_served(Specification(recipe))
 end
 gpt3_goal_config = StaticGoalConfig(gpt3_goal_prior, false)
- 
+gpt3_recipe_addr = :init => :agent => :goal => :recipe_id
+gpt3_init_strata = choiceproduct((gpt3_recipe_addr, 1:200))
+
 # Sample from GPT3 prior to pre-cache recipes
 test_recipe = gpt3_goal_prior()
 
 # Select between baseline and GPT-3 goal priors
-goal_config = gpt3_goal_config
+goal_config = baseline_goal_config
+init_strata = baseline_init_strata
 
 # Construct a nested planning heuristic
 ff = memoized(precomputed(FFHeuristic(), domain, state)) # Base heuristic is FF
@@ -174,7 +178,7 @@ planner = RTDP(heuristic=oc_heuristic, n_rollouts=0)
 agent_config = AgentConfig(
     domain, planner;
     goal_config = goal_config,
-    act_temperature = 8.0 # Assume Boltzmann action noise
+    act_temperature = 4.0 # Assume Boltzmann action noise
 )
 
 # Configure world model with agent configuration, domain and initial state
@@ -237,8 +241,9 @@ callback = CombinedCallback(
 # Run a particle filter to perform online goal inference
 empty!(logger_cb)
 empty!(silent_logger_cb)
-n_samples = 500
+n_samples = 200
 pf_state = sips(
     n_samples, act_choices;
+    init_args = (init_strata = init_strata,),
     callback=callback
 )
