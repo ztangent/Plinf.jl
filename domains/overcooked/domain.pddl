@@ -3,7 +3,7 @@
   (:types
     location - object ; Locations of objects and the agent
     food receptacle tool - item ; Objects that can be held and moved
-    appliance - object ; Appliances that can be used to combine or cook food
+    item appliance - physical ; Objects that have physical locations
     ftype rtype ttype atype - type ; Food, receptacle, tool and appliance types
     prepare-method combine-method cook-method - method ; Methods for cooking, etc
   )
@@ -31,7 +31,7 @@
     ; Whether agent is at location ?l
     (agent-at-loc ?l - location)
     ; Whether object is at location ?l
-    (object-at-loc ?o - object ?l - location)
+    (object-at-loc ?o - physical ?l - location)
 
     ; Whether the agent is not holding anything
     (handempty)
