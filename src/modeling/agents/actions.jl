@@ -114,28 +114,36 @@ Base.convert(::Type{Term}, state::CommunicativeActState) = state.action
 """
     CommunicativeActConfig(
         act_config::ActConfig,
-        utterance_model::GenerativeFunction
+        utterance_model::GenerativeFunction,
+        utterance_args::Tuple = ()
     )
 
 Constructs an `ActConfig` which samples an action and utterance jointly,
 combined of an existing (non-communicative) `act_config` and an utterance model
-with arguments `(t, agent_state, env_state, act)`.
+with arguments `(t, agent_state, env_state, act, utterance_args...)`.
 """
 function CommunicativeActConfig(
-    act_config::ActConfig, utterance_model::GenerativeFunction
+    act_config::ActConfig, utterance_model::GenerativeFunction,
+    utterance_args::Tuple = ()
 )
     act_step = act_config.step
     act_step_args = act_config.step_args
-    return ActConfig(communicative_act_step,
-                     (act_step, act_step_args, utterance_model))
+    return ActConfig(
+        communicative_act_step,
+        (act_step, act_step_args, utterance_model, utterance_args)
+    )
 end
 
-@gen function communicative_act_step(t, agent_state, env_state,
-                                     act_step, act_step_args, utterance_model)
+@gen function communicative_act_step(
+    t, agent_state, env_state,
+    act_step, act_step_args,
+    utterance_model, utterance_args
+)
     # Sample action
     act = {*} ~ act_step(t, agent_state, env_state, act_step_args...)
     # Sample utterance
-    utterance = {*} ~ utterance_model(t, agent_state, env_state, act)
+    utterance = {*} ~ utterance_model(t, agent_state, env_state, act,
+                                      utterance_args...)
     return CommunicativeActState(act, utterance)
 end
 
