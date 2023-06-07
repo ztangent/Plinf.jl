@@ -53,13 +53,17 @@ Initialize world state by sampling from the initializers.
     agent_config = {:agent_config} ~ maybe_sample(agent_config)
     env_config = {:env_config} ~ maybe_sample(env_config)
     obs_config = {:obs_config} ~ maybe_sample(obs_config)
-    # Initialize environment, agent, and observation states
+    act_config = agent_config.act_config
+    # Initialize environment, observation, action, and action states
     env_state = {:env} ~ maybe_sample(env_config.init, env_config.init_args)
-    obs_state = {:obs} ~ maybe_sample(obs_config.init,
-                                      (env_state, obs_config.init_args...))
+    obs_state ={:obs} ~ maybe_sample(
+        obs_config.init, (env_state, obs_config.init_args...)
+    )
     agent_state = {:agent} ~ agent_init(agent_config, env_state)
+    act_state = {:act} ~ maybe_sample(
+        act_config.init, (agent_state, env_state, act_config.init_args...)
+    )
     # Return sampled state and configuration
-    act_state = convert(Term, PDDL.no_op)
     state = WorldState(agent_state, act_state, env_state, obs_state)
     config = WorldConfig(agent_config, env_config, obs_config)
     return state, config
@@ -72,7 +76,7 @@ Models transition dynamics at step `t` in a world model.
 """
 @gen function world_step(t::Int, world_state::WorldState, config::WorldConfig)
     # Unpack agent state and configuration
-    @unpack agent_state, env_state, obs_state = world_state
+    @unpack agent_state, act_state, env_state, obs_state = world_state
     @unpack agent_config, env_config, obs_config = config
     # Unpack sub-configurations
     @unpack act_config = agent_config
@@ -80,13 +84,17 @@ Models transition dynamics at step `t` in a world model.
     env_step, env_step_args = env_config.step, env_config.step_args
     obs_step, obs_step_args = obs_config.step, obs_config.step_args
     # Advance the agent by one step
-    agent_state = {:agent} ~ agent_step(t, agent_state, env_state, agent_config)
-    # Sample the agent's actions in response to the previous state
-    act_state = {:act} ~ act_step(t, agent_state, env_state, act_step_args...)
+    agent_state = {:agent} ~ agent_step(t, agent_state, env_state,
+                                        agent_config)
+    # Sample the agent's actions in response to the previous environment state
+    act_state = {:act} ~ act_step(t, act_state, agent_state, env_state,
+                                  act_step_args...)
     # Run the environment transition dynamics forward
-    env_state = {:env} ~ env_step(t, env_state, act_state, env_step_args...)
+    env_state = {:env} ~ env_step(t, env_state, act_state,
+                                  env_step_args...)
     # Sample an observation, given the current environment state
-    obs_state = {:obs} ~ obs_step(t, obs_state, env_state, obs_step_args...)
+    obs_state = {:obs} ~ obs_step(t, obs_state, env_state,
+                                  obs_step_args...)
     # Pass the full state to the next step
     return WorldState(agent_state, act_state, env_state, obs_state)
 end
@@ -110,8 +118,13 @@ end
 
 Extracts world states from a world trace. Includes the initial state by default.
 """
-get_world_states(world_trace::Trace, include_init::Bool=true) =
-    [[world_trace[:init][1]]; get_retval(world_trace)]
+function get_world_states(world_trace::Trace, include_init::Bool=true)
+    if include_init
+        return [get_retval(world_trace[:init][1]); get_retval(world_trace)]
+    else
+        return collect(get_retval(world_trace))
+    end
+end
 
 """
     get_agent_states(world_trace::Trace, include_init=false)

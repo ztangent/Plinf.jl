@@ -174,7 +174,7 @@ function DKGCombinedCallback(
         )
     end
     # Construct recording callback
-    if record
+    if record && (render || plot_goal_bars || plot_goal_lines)
         callbacks[:record] = RecordCallback(figure, framerate=framerate,
                                             format=format)
     end
