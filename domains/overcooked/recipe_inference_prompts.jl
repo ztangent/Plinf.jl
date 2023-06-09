@@ -1,20 +1,23 @@
+using PDDL
 using Random
 
 INFERENCE_KITCHEN_HEADER = 
     "Someone is in a kitchen, and is about to make a dish. The following is a description of the kitchen."
 INFERENCE_NARRATIVE_HEADER =
     "You now observe them taking the following actions:"
-INFERENCE_QUESTION_TEXT =
+INFERENCE_MCQ_QUESTION_TEXT =
     "Which of these recipes are they likely trying to make?"
+INFERENCE_FREEFORM_QUESTION_TEXT =
+    "Given the actions above and the ingredients involved, they are likely to be making the following recipe:"
 
-function construct_recipe_inference_prompt(
+function construct_recipe_inference_prompt_mcq(
     domain::Domain, problem,
     narrative, narrative_step::Int,
     recipes::Vector{String},
     kitchen_name="";
     kitchen_header=INFERENCE_KITCHEN_HEADER,
     narrative_header=INFERENCE_NARRATIVE_HEADER,
-    question_text=INFERENCE_QUESTION_TEXT,
+    question_text=INFERENCE_MCQ_QUESTION_TEXT,
 )
     kitchen_desc = construct_kitchen_description(domain, problem)
     prompt = kitchen_header * "\n\n" * "KITCHEN: $(uppercase(kitchen_name))"
@@ -35,7 +38,7 @@ function construct_recipe_inference_prompt(
     return prompt
 end
 
-function construct_multishot_recipe_inference_prompt(
+function construct_multishot_recipe_inference_prompt_mcq(
     domain::Domain,
     train_problems, train_narratives, train_recipes,
     train_correct_ids, train_names,
@@ -71,9 +74,68 @@ function construct_multishot_recipe_inference_prompt(
         prompt *= train_prompt * " " * option_char * "\n\n" * "===" * "\n\n"
     end
     # Append prompt for test problem
-    test_prompt = construct_recipe_inference_prompt(
+    test_prompt = construct_recipe_inference_prompt_mcq(
         domain, test_problem, test_narrative,
         test_step, test_recipes, test_name; kwargs...
+    )
+    prompt *= test_prompt
+    return prompt
+end
+
+function construct_recipe_inference_prompt_freeform(
+    domain::Domain, problem,
+    narrative, narrative_step::Int,
+    kitchen_name="";
+    kitchen_header=INFERENCE_KITCHEN_HEADER,
+    narrative_header=INFERENCE_NARRATIVE_HEADER,
+    question_text=INFERENCE_FREEFORM_QUESTION_TEXT,
+)
+    kitchen_desc = construct_kitchen_description(domain, problem)
+    prompt = kitchen_header * "\n\n" * "KITCHEN: $(uppercase(kitchen_name))"
+    prompt *= "\n\n" * kitchen_desc
+    narrative = narrative[1:narrative_step]
+    if !isempty(narrative)
+        prompt *= "\n\n" * narrative_header * "\n"
+        for (i, line) in enumerate(narrative)
+            prompt *= "\n$(i). $(line)"
+        end
+    end
+    prompt *= "\n\n" * question_text * "\n\n"
+    return prompt
+end
+
+function construct_multishot_recipe_inference_prompt_freeform(
+    domain::Domain,
+    train_problems, train_narratives, train_recipes, train_names,
+    test_problem, test_narrative, test_step::Int, test_name;
+    train_step_mode=:fixed, train_step_frac=0.75, kwargs...
+)
+    prompt = ""
+    # Compute test step fraction
+    test_step_frac = test_step / length(test_narrative)
+    # Iterate over training set
+    for (i, name) in enumerate(train_names)
+        problem = train_problems[i]
+        narrative = train_narratives[i]
+        recipe = train_recipes[i]
+        if train_step_mode == :match
+            train_step = round(Int, test_step_frac * length(narrative))
+        elseif train_step_mode == :last
+            train_step = length(narrative)
+        else
+            train_step = round(Int, length(narrative) * train_step_frac)
+        end
+        train_prompt = construct_recipe_inference_prompt_freeform(
+            domain, problem, narrative, train_step, name;
+            kwargs...
+        )
+        train_prompt *= recipe
+        prompt *= train_prompt * "\n\n" * "===" * "\n\n"
+    end
+    # Append prompt for test problem
+    test_prompt = construct_recipe_inference_prompt_freeform(
+        domain, test_problem, test_narrative,
+        test_step, test_name; kwargs...
     )
     prompt *= test_prompt
     return prompt

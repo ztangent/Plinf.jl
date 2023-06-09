@@ -91,7 +91,7 @@ recipes = map(zip(descriptions, goals)) do (desc, goal)
 end
 
 # Test recipe inference prompt
-prompt = construct_recipe_inference_prompt(
+prompt = construct_recipe_inference_prompt_mcq(
     domain, problem, narrative, 5, recipes, kitchen_name
 )
 println(prompt)
@@ -115,7 +115,7 @@ end
 train_correct_ids = [1, 1, 1, 1]
 
 # Test multishot recipe inference prompt
-prompt = construct_multishot_recipe_inference_prompt(
+prompt = construct_multishot_recipe_inference_prompt_mcq(
     domain,
     train_problems, train_narratives, train_recipes,
     train_correct_ids, train_names,
@@ -156,7 +156,7 @@ MULTISHOT = true
 for (step, timestep) in [(0, 0); collect(enumerate(narrative_times))]
     # Construct initial prompt from training set and test problem
     if MULTISHOT
-        prompt = construct_multishot_recipe_inference_prompt(
+        prompt = construct_multishot_recipe_inference_prompt_mcq(
             domain,
             train_problems, train_narratives, train_recipes,
             train_correct_ids, train_names,
@@ -165,7 +165,7 @@ for (step, timestep) in [(0, 0); collect(enumerate(narrative_times))]
             train_step_frac=TRAIN_STEP_FRAC
         )
     else
-        prompt = construct_recipe_inference_prompt(
+        prompt = construct_recipe_inference_prompt_mcq(
             domain, problem, narrative, step,
             recipes[recipe_perm], kitchen_name
         )
@@ -243,3 +243,67 @@ for (step, timestep) in [(0, 0); collect(enumerate(narrative_times))]
 end
 
 sort!(df, [:temperature])
+
+## Inference over an unknown set of goals ##
+
+# Load PDDL domain and problem
+domain = load_domain(joinpath(DOMAIN_DIR, "domain.pddl"))
+problem = load_problem(joinpath(PROBLEM_DIR, "problem-3-3.pddl"))
+kitchen_name = KITCHEN_NAMES[3]
+
+# Load plan to do inference on 
+plan, narrative, narrative_times =
+    load_plan(joinpath(PLANS_DIR, "problem-3-3", "narrative-plan-3-3-1.pddl"))
+
+# Load possible goals
+descriptions, goals = load_goals(joinpath(GOALS_DIR, "goals-3-3.pddl"))
+true_goal_idx = 1
+true_goal = goals[true_goal_idx]
+
+# Compute semantic overlap with true goal
+goal_overlaps = [recipe_overlap(goals[true_goal_idx], g) for g in goals]
+
+# Construct recipe descriptions
+recipes = map(zip(descriptions, goals)) do (desc, goal)
+    construct_recipe_description(goal, desc; 
+                                 include_description=INCLUDE_RECIPE_DESCRIPTION)
+end
+
+# Test recipe inference prompt
+prompt = construct_recipe_inference_prompt_freeform(
+    domain, problem, narrative, 5, kitchen_name
+)
+println(prompt)
+println("Token Count: ", length(GenGPT3.tokenize(prompt)))
+
+# Construct training set
+ref_idx = 5 # Index of reference problem for each kitchen
+train_idxs = [1, 2, 4, 5]
+train_names = KITCHEN_NAMES[train_idxs]
+train_problems = [load_problem(ps[ref_idx]) for ps in PROBLEMS[train_idxs]]
+train_narratives = [load_plan(ps[ref_idx])[2] for ps in PLANS[train_idxs]]
+train_recipes = map(GOALS[train_idxs]) do gs
+    descs, goals = load_goals(gs[ref_idx])
+    construct_recipe_description(
+        goals[true_goal_idx], descs[true_goal_idx]; 
+        include_description=INCLUDE_RECIPE_DESCRIPTION
+    )
+end
+
+# Test multishot recipe inference prompt
+prompt = construct_multishot_recipe_inference_prompt_freeform(
+    domain,
+    train_problems, train_narratives, train_recipes, train_names,
+    problem, narrative, 3, kitchen_name;
+    train_step_mode=TRAIN_STEP_MODE,
+    train_step_frac=TRAIN_STEP_FRAC
+)
+println(prompt)
+println("Token Count: ", length(GenGPT3.tokenize(prompt)))
+
+responses = gpt3_batch_complete(prompt, 5; model="text-davinci-003")
+for resp in responses
+    println(resp.text)
+end
+
+

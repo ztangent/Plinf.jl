@@ -159,7 +159,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
             for (step, timestep) in [(0, 0); collect(enumerate(narrative_times))]
                 # Construct initial prompt from training set and test problem
                 if MULTISHOT
-                    prompt = construct_multishot_recipe_inference_prompt(
+                    prompt = construct_multishot_recipe_inference_prompt_mcq(
                         domain,
                         train_problems, train_narratives, train_recipes,
                         train_correct_ids, train_names,
@@ -169,7 +169,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
                         train_step_frac=TRAIN_STEP_FRAC
                     )
                 else
-                    prompt = construct_recipe_inference_prompt(
+                    prompt = construct_recipe_inference_prompt_mcq(
                         domain, problem, narrative, step,
                         recipes[recipe_perm], kitchen_name
                     )
