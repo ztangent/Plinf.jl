@@ -9,7 +9,7 @@ using Printf
 using GenParticleFilters: softmax
 
 include("recipe_writing.jl")
-include("recipe_inference_prompts.jl")
+include("recipe_prompts.jl")
 include("gpt3_complete.jl")
 include("load_goals.jl")
 include("load_plan.jl")
@@ -269,20 +269,37 @@ recipes = map(zip(descriptions, goals)) do (desc, goal)
                                  include_description=INCLUDE_RECIPE_DESCRIPTION)
 end
 
-# Test recipe inference prompt
-prompt = construct_recipe_inference_prompt_freeform(
+# Test zero-shot recipe prior prompt
+prior_prompt = construct_recipe_prior_prompt(
+    domain, problem, String[], kitchen_name
+)
+println(prior_prompt)
+println("Token Count: ", length(GenGPT3.tokenize(prior_prompt)))
+
+# Test zero-shot recipe inference prompt
+inference_prompt = construct_recipe_inference_prompt_freeform(
     domain, problem, narrative, 5, kitchen_name
 )
-println(prompt)
-println("Token Count: ", length(GenGPT3.tokenize(prompt)))
+println(inference_prompt)
+println("Token Count: ", length(GenGPT3.tokenize(inference_prompt)))
 
 # Construct training set
 ref_idx = 5 # Index of reference problem for each kitchen
 train_idxs = [1, 2, 4, 5]
+train_recipe_idxs = [3, 4, 5]
 train_names = KITCHEN_NAMES[train_idxs]
 train_problems = [load_problem(ps[ref_idx]) for ps in PROBLEMS[train_idxs]]
 train_narratives = [load_plan(ps[ref_idx])[2] for ps in PLANS[train_idxs]]
-train_recipes = map(GOALS[train_idxs]) do gs
+train_example_recipes = map(GOALS[train_idxs]) do gs
+    map(train_recipe_idxs) do idx
+        descs, goals = load_goals(gs[idx])
+        construct_recipe_description(
+            goals[true_goal_idx], descs[true_goal_idx]; 
+            include_description=INCLUDE_RECIPE_DESCRIPTION
+        )
+    end
+end
+train_goal_recipes = map(GOALS[train_idxs]) do gs
     descs, goals = load_goals(gs[ref_idx])
     construct_recipe_description(
         goals[true_goal_idx], descs[true_goal_idx]; 
@@ -290,16 +307,24 @@ train_recipes = map(GOALS[train_idxs]) do gs
     )
 end
 
+# Test zero-shot recipe prior prompt
+prior_prompt = construct_multishot_recipe_prior_prompt(
+    domain, train_problems, train_example_recipes, train_names,
+    problem, String[], kitchen_name
+)
+println(prior_prompt)
+println("Token Count: ", length(GenGPT3.tokenize(prior_prompt)))
+
 # Test multishot recipe inference prompt
-prompt = construct_multishot_recipe_inference_prompt_freeform(
+inference_prompt = construct_multishot_recipe_inference_prompt_freeform(
     domain,
-    train_problems, train_narratives, train_recipes, train_names,
+    train_problems, train_narratives, train_goal_recipes, train_names,
     problem, narrative, 3, kitchen_name;
     train_step_mode=TRAIN_STEP_MODE,
     train_step_frac=TRAIN_STEP_FRAC
 )
-println(prompt)
-println("Token Count: ", length(GenGPT3.tokenize(prompt)))
+println(inference_prompt)
+println("Token Count: ", length(GenGPT3.tokenize(inference_prompt)))
 
 responses = gpt3_batch_complete(prompt, 5; model="text-davinci-003")
 for resp in responses

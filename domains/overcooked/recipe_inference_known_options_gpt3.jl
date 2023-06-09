@@ -9,7 +9,7 @@ using Printf
 using GenParticleFilters: softmax
 
 include("recipe_writing.jl")
-include("recipe_inference_prompts.jl")
+include("recipe_prompts.jl")
 include("gpt3_complete.jl")
 include("load_goals.jl")
 include("load_plan.jl")

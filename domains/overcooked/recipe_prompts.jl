@@ -1,6 +1,12 @@
 using PDDL
 using Random
 
+RECIPE_PRIOR_INSTRUCTION =
+    "Below is a list of recipes that can be made using only the " *
+    "ingredients, receptacles, tools, appliances, and methods in this kitchen. " *
+    "If ingredients in a recipe are not modified by any method, then they can be " * 
+    "assumed to remain in store-bought form.\n\n"
+
 INFERENCE_KITCHEN_HEADER = 
     "Someone is in a kitchen, and is about to make a dish. The following is a description of the kitchen."
 INFERENCE_NARRATIVE_HEADER =
@@ -9,6 +15,35 @@ INFERENCE_MCQ_QUESTION_TEXT =
     "Which of these recipes are they likely trying to make?"
 INFERENCE_FREEFORM_QUESTION_TEXT =
     "Given the actions above and the ingredients involved, they are likely to be making the following recipe:"
+
+function construct_recipe_prior_prompt(
+    domain::Domain, problem, recipes, kitchen_name="";
+    instruction=RECIPE_PRIOR_INSTRUCTION
+)
+    kitchen_desc = construct_kitchen_description(domain, problem)
+    prompt = "KITCHEN: $(uppercase(kitchen_name))" * "\n\n" * kitchen_desc
+    prompt *= "\n\n" * instruction * "RECIPES\n\n" * join(recipes, "\n\n")
+    return prompt
+end
+   
+function construct_multishot_recipe_prior_prompt(
+    domain::Domain, train_problems, train_recipes, train_names,
+    test_problem, test_recipes, test_name;
+    kwargs...
+)
+    prompt = ""
+    for (i, name) in enumerate(train_names)
+        prompt *= construct_recipe_prior_prompt(
+            domain, train_problems[i], train_recipes[i], name;
+            kwargs...
+        ) * "\n\n"
+    end
+    prompt *= construct_recipe_prior_prompt(
+        domain, test_problem, test_recipes, test_name;
+        kwargs...
+    )
+    return prompt
+end
 
 function construct_recipe_inference_prompt_mcq(
     domain::Domain, problem,
