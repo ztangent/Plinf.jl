@@ -25,6 +25,7 @@ Base.length(sol::OvercookedPlannerSolution) = length(sol.plan)
 @kwdef mutable struct OvercookedPlanner{T <: Planner} <: Planner
     planner::T # Planner to use for each subgoal
     ordering::Symbol = :predicate # How to order subgoals
+    synonyms::Vector{Vector{Const}} = Vector{Const}[] # Method synonyms
     max_time::Float64 = Inf
     verbose::Bool = false
 end
@@ -60,6 +61,7 @@ function SymbolicPlanners.solve(
     end
     # Solve each set of subgoals in sequence
     subplans = Vector{Term}[]
+    removed_neg = Term[]
     for goals in subgoals
         if planner.verbose
             println("Subgoals: ", join(write_pddl.(goals), ", "))
@@ -75,6 +77,27 @@ function SymbolicPlanners.solve(
             return NullSolution(:max_time)
         end
         planner.planner.max_time = time_left
+        # Perform method synonym relaxation
+        for synonyms in planner.synonyms
+            matching_terms = filter(goals) do term
+                term.name == :prepared && term.args[1] in synonyms
+            end
+            equiv_terms = map(matching_terms) do term
+                item = term.args[2]
+                Term[Compound(:prepared, Term[m, item]) for m in synonyms]
+            end
+            for equiv_set in equiv_terms
+                for term in equiv_set # Filter out negated terms
+                    neg_term = Compound(:not, [term])
+                    filter!(!=(neg_term), goals)
+                    filter!(!=(term), goals)
+                    push!(removed_neg, neg_term)
+                end
+                relaxed_term = Compound(:or, equiv_set)
+                push!(goals, relaxed_term)
+            end
+        end
+        goals = [g for g in goals if !(g in removed_neg)]
         # Check if subgoals can be solved using subplanner heuristic
         if hasproperty(planner.planner, :heuristic)
             hval = planner.planner.heuristic(domain, state, goals)
