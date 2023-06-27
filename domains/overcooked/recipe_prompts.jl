@@ -1,6 +1,12 @@
 using PDDL
 using Random
 
+RECIPE_TEMPLATE = """
+Description: [DESCRIPTION]
+Ingredients: [INGREDIENT]+
+[(Prepare|Combine|Cook): [METHOD] the [INGREDIENT]+]+
+Serve: (in|on) a [RECEPTACLE]"""
+
 RECIPE_PRIOR_INSTRUCTION =
     "Below is a list of recipes that can be made using only the " *
     "ingredients, receptacles, tools, appliances, and methods in this kitchen. " *
@@ -13,11 +19,19 @@ INFERENCE_NARRATIVE_HEADER =
     "You now observe them taking the following actions:"
 INFERENCE_MCQ_QUESTION_TEXT =
     "Which of these recipes are they likely trying to make?"
+
 INFERENCE_FREEFORM_QUESTION_TEXT =
-    "Given the actions above and the ingredients involved, they are likely to be making the following recipe:"
+    "Given the above, what recipe could they be making? " *
+    "Please express your answer in the following format, using only the " *
+    "ingredients, receptacles, tools, appliances, and methods in this kitchen:" *
+    "\n\n" * RECIPE_TEMPLATE * "\n\n" *
+    "Note that each preparation, combination, or cooking step should mention " *
+    "*only* the ingredients that are used in the recipe, as stated in the " *
+    "ingredients list. In addition, the recipe should only be served in one of " *
+    "the receptacles listed in the kitchen."
 
 function construct_recipe_prior_prompt(
-    domain::Domain, problem, recipes, kitchen_name="";
+    domain::Domain, problem, recipes=String[], kitchen_name="";
     instruction=RECIPE_PRIOR_INSTRUCTION
 )
     kitchen_desc = construct_kitchen_description(domain, problem)
@@ -164,7 +178,7 @@ function construct_multishot_recipe_inference_prompt_freeform(
             domain, problem, narrative, train_step, name;
             kwargs...
         )
-        train_prompt *= recipe
+        train_prompt *= "BEGIN ANSWER\n" * recipe * "\nEND ANSWER"
         prompt *= train_prompt * "\n\n" * "===" * "\n\n"
     end
     # Append prompt for test problem
@@ -172,6 +186,6 @@ function construct_multishot_recipe_inference_prompt_freeform(
         domain, test_problem, test_narrative,
         test_step, test_name; kwargs...
     )
-    prompt *= test_prompt
+    prompt *= test_prompt * "BEGIN ANSWER\n"
     return prompt
 end
