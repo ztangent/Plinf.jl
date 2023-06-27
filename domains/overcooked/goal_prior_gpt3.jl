@@ -1,11 +1,14 @@
 using PDDL, SymbolicPlanners
 using CSV, DataFrames, Dates
+using Gen, GenGPT3
 using Random
+using Serialization
 
 include("gpt3_complete.jl")
 include("goal_validation.jl")
 include("recipe_writing.jl")
 include("recipe_parsing.jl")
+include("recipe_prompts.jl")
 
 DOMAIN_DIR = @__DIR__
 PROBLEM_DIR = joinpath(@__DIR__, "problems")
@@ -46,121 +49,56 @@ TEMPERATURE = 1.0
 # Model to request completions from
 MODEL = "text-davinci-003" # "davinci"
 
-function construct_multikitchen_prompt(
-    domain::Domain,
-    problem_sets,
-    kitchen_names = KITCHEN_NAMES,
-    instruction = INSTRUCTION;
-    include_english_description::Bool=true
-)
-    prompt = ""
-    for (problem_paths, name) in zip(problem_sets, kitchen_names)
-        reference_problem = load_problem(problem_paths[end])
-        kitchen = construct_kitchen_description(domain, reference_problem)
-        recipes = map(problem_paths) do path
-            prob = load_problem(path)
-            desc_path = path[1:end-5] * ".txt"
-            desc = load_english_recipe_description(desc_path)
-            return construct_recipe_description(
-                domain, prob, desc;
-                include_description=include_english_description
-            )
-        end
-        str = "KITCHEN: $(uppercase(name))\n\n" * kitchen * "\n\n" * instruction *
-              "RECIPES\n\n" * join(recipes, "\n\n")
-        prompt *= str * "\n\n"
-    end
-    return prompt
+# Whether to include recipe description in completion
+INCLUDE_RECIPE_DESCRIPTION = true
+
+# Recipe cache
+# GPT3_RECIPE_CACHE_PATH = joinpath(@__DIR__, "gpt3_recipe_cache.jls")
+GPT3_RECIPE_CACHE = Dict{Tuple{Int, String, String}, GPT3ISTrace}()
+
+"Recipe validator for a PDDL domain and state."
+@kwdef mutable struct RecipeValidator
+    domain::Domain
+    state::State
+    heuristic::Heuristic = memoized(precomputed(HMax(), domain, state))
+    start_sequence::String = "Description:"
+    verbose::Bool = false
 end
 
-function generate_recipes(
-    domain::Domain, problem_path::String, n_recipes::Int=50;
-    train_idxs_per_problem = 3:5,
-    instruction::String = INSTRUCTION,
-    instruction_modifier::String = "",
-    include_description::Bool = false,
-    stop_sequence::String = include_description ? "Description:" : "Ingredients:",
-    batch_size::Int = 10,
-    model = MODEL,
-    temperature::Float64 = TEMPERATURE,
-    verbose::Bool = false
-)
-    # Load problem
-    problem = load_problem(problem_path)
-    problem_name = basename(problem_path)
-    m = match(r"problem-(\d+)-(\d+).pddl", problem_name)
-    kitchen_idx, problem_idx = parse.(Int, m.captures)
-    kitchen_name = KITCHEN_NAMES[kitchen_idx]
+RecipeValidator(domain::Domain, state::State; kwargs...) =
+    RecipeValidator(;domain = domain, state = state, kwargs...)
 
-    # Construct multi-kitchen context from context problems
-    train_idxs = filter(!=(kitchen_idx), 1:length(PROBLEMS))
-    train_names = KITCHEN_NAMES[train_idxs]
-    train_paths = [PROBLEMS[i][train_idxs_per_problem] for i in train_idxs]
-    context = construct_multikitchen_prompt(
-        domain, train_paths, train_names, instruction;
-        include_english_description=include_description
-    )
-
-    # Construct kitchen description for test problem
-    kitchen_desc = construct_kitchen_description(domain, problem)
-
-    # Construct prompt from context and kitchen description
-    prompt = (context * "KITCHEN: $(uppercase(kitchen_name))\n\n" *
-              kitchen_desc * "\n\n" * instruction * instruction_modifier *
-              "RECIPES\n\n" * stop_sequence)
-
-    # Construct initial state and reachability heuristic
-    state = initstate(domain, problem)
-    heuristic = memoized(precomputed(HMax(), domain, state))
-
-    # Repeatedly request GPT-3 completions until quota is met
-    recipes = Term[]
-    while length(recipes) < n_recipes
-        # Request completions
-        n_remaining = n_recipes - length(recipes)
-        if verbose println("Requesting $n_remaining completions...") end
-        completions = gpt3_batch_complete(
-            prompt, n_remaining, batch_size;
-            stop=stop_sequence, max_tokens=256,
-            model=model, temperature=temperature,
-            verbose=verbose, persistent=true
-        )
-        # Collect valid recipes
-        for (i, completion_obj) in enumerate(completions)
-            # Extract completion text and logprobs (stop sequence has 2 tokens)
-            completion = completion_obj.text
-            completion = strip(stop_sequence * completion)
-            if verbose
-                println("-- Completion $i--")
-                println(completion)
-            end
-            # Try to parse to PDDL and English description
-            result = try_parse_recipe(completion)
-            if isnothing(result)
-                if verbose println("Could not parse recipe to PDDL.") end
-                continue
-            end
-            recipe, _ = result
-            # Check if generated PDDL goal is valid
-            valid = validate_predicates_and_types(recipe, domain)
-            if !valid
-                if verbose println("Invalid predicates or types.") end
-                continue
-            end
-            valid = validate_objects(recipe, domain, state)
-            if !valid
-                if verbose println("Invalid objects.") end
-                continue
-            end
-            hval = heuristic(domain, state, recipe)
-            if hval == Inf
-                if verbose println("Recipe is unreachable") end
-                continue
-            end
-            push!(recipes, recipe)
-        end
+function (validator::RecipeValidator)(completion::String)
+    completion = strip(validator.start_sequence * completion)
+    if validator.verbose
+        println()
+        println(completion)
+        println()
     end
-    return recipes
+    # Try to parse to PDDL and English description
+    result = try_parse_recipe(completion)
+    if isnothing(result)
+        if validator.verbose println("INVALID: Could not parse recipe to PDDL.") end
+        return false
+    end
+    recipe, _ = result
+    # Check if generated PDDL goal is valid
+    valid = validate_predicates_and_types(recipe, validator.domain)
+    if !valid
+        if validator.verbose println("INVALID: Invalid predicates or types.") end
+        return false
+    end
+    valid = validate_objects(recipe, validator.domain, validator.state)
+    if !valid
+        if validator.verbose println("INVALID: Invalid objects.") end
+        return false
+    end
+    hval = validator.heuristic(validator.domain, validator.state, recipe)
+    if hval == Inf
+        if validator.verbose println("INVALID: Recipe is unreachable") end
+        return false
+    end
+    return true
 end
 
 function construct_quantity_modifier(quantity::Int)
@@ -177,54 +115,47 @@ function construct_quantity_modifier(quantity::Int)
 end
 construct_quantity_modifier(quantity::Nothing) = ""
 
-if !isdefined(Main, :GPT3_RECIPE_CACHE)
-    const GPT3_RECIPE_CACHE = Dict{String, Vector{Term}}()
-end
-
-"GPT-3 recipe prior, with caching of generated recipes."
-@gen function gpt3_recipe_prior(
-    domain::Domain, problem_path::String,
-    include_description::Bool = true,
-    n_recipes::Int = 200, 
-    gpt3_recipe_cache::Dict = GPT3_RECIPE_CACHE
+function construct_gpt3_recipe_prior(
+    domain::Domain, state::State, n_samples::Int=50;
+    model_prompt = construct_recipe_prior_prompt(domain, state),
+    proposal_prompt = model_prompt,
+    include_description = INCLUDE_RECIPE_DESCRIPTION, 
+    model_stop = include_description ? "Description:" : "Ingredients:",
+    proposal_stop = "===",
+    model_name = MODEL,
+    proposal_name = model_name,
+    model_temp = TEMPERATURE,
+    proposal_temp = model_temp,
+    cache = GPT3_RECIPE_CACHE,
+    verbose::Bool = false
 )
-    problem_name = basename(problem_path)[1:end-5]
-    key = "$(problem_name)_$(include_description)"
-    recipes = get!(gpt3_recipe_cache, key) do
-        generate_recipes(domain, problem_path, n_recipes,
-                         include_description=include_description,
-                         verbose=true)
+    # Construct recipe validator
+    start_sequence = include_description ? "Description:" : "Ingredients:"
+    validator = RecipeValidator(domain, state; verbose=verbose,
+                                start_sequence = start_sequence)
+    # Construct GPT-3 importance sampler with validator
+    model_gf = MultiGPT3GF(model=model_name, max_tokens=160,
+                           stop=model_stop, temperature=model_temp)
+    proposal_gf = model_prompt == proposal_prompt ?
+        model_gf : MultiGPT3GF(model=proposal_name, max_tokens=160,
+                               stop=proposal_stop, temperature=proposal_temp)
+    gpt3_is = GPT3IS(
+        model_gf = model_gf,
+        proposal_gf = proposal_gf,
+        cache_traces = true,
+        cache = cache,
+        validator = validator,
+        max_samples = 50
+    )
+    # Construct wrapper generative function
+    @gen function gpt3_recipe_prior(proposal_prompt = proposal_prompt)
+        m_prompt = model_prompt * start_sequence
+        p_prompt = proposal_prompt * start_sequence
+        completion ~ gpt3_is(n_samples, m_prompt, p_prompt)
+        completion = strip(start_sequence * completion)
+        result = try_parse_recipe(completion)
+        recipe = isnothing(result) ? nothing : result[1]
+        return add_served(Specification(recipe))
     end
-    recipe_id ~ uniform_discrete(1, n_recipes)
-    return recipes[recipe_id]
-end
-
-if !isdefined(Main, :GPT3_STRATIFIED_RECIPE_CACHE)
-    const GPT3_STRATIFIED_RECIPE_CACHE = Dict{String, Vector{Term}}()
-end
-
-"GPT-3 recipe prior that generates recipes in strata of different sizes."
-@gen function gpt3_stratified_recipe_prior(
-    domain::Domain, problem_path::String,
-    include_description::Bool = true,
-    strata = ((1, 40), (2, 40), (nothing, 120)), 
-    gpt3_recipe_cache::Dict = GPT3_STRATIFIED_RECIPE_CACHE
-)
-    problem_name = basename(problem_path)[1:end-5]
-    key = "$(problem_name)_$(include_description)_$(strata)"
-    recipes = get!(gpt3_recipe_cache, key) do
-        rs = Term[]
-        for (quantity, n_recipes) in strata
-            modifier = construct_quantity_modifier(quantity)
-            r = generate_recipes(domain, problem_path, n_recipes;
-                                 instruction_modifier=modifier,
-                                 include_description=include_description,
-                                 verbose = true)
-            append!(rs, r)
-        end
-        shuffle!(rs)
-        return rs
-    end
-    recipe_id ~ uniform_discrete(1, length(recipes))
-    return recipes[recipe_id]
+    return gpt3_recipe_prior
 end

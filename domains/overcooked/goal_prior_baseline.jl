@@ -4,7 +4,7 @@ if !isdefined(Main, :BASELINE_RECIPE_CACHE)
     const BASELINE_RECIPE_CACHE = Dict{UInt, Vector{Term}}()
 end
 
-@gen function cached_recipe_prior(state::State, n_recipes::Int = 200)
+@gen function cached_recipe_prior(state::State, n_recipes::Int = 50)
     recipes = get!(BASELINE_RECIPE_CACHE, hash(state)) do
         [initial_state_recipe_prior(state) for _ in 1:n_recipes] 
     end
