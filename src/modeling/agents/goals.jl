@@ -23,12 +23,12 @@ struct GoalConfig{T,U,V}
 end
 
 """
-    stateless_goal_init(belief_state, goal_prior)
+    stateless_goal_init(belief_state, goal_prior, init_args)
 
 Goal initialization wrapper for goal priors that are state-independent.
 """
-@gen function stateless_goal_init(belief_state, goal_prior)
-    {*} ~ maybe_sample(goal_prior)
+@gen function stateless_goal_init(belief_state, goal_prior, init_args=())
+    {*} ~ maybe_sample(goal_prior, init_args)
 end
 
 # Static goal configuration #
@@ -40,9 +40,9 @@ Constructs a `GoalConfig` that samples a static goal from a `goal_prior`. If
 `state_dependent` is `true`, then the `goal_prior` is passed the agent's 
 initial belief state as an argument.
 """
-function StaticGoalConfig(goal_prior, state_dependent::Bool=false)
+function StaticGoalConfig(goal_prior, state_dependent::Bool=false, init_args=())
     init = state_dependent ? goal_prior : stateless_goal_init
-    init_args = state_dependent ? () : (goal_prior,)
+    init_args = state_dependent ? init_args : (goal_prior, init_args)
     return GoalConfig(init, init_args, static_goal_step, ())
 end
 
