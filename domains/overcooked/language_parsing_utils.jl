@@ -92,6 +92,13 @@ function llm_action_logprobs(
     if no_numbers
         action_strs = remove_numbers.(action_strs)
     end
+    prompt_tokens = GenGPT3.tokenize(prompt)
+    action_tokens = [GenGPT3.tokenize(act_str) for act_str in action_strs]
+    max_tokens = maximum(length.(action_tokens)) + length(prompt_tokens)
+    if max_tokens > 2048
+        prompt_tokens = prompt_tokens[end-(max_tokens-2048):end]
+        prompt = GenGPT3.detokenize(prompt_tokens)
+    end
     choices = MultiGPT3ChoiceMap(push!(action_strs, stop_str))
     trace, _ = generate(llm, (length(actions) + 1, prompt), choices)
     logprobs = trace.scores
@@ -379,6 +386,7 @@ function propose_plan_constrained(
     min_seq_length=1, max_seq_length = 15, no_numbers = true, verbose = false
 )
     plan = Term[]
+    subplans = Vector{Term}[]
     score = 0.0
     # Iterate over annotations
     for sentence in annotations
@@ -394,6 +402,7 @@ function propose_plan_constrained(
         )
         score += seq_score
         append!(plan, act_seq)
+        push!(subplans, act_seq)
         # Extend prompt with proposed action sequence
         act_strs = string.(act_seq)
         if no_numbers
@@ -406,7 +415,7 @@ function propose_plan_constrained(
             end
         end
     end
-    return plan, state, score, prompt
+    return plan, subplans, state, score, prompt
 end
 
 "Enumerate top k complete plans given language annotations via beam search."
@@ -610,6 +619,25 @@ function construct_plan_model_prompt(
     return construct_plan_decoding_prompt(model_examples, ; kwargs...)    
 end
 
+"Constructs proposal prompt for decoding instructions into PDDL plans."
+function construct_plan_proposal_prompt(
+    test_annotations::Vector{<:AbstractString},
+    annotation_store::DataFrame, k::Int;
+    filter_fn = nothing, reversed = true, verbose=false, kwargs...
+)
+    _, proposal_examples, _, n_proposal =
+        select_annotated_plan_examples(
+            test_annotations, annotation_store, k;
+            filter_fn, reversed
+        )
+    if verbose
+        n_proposal_total = sum(n_proposal)
+        println("Using $n_proposal_total tokens for the proposal prompt.")
+    end
+    return construct_plan_decoding_prompt(proposal_examples, ; kwargs...)    
+end
+
+
 "Construct proposal prompt for decoding instructions into action sequences."
 function construct_action_proposal_prompt(
     test_annotations::Vector{<:AbstractString}, steps,
@@ -703,6 +731,7 @@ end
 function llm_subgoal_seq_sample(
     domain::Domain, state::State, prompt;
     llm::MultiGPT3GF = MultiGPT3GF(model="babbage", max_tokens=0),
+    num_subgoal_model = llm.model,
     n_subgoals_prompt = "; Number of subgoals:", n_subgoals_range = 1:5,
     temperature = 1.0, kwargs...
 )
@@ -716,7 +745,7 @@ function llm_subgoal_seq_sample(
     inputs = [vcat(prompt, GenGPT3.id_tokenize(" $k\n"))
                for k in n_subgoals_range]
     outputs = GenGPT3.gpt3_multi_prompt_api_call(
-        inputs, model = llm.model, max_tokens = 0, echo = true
+        inputs, model = num_subgoal_model, max_tokens = 0, echo = true
     )
     choice_lps = [sum(o.logprobs.token_logprobs[end-1:end]) for o in outputs]
     if temperature != 0.0
@@ -747,8 +776,8 @@ end
 function llm_subgoal_seq_sample(
     domain::Domain, state::State,
     annotation::String, store::DataFrame, k::Int = 3;
-    filter_fn = nothing, lift = false, reversed = true,
-    kwargs...
+    filter_fn = nothing, lift = false, reversed = true, verbose = false,
+    instruction = "", kwargs...
 )
     # Select top-k relevant subgoal examples
     annotated_subgoal_examples, _, _ = 
@@ -756,9 +785,14 @@ function llm_subgoal_seq_sample(
     # Construct prompt from examples
     prompt = join(annotated_subgoal_examples, "\n")
     prompt *= "\n; " * annotation * "\n"
-    return llm_subgoal_seq_sample(domain, state, prompt; kwargs...)
+    prompt = instruction * prompt
+    subgoals, logprobs, prompt =
+        llm_subgoal_seq_sample(domain, state, prompt; kwargs...)
+    if verbose println(prompt) end
+    return subgoals, logprobs, prompt    
 end
 
+"Propose a sequence of subgoals given a set of annotations."
 function propose_subgoal_plan(
     domain::Domain, state::State, annotations::Vector{<:AbstractString};
     llm::MultiGPT3GF = MultiGPT3GF(model="babbage", max_tokens=0),
@@ -814,6 +848,182 @@ function propose_subgoal_plan(
         total_logprobs += logprobs
     end
     return subgoal_plan, total_logprobs, all_logprobs
+end
+
+"Infer a plan by incrementally proposing subgoals from a set of annotations."
+function infer_plan_via_subgoals(
+    domain::Domain, state::State, annotations::Vector{<:AbstractString};
+    proposal_llm::MultiGPT3GF = MultiGPT3GF(model="babbage", max_tokens=0),
+    model_llm = GPT3GF(model="text-davinci-003", max_tokens=256, stop="\n"),
+    n_subgoals_prompt = "; Number of subgoals:",
+    n_subgoals_range = 1:5,
+    temperature = 1.0,
+    no_numbers = true,
+    subgoal_store = nothing,
+    n_subgoal_examples = 3,
+    n_particles = 1,
+    filter_fn = nothing, lift = false,
+    reversed = true,
+    default_prompt = "",
+    model_prompt = "",
+    discount = 0.95,
+    subgoal_trie = construct_subgoal_trie(domain, state; no_numbers),
+    heuristic = memoized(precomputed(FFHeuristic(), domain, state)),
+    planner = AStarPlanner(heuristic, max_time=3.0),
+    is_segmented = false,
+    segmentation_store = nothing,
+    n_segmentation_examples = 3,
+    verbose = false, kwargs...
+)
+    plan = Term[]
+    subgoal_plan = Vector{Term}[]
+    split_idxs = Int[]
+    total_model_weight = 0.0
+    lml_est = 0.0
+    lml_est_per_step = Float64[]
+    sir_weight = 0.0
+    sir_weight_per_step = Float64[]
+    # Segment annotations
+    if !is_segmented
+        segmented = segment_annotations(
+            annotations, segmentation_store, n_segmentation_examples;
+            filter_fn
+        )
+    else
+        segmented = [[annotation] for annotation in annotations]
+    end
+    for (annotation, seg_annotations) in zip(annotations, segmented)
+        if verbose
+            println("; " * annotation)
+        end
+        log_total_weight = -Inf
+        cand_actions = nothing
+        cand_subgoals = nothing
+        cand_model_prompt = nothing
+        cand_model_weight = nothing
+        for i in 1:n_particles
+            tmp_state = copy(state)
+            actions = Term[]
+            subgoals = Term[]
+            prop_weight = 0.0
+            for (k, seg_ann) in enumerate(seg_annotations)
+                if verbose && !is_segmented
+                    println("; $k. " * seg_ann)
+                end    
+                # Propose subgoals given natural language annotations
+                if isnothing(subgoal_store)
+                    # Construct prompt if necessary 
+                    p_prompt = default_prompt * "\n; " * seg_ann * "\n"
+                    subgoals_seg, prop_weight_seg, _ =
+                        llm_subgoal_seq_sample(
+                            domain, tmp_state, p_prompt;
+                            llm = proposal_llm, temperature,
+                            n_subgoals_prompt, n_subgoals_range,
+                            no_numbers, subgoal_trie, kwargs...
+                        )
+                else
+                    subgoals_seg, prop_weight_seg, _ =
+                        llm_subgoal_seq_sample(
+                            domain, tmp_state, seg_ann,
+                            subgoal_store, n_subgoal_examples;
+                            filter_fn, lift, reversed,
+                            llm = proposal_llm, temperature,
+                            n_subgoals_prompt, n_subgoals_range,
+                            no_numbers, subgoal_trie, kwargs...
+                        )
+                end
+                # Print proposed subgoals
+                if verbose && n_particles == 1
+                    println("; Number of subgoals: ", length(subgoals_seg))
+                    for goal in subgoals_seg
+                        println(write_pddl(goal))
+                    end
+                    println()
+                end
+                append!(subgoals, subgoals_seg)
+                prop_weight += prop_weight_seg
+                # Ground forall-imply subgoals
+                subgoals_seg =
+                    [ground_forall_subgoal(domain, tmp_state, g)
+                     for g in subgoals_seg]
+                # Construct action plan to achieve subgoals
+                sol = planner(domain, tmp_state, subgoals_seg)
+                if sol.status == :success
+                    seg_actions = collect(Term, sol)
+                    tmp_state = sol.trajectory[end]
+                    append!(actions, seg_actions)
+                else
+                    seg_actions = Term[]
+                end
+                if verbose && n_particles == 1
+                    println("; Actions")
+                    for act in seg_actions
+                        println(write_pddl(act))
+                    end
+                end
+            end
+            # Append actions to model prompt
+            model_prompt_tmp = model_prompt * join(write_pddl.(actions), "\n")
+            # Score natural language annotation under model
+            model_prompt_tmp = model_prompt_tmp * "\n;"
+            _, model_weight = generate(model_llm, (model_prompt_tmp,),
+                                       choicemap(:output => " " * annotation))
+            model_weight += log(discount) * length(actions)
+            # Compute importance weight
+            log_weight = model_weight - prop_weight
+            if verbose
+                println()
+                println("Proposal weight: ", prop_weight)
+                println("Model weight: ", model_weight)
+                println("Importance weight: ", log_weight)
+                println()
+            end
+            # Decide whether to keep this sample
+            log_total_weight = logsumexp(log_total_weight, log_weight)
+            if isnothing(cand_actions) || rand() < exp(log_weight - log_total_weight)
+                cand_actions = actions
+                cand_subgoals = subgoals
+                cand_model_prompt = model_prompt_tmp * " " * annotation * "\n"
+                cand_model_weight = model_weight
+                if verbose && n_particles > 1
+                    println("Kept sample $i")
+                    println()
+                end
+            end
+        end
+        # Update weight estimates
+        total_model_weight += cand_model_weight
+        log_mean_weight = log_total_weight - log(n_particles)
+        lml_est += log_mean_weight
+        push!(lml_est_per_step, lml_est)
+        sir_weight += cand_model_weight - log_mean_weight
+        push!(sir_weight_per_step, cand_model_weight - log_mean_weight)
+        # Append actions to plan
+        append!(plan, cand_actions)
+        push!(subgoal_plan, cand_subgoals)
+        push!(split_idxs, length(plan))
+        # Execute actions
+        for act in cand_actions
+            state = transition(domain, state, act)
+        end
+        # Update model prompt
+        model_prompt = cand_model_prompt
+        if verbose && n_particles > 1
+            println("; Number of subgoals: ", length(cand_subgoals))
+            for goal in cand_subgoals
+                println(write_pddl(goal))
+            end
+            println()
+            println("; Actions")
+            for action in cand_actions
+                println(write_pddl(action))
+            end
+            println()
+        end
+    end
+    return (plan, split_idxs, subgoal_plan,
+            total_model_weight, lml_est, lml_est_per_step,
+            sir_weight, sir_weight_per_step)
 end
 
 "Constructs a subgoal trie from a list of subgoals."
@@ -924,17 +1134,56 @@ function list_forall_subgoals(domain::Domain, state::State)
     )
 end
 
+"Ground forall-imply subgoal specifications to avoid loopholes."
+function ground_forall_subgoal(domain::Domain, state::State, term::Term)
+    if term.name != :forall || term.args[2].name != :imply
+        return term
+    end
+    typecond = term.args[1]
+    precond = term.args[2].args[1]
+    body = term.args[2].args[2]
+    conds = PDDL.flatten_conjs(Term[typecond, precond])
+    substs = PDDL.satisfiers(domain, state, conds)
+    ground_terms = map(substs) do subst
+        PDDL.substitute(body, subst)::Term
+    end
+    if length(ground_terms) == 1
+        return ground_terms[1]
+    else
+        return Compound(:and, ground_terms)
+    end
+end
+
 ## Annotation Segmentation ##
 
 SEGMENTATION_INSTRUCTION = replace("""
 For each of the following sentences, repeat the original sentence if it
 describes an action that can be performed simultaneously on multiple objects.
 Otherwise, if the sentence describes acting sequentially on multiple objects,
-rewrite the sentence as multiple sentences, with one sentence per line.
-The following actions *can* be performed simultaneously on multiple
-objects: transferring or pouring objects from one receptacle to another,
-combining, mixing, or blending multiple ingredients together, and cooking
-multiple ingredients in the same receptacle.""", "\n" => " ")
+rewrite the sentence as multiple sentences (up to four), with one sentence per
+line. The following actions *can* be performed simultaneously on multiple
+objects: transferring everything from one receptacle to another,
+pouring from a receptacle, combining, mixing, or blending multiple
+ingredients together, and cooking multiple ingredients in the same
+receptacle. In addition, mentions of "everything" should be treated as 
+single objects. Keep each rewritten sentence concise, and only mention objects
+that are in the original sentence.""", "\n" => " ")
+
+# Replace above with a series of strings concatenated with "*"
+SEGMENTATION_INSTRUCTION = 
+    "For each of the following sentences, repeat the original sentence if it " *
+    "describes an action that can be performed simultaneously on multiple objects.\n\n" *
+    "Otherwise, if the sentence describes acting sequentially on multiple objects, " *
+    "rewrite the sentence as multiple sentences (up to four), with one sentence " *
+    "per line, and with pronouns replaced by the objects they refer to.\n\n" *
+    "The following actions *can* be performed simultaneously on multiple objects:\n\n" *
+    "  - transferring everything from one receptacle to another\n" *
+    "  - pouring from a receptacle\n" *
+    "  - combining, mixing, or blending multiple ingredients together\n" *
+    "  - cooking multiple ingredients in the same receptacle\n\n" *
+    "In addition, mentions of \"everything\" should be treated as a single object.\n\n" *
+    "Keep each rewritten sentence concise, and only mention objects that are in " *
+    "the original sentence."
 
 "Align segmented annotations with their original annotations."
 function align_segmented_annotations(
@@ -992,8 +1241,8 @@ function segment_annotations(
     original_label = "Original:",
     segmented_label = "Rewritten:",
     line_break = "\r\n",
-    llm = MultiGPT3GF(model="text-davinci-002", temperature=0,
-                      stop=original_label),
+    llm = MultiGPT3GF(model="text-davinci-003", temperature=0,
+                      stop=original_label, max_tokens=256),
     kwargs...
 )
     example_prompt = construct_segmentation_prompt(
@@ -1026,7 +1275,7 @@ function segment_annotations(
     segmented_label = "Rewritten:",
     line_break = "\r\n",
     llm = MultiGPT3GF(model="text-davinci-003", temperature=0,
-                      stop=original_label),
+                      stop=original_label, max_tokens=128),
     kwargs...
 )
     @assert length(annotations) == length(original_examples)
@@ -1122,7 +1371,7 @@ function select_segmentation_examples(
     lift = true, lift_instruction = LIFT_INSTRUCTION,
     lift_lm = GPT3GF(model="text-davinci-003", temperature=0,
                      stop="\n", max_tokens=128),
-    filter_fn = nothing, reversed = true
+    filter_fn = nothing, reversed = true, deduplicate = true
 )
     # Filter rows
     if !isnothing(filter_fn)
@@ -1139,7 +1388,14 @@ function select_segmentation_examples(
     embedder = GenGPT3.Embedder()
     e = embedder(annotation)
     sims = GenGPT3.similarity(e, store.original_embedding)
-    top_k = sortperm(sims, rev=true)[1:k]
+    idxs = sortperm(sims, rev=true)
+    top_k = Int[]
+    for i in idxs
+        if !deduplicate || store.original[i] ∉ store.original[top_k]
+            push!(top_k, i)
+        end
+        length(top_k) == k && break
+    end
     top_k = reversed ? reverse(top_k) : top_k
     original_examples = store.original[top_k]
     segmented_examples = map(store.segmented[top_k]) do s
@@ -1155,7 +1411,7 @@ function select_segmentation_examples(
     lift = true, lift_instruction = LIFT_INSTRUCTION,
     lift_lm = MultiGPT3GF(model="text-davinci-003", temperature=0,
                           stop="\n", max_tokens=128),
-    filter_fn = nothing, reversed = true
+    filter_fn = nothing, reversed = true, deduplicate = true
 )
     # Filter rows
     if !isnothing(filter_fn)
@@ -1176,7 +1432,14 @@ function select_segmentation_examples(
     segmented_examples = Vector{Vector{String}}[]
     for e in embeddings
         sims = GenGPT3.similarity(e, store.original_embedding)
-        top_k = sortperm(sims, rev=true)[1:k]
+        idxs = sortperm(sims, rev=true)
+        top_k = Int[]
+        for i in idxs
+            if !deduplicate || store.original[i] ∉ store.original[top_k]
+                push!(top_k, i)
+            end
+            length(top_k) == k && break
+        end
         top_k = reversed ? reverse(top_k) : top_k
         original = store.original[top_k]
         segmented = map(store.segmented[top_k]) do s
@@ -1191,7 +1454,7 @@ end
 "Construct a store of annotated plan examples and their text embeddings."
 function construct_annotated_plan_store(
     paths::Vector{<:AbstractString}, verbose_paths::Vector{<:AbstractString};
-    kitchen_id = -1, problem_id = -1, instance_id = -1
+    kitchen_id = -1, problem_id = -1, instance_id = -1, ann_first = false
 )
     # Convert to vectors
     if !(kitchen_id isa Vector)
@@ -1512,8 +1775,8 @@ function select_subgoal_examples(
     annotation::AbstractString, store::DataFrame, k::Int = 5;
     lift = false, lift_instruction = LIFT_INSTRUCTION,
     lift_lm = GPT3GF(model="text-davinci-003", temperature=0,
-                     stop="\n", max_tokens=128),
-    filter_fn = nothing, reversed = true
+                     stop="\n", max_tokens=64),
+    filter_fn = nothing, reversed = true, deduplicate = true
 )
     # Filter rows
     if !isnothing(filter_fn)
@@ -1530,7 +1793,14 @@ function select_subgoal_examples(
     embedder = GenGPT3.Embedder()
     e = embedder(annotation)
     sims = GenGPT3.similarity(e, store.embedding)
-    top_k = sortperm(sims, rev=true)[1:k]
+    idxs = sortperm(sims, rev=true)
+    top_k = Int[]
+    for i in idxs
+        if !deduplicate || store.annotations[i] ∉ store.annotations[top_k]
+            push!(top_k, i)
+        end
+        length(top_k) == k && break
+    end
     top_k = reversed ? reverse(top_k) : top_k
     annotated_subgoals = store.annotated_subgoals[top_k]
     subgoals = [parse_pddl.(split(sg, "\n")) for sg in store.subgoals[top_k]]
