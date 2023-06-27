@@ -12,12 +12,15 @@ using GenParticleFilters: softmax
 include("recipe_utils.jl")
 
 "Returns a weighted count of inferred recipe terms as a dictionary."
-function recipe_term_counts_cb(pf::ParticleFilterView)
+function recipe_term_counts_cb(
+    pf::ParticleFilterView,
+    goal_addr = :init => :agent => :goal
+)
     traces = get_traces(pf)
     weights = get_norm_weights(pf)
     counts = Dict{Term, Float64}()
     for (tr, w) in zip(traces, weights)
-        spec = tr[:init => :agent => :goal]
+        spec = isnothing(goal_addr) ? get_retval(tr) : tr[goal_addr]
         recipe = SymbolicPlanners.get_goal_terms(spec)[1]
         terms, vars = normalize_recipe(recipe)
         for term in terms
@@ -46,6 +49,37 @@ function recipe_term_counts_cb(pf::ParticleFilterView)
         end
     end
     return counts
+end
+
+"Returns the Brier score of inferred recipe terms with respect to the true goal."
+function term_brier(true_goal::Term, term_counts::Dict{Term, Float64})
+    terms, _ = normalize_recipe(true_goal)
+    score = 0.0
+    for (inferred_term, weight) in term_counts
+        if inferred_term in terms
+            score += (1.0 - weight)^2
+        elseif any(!isnothing(PDDL.unify(inferred_term, t)) for t in terms)
+            score += (1.0 - weight)^2
+        else
+            score += weight^2
+        end
+    end
+    filter!(terms) do term
+        !(term.name in (Symbol("food-type"), Symbol("receptacle-type")))
+    end
+    for term in terms
+        inferred = false       
+        for inferred_term in keys(term_counts)
+            if term == inferred_term || !isnothing(PDDL.unify(inferred_term, term))
+                inferred = true
+                break
+            end
+        end
+        if !inferred
+            score += 1.0
+        end
+    end
+    return score / max(length(terms), length(term_counts))
 end
 
 "Returns the precision of inferred recipe terms with respect to the true goal."
