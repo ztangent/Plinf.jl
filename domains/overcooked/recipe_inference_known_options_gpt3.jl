@@ -144,7 +144,7 @@ for (idx, kitchen_name) in enumerate(KITCHEN_NAMES)
         end
         train_correct_ids = [1, 1, 1, 1] # Correct goal IDs for each training problem
 
-        # Iterate over random seeds for random recide ordering
+        # Iterate over random seeds for random recipe ordering
         for randperm_seed in RANDPERM_SEEDS
             # Construct recipe permutation
             rng = MersenneTwister(0)
