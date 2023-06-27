@@ -248,20 +248,18 @@ sort!(df, [:temperature])
 
 # Load PDDL domain and problem
 domain = load_domain(joinpath(DOMAIN_DIR, "domain.pddl"))
-problem = load_problem(joinpath(PROBLEM_DIR, "problem-3-3.pddl"))
-kitchen_name = KITCHEN_NAMES[3]
+problem = load_problem(joinpath(PROBLEM_DIR, "problem-4-4.pddl"))
+kitchen_name = KITCHEN_NAMES[4]
+state = initstate(domain, problem)
 
 # Load plan to do inference on 
 plan, narrative, narrative_times =
-    load_plan(joinpath(PLANS_DIR, "problem-3-3", "narrative-plan-3-3-1.pddl"))
+    load_plan(joinpath(PLANS_DIR, "problem-4-4", "narrative-plan-4-4-1.pddl"))
 
 # Load possible goals
-descriptions, goals = load_goals(joinpath(GOALS_DIR, "goals-3-3.pddl"))
+descriptions, goals = load_goals(joinpath(GOALS_DIR, "goals-4-4.pddl"))
 true_goal_idx = 1
 true_goal = goals[true_goal_idx]
-
-# Compute semantic overlap with true goal
-goal_overlaps = [recipe_overlap(goals[true_goal_idx], g) for g in goals]
 
 # Construct recipe descriptions
 recipes = map(zip(descriptions, goals)) do (desc, goal)
@@ -285,7 +283,7 @@ println("Token Count: ", length(GenGPT3.tokenize(inference_prompt)))
 
 # Construct training set
 ref_idx = 5 # Index of reference problem for each kitchen
-train_idxs = [1, 2, 4, 5]
+train_idxs = [1, 2, 3, 4]
 train_recipe_idxs = [3, 4, 5]
 train_names = KITCHEN_NAMES[train_idxs]
 train_problems = [load_problem(ps[ref_idx]) for ps in PROBLEMS[train_idxs]]
@@ -307,7 +305,7 @@ train_goal_recipes = map(GOALS[train_idxs]) do gs
     )
 end
 
-# Test zero-shot recipe prior prompt
+# Test multishot recipe prior prompt
 prior_prompt = construct_multishot_recipe_prior_prompt(
     domain, train_problems, train_example_recipes, train_names,
     problem, String[], kitchen_name
@@ -319,16 +317,23 @@ println("Token Count: ", length(GenGPT3.tokenize(prior_prompt)))
 inference_prompt = construct_multishot_recipe_inference_prompt_freeform(
     domain,
     train_problems, train_narratives, train_goal_recipes, train_names,
-    problem, narrative, 3, kitchen_name;
-    train_step_mode=TRAIN_STEP_MODE,
-    train_step_frac=TRAIN_STEP_FRAC
+    problem, narrative, 2, kitchen_name;
+    train_step_mode = :match
 )
 println(inference_prompt)
 println("Token Count: ", length(GenGPT3.tokenize(inference_prompt)))
 
-responses = gpt3_batch_complete(prompt, 5; model="text-davinci-003")
-for resp in responses
-    println(resp.text)
-end
+recipe_prior = construct_gpt3_recipe_prior(
+    domain, state, 5;
+    model_prompt = prior_prompt,
+    proposal_prompt = inference_prompt,
+    model_name = "text-davinci-003",
+    model_temp = 1.0,
+    proposal_temp = 1.0,
+    include_description = INCLUDE_RECIPE_DESCRIPTION,
+    proposal_stop = "END ANSWER",
+    verbose = true
+)
 
-
+recipe_trace = simulate(recipe_prior, ())
+println(recipe_trace[:completion])
