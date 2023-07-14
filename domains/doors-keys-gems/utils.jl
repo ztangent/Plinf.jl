@@ -31,7 +31,7 @@ function compute(heuristic::GoalManhattan,
     goal_count = GoalCountHeuristic()(domain, state, spec)
     # Determine goal objects to collect
     goals = get_goal_terms(spec)
-    goal_objs = [g.args[1] for g in goals if g.name == :has]
+    goal_objs = [g.args[1] for g in goals if g.name == :has && !state[g]]
     isempty(goal_objs) && return goal_count
     # Compute minimum distance to goal objects
     pos = get_agent_pos(state)
@@ -127,7 +127,7 @@ function DKGCombinedCallback(
     end
     # Construct render callback
     if render
-        figure = Figure(resolution=(600, 700))
+        figure = Figure(resolution=renderer.resolution)
         if inference_overlay
             function trace_color_fn(tr)
                 goal_idx = tr[goal_addr]
@@ -144,11 +144,12 @@ function DKGCombinedCallback(
     # Construct plotting callbacks
     if plot_goal_bars || plot_goal_lines
         if render
-            resize!(figure, (1200, 700))
+            resize!(figure, (1200, renderer.resolution[2]))
+            side_layout = GridLayout(figure[1, 2])
         else
-            figure = Figure(resolution=(600, 700))
+            figure = Figure(resolution=renderer.resolution)
+            side_layout = GridLayout(figure[1, 1])
         end
-        side_layout = GridLayout(figure[1, 2])
     end
     if plot_goal_bars
         callbacks[:goal_bars] = BarPlotCallback(
