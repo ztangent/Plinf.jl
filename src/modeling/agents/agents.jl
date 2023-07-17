@@ -71,7 +71,9 @@ function AgentConfig(
     end
     # Construct action configuration depending on keyword arguments
     if act_epsilon !== nothing
-        act_config = EpsilonGreedyActConfig(domain, act_epsilon, act_default)
+        act_config = act_default === nothing ? 
+            EpsilonGreedyActConfig(domain, act_epsilon) : 
+            EpsilonGreedyActConfig(domain, act_epsilon, act_default)
     elseif act_temperature !== nothing
         act_config = BoltzmannActConfig(act_temperature)
     else

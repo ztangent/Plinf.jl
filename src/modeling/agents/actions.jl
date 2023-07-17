@@ -75,7 +75,7 @@ Samples an available action uniformly at random `epsilon` of the time, otherwise
 selects the best action.    
 """
 @gen function eps_greedy_act_step(
-    t, agent_state, env_state,
+    t, act_state, agent_state, env_state,
     domain::Domain, epsilon::Real, default::Solution
 )
     sol = agent_state.plan_state.sol
