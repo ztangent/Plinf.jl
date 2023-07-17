@@ -52,25 +52,38 @@ end
 # Epsilon greedy action selection #
 
 """
-    EpsilonGreedyActConfig(domain::Domain, epsilon::Real)
+    EpsilonGreedyActConfig(domain::Domain, epsilon::Real,
+                           default=RandomPolicy(domain))
 
 Constructs an `ActConfig` which selects a random action `epsilon` of the time
 and otherwise selects the best/planned action.
+
+If a `default` policy is provided, then actions will be selected from this
+policy when the goal is unreachable or has been achieved.
 """
-function EpsilonGreedyActConfig(domain::Domain, epsilon::Real)
-    return ActConfig(PDDL.no_op, (), eps_greedy_act_step, (domain, epsilon))
+function EpsilonGreedyActConfig(domain::Domain, epsilon::Real,
+                                default = RandomPolicy(domain))
+    return ActConfig(PDDL.no_op, (), eps_greedy_act_step,
+                     (domain, epsilon, default))
 end
 
 """
-    eps_greedy_act_step(t, act_state, agent_state, env_state, domain, epsilon)
+    eps_greedy_act_step(t, act_state, agent_state, env_state,
+                        domain, epsilon, default)
 
 Samples an available action uniformly at random `epsilon` of the time, otherwise
-selects the best action.
+selects the best action.    
 """
-@gen function eps_greedy_act_step(t, act_state, agent_state, env_state,
-                                  domain::Domain, epsilon::Real)
-    plan_state = agent_state.plan_state::PlanState
-    policy = EpsilonGreedyPolicy(domain, plan_state.sol, epsilon)
+@gen function eps_greedy_act_step(
+    t, agent_state, env_state,
+    domain::Domain, epsilon::Real, default::Solution
+)
+    sol = agent_state.plan_state.sol
+    # Check if goal is unreachable or has been achieved
+    is_done = (sol isa NullSolution ||
+               (sol isa PathSearchSolution && sol.status == :success))
+    # Specify policy based on whether goal is unreachable or achieved
+    policy = is_done ? default : EpsilonGreedyPolicy(domain, sol, epsilon)
     act = {:act} ~ policy_dist(policy, env_state)
     return act
 end

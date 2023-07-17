@@ -53,7 +53,10 @@ keyword arguments specified.
 """
 function AgentConfig(
     domain::Domain, planner::Planner;
-    replan_args=nothing, act_epsilon=nothing, act_temperature=nothing,
+    replan_args=nothing,
+    act_temperature=nothing,
+    act_epsilon=nothing,
+    act_default=nothing,
     kwargs...
 )   
     # Construct plan configuration depending on arguments
@@ -68,7 +71,7 @@ function AgentConfig(
     end
     # Construct action configuration depending on keyword arguments
     if act_epsilon !== nothing
-        act_config = EpsilonGreedyActConfig(domain, act_epsilon)
+        act_config = EpsilonGreedyActConfig(domain, act_epsilon, act_default)
     elseif act_temperature !== nothing
         act_config = BoltzmannActConfig(act_temperature)
     else
