@@ -211,6 +211,14 @@ end
     end
 end
 
+# Do operator #
+
+const DO_SYMBOL = :do
+
+function do_op(act::Term)
+    return Compound(DO_SYMBOL, [act])
+end
+
 # Policy distribution #
 
 struct PolicyDistribution <: Gen.Distribution{Term} end
@@ -232,7 +240,7 @@ const policy_dist = PolicyDistribution()
 end
 
 @inline function Gen.logpdf(::PolicyDistribution, act::Term, policy, state)
-    return act.name == PDDL.no_op.name ?
+    return (act.name == PDDL.no_op.name || act.name == DO_SYMBOL) ?
         0.0 : log(SymbolicPlanners.get_action_prob(policy, state, act))
 end
 
@@ -240,7 +248,7 @@ end
 @inline Gen.random(::PolicyDistribution, ::NullSolution, state) =
     PDDL.no_op
 @inline Gen.logpdf(::PolicyDistribution, act::Term, ::NullSolution, state) =
-    act.name == PDDL.no_op.name ? 0.0 : -Inf
+    (act.name == PDDL.no_op.name || act.name == DO_SYMBOL) ? 0.0 : -Inf
 
 Gen.logpdf_grad(::PolicyDistribution, act::Term, policy, state) =
     (nothing, nothing, nothing)

@@ -60,10 +60,13 @@ end
 PDDL environment transition function with deterministic dynamics.
 """
 @gen function pddl_env_step(t, env_state::State, act_state, domain::Domain)
-    action = convert(Term, act_state) # Convert to action term to be safe
-    if action.name == Symbol("--") || !available(domain, env_state, action)
+    act = convert(Term, act_state) # Convert to action term to be safe
+    if act.name == DO_SYMBOL && act isa Compound
+        act = act.args[1]
+    end
+    if act.name == Symbol("--") || !available(domain, env_state, act)
         return env_state
     else
-        return transition(domain, env_state, action, check=false)
+        return transition(domain, env_state, act, check=false)
     end
 end
