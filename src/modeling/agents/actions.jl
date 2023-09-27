@@ -184,10 +184,10 @@ end
                                    new_act, utterance_args...)
     if isa(result, Tuple)
         utterance, history = result
-        return CommunicativeActState(act, utterance, history)
+        return CommunicativeActState(new_act, utterance, history)
     else
         utterance = result
-        return CommunicativeActState(act, utterance, nothing)
+        return CommunicativeActState(new_act, utterance, nothing)
     end
 end
 
@@ -204,10 +204,10 @@ end
                                    new_act, utterance_args...)
     if isa(result, Tuple)
         utterance, history = result
-        return CommunicativeActState(act, utterance, history)
+        return CommunicativeActState(new_act, utterance, history)
     else
         utterance = result
-        return CommunicativeActState(act, utterance, nothing)
+        return CommunicativeActState(new_act, utterance, nothing)
     end
 end
 
