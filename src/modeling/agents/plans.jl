@@ -72,7 +72,19 @@ function default_plan_init(belief_state, goal_state)
     return PlanState(0, NullSolution(), convert(Specification, goal_state))
 end
 
-# Static planning configuration #
+"""
+    step_plan_init(belief_state, goal_state, plan_step, step_args...)
+
+Reuses the `plan_step` function to initialize the plan at the zeroth timestep.
+An initial plan state is constructed with a `NullSolution` and the initial
+goal specification, and then `plan_step` is called with this initial plan state.
+"""
+@gen function step_plan_init(belief_state, goal_state, plan_step, step_args)
+    plan_state = PlanState(0, NullSolution(), convert(Specification, goal_state))
+    plan_state = {*} ~ plan_step(0, plan_state, belief_state,
+                                 goal_state, step_args...)
+    return plan_state
+end
 
 """
     StaticPlanConfig(init=PlanState(), init_args=())
@@ -93,13 +105,21 @@ Plan transition that returns the previous plan state without modification.
 # Deterministic (re)planning configuration #
 
 """
-    DetermReplanConfig(domain::Domain, planner::Planner)
+    DetermReplanConfig(domain::Domain, planner::Planner; plan_at_init=false)
 
 Constructs a `PlanConfig` that deterministically replans only when necessary.
+If `plan_at_init` is true, then the initial plan is computed at timestep zero.
 """
-function DetermReplanConfig(domain::Domain, planner::Planner)
-    return PlanConfig(default_plan_init, (),
-                      determ_replan_step, (domain, planner))
+function DetermReplanConfig(domain::Domain, planner::Planner;
+                            plan_at_init::Bool = false)
+    if plan_at_init
+        init = step_plan_init
+        init_args = (determ_replan_step, (domain, planner))
+    else
+        init = default_plan_init
+        init_args = ()
+    end
+    return PlanConfig(init, init_args, determ_replan_step, (domain, planner))
 end
 
 """
@@ -129,6 +149,7 @@ end
 """
     ReplanConfig(
         domain::Domain, planner::Planner;
+        plan_at_init::Bool = false,
         prob_replan::Real=0.1,
         rand_budget::Bool = true,
         budget_var::Symbol = default_budget_var(planner),
@@ -137,9 +158,11 @@ end
     )
 
 Constructs a `PlanConfig` that may stochastically replan at each timestep.
+If `plan_at_init` is true, then the initial plan is computed at timestep zero.
 """
 function ReplanConfig(
     domain::Domain, planner::Planner;
+    plan_at_init::Bool = false,
     prob_replan::Real = 0.1,
     rand_budget::Bool = true,
     budget_var::Symbol = default_budget_var(planner),
@@ -148,7 +171,14 @@ function ReplanConfig(
 )
     step_args = (domain, planner, prob_replan, rand_budget,
                  budget_var, budget_dist, budget_dist_args)
-    return PlanConfig(default_plan_init, (), replan_step, step_args)
+    if plan_at_init
+        init = step_plan_init
+        init_args = (replan_step, step_args)
+    else
+        init = default_plan_init
+        init_args = ()
+    end
+    return PlanConfig(init, init_args, replan_step, step_args)
 end
 
 default_budget_var(::Planner) = :max_time
@@ -199,6 +229,7 @@ end
 """
     ReplanPolicyConfig(
         domain::Domain, planner::Planner;
+        plan_at_init::Bool = false,
         prob_replan::Real = 0.05,
         prob_refine::Real = 0.2,
         rand_budget::Bool = true,
@@ -208,10 +239,12 @@ end
     )
 
 Constructs a `PlanConfig` that may stochastically recompute or refine a policy
-at each timestep.
+at each timestep. If `plan_at_init` is true, then the initial plan is computed
+at timestep zero.
 """
 function ReplanPolicyConfig(
     domain::Domain, planner::Planner;
+    plan_at_init::Bool = false,
     prob_replan::Real = 0.05,
     prob_refine::Real = 0.2,
     rand_budget::Bool = true,
@@ -221,7 +254,14 @@ function ReplanPolicyConfig(
 )
     step_args = (domain, planner, prob_replan, prob_refine,
                  rand_budget, budget_var, budget_dist, budget_dist_args)
-    return PlanConfig(default_plan_init, (), policy_step, step_args)
+    if plan_at_init
+        init = step_plan_init
+        init_args = (policy_step, step_args)
+    else
+        init = default_plan_init
+        init_args = ()
+    end
+    return PlanConfig(init, init_args, policy_step, step_args)
 end
 
 default_budget_var(::RealTimeDynamicPlanner) = :max_depth
