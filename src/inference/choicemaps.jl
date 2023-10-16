@@ -189,7 +189,7 @@ end
 """
     act_choicemap_vec(
         actions;
-        addr_fn = t -> :timestep => t => :obs,
+        addr_fn = t -> :timestep => t => :act,
         batch_size = 1,
         split_idxs = nothing
     )
@@ -230,7 +230,7 @@ end
 """
     act_choicemap_vec(
         actions;
-        addr_fn = t -> :timestep => t => :obs,
+        addr_fn = t -> :timestep => t => :act,
         batch_size = 1,
         split_idxs = nothing
     )
