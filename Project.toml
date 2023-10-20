@@ -18,10 +18,16 @@ Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SymbolicPlanners = "b6fe5377-9711-4fad-95b0-be4eed71ecbb"
 
 [compat]
-Gen = "0.4.5"
-GenParticleFilters = "0.2.0"
-PDDL = "0.2.13"
-SymbolicPlanners = "0.1.12"
+DataStructures = "0.18"
+DocStringExtensions = "0.8, 0.9"
+Gen = "0.4.6"
+GenParticleFilters = "0.2.1"
+GLMakie = "0.8.5"
+Makie = "0.19.5, 0.20"
+Parameters = "0.12"
+PDDL = "0.2.16"
+PDDLViz = "0.1.7"
+SymbolicPlanners = "0.1.19"
 julia = "1.6"
 
 [extras]
