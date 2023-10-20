@@ -15,6 +15,4 @@ include("utils.jl")
 include("modeling/modeling.jl")
 include("inference/inference.jl")
 
-Gen.@load_generated_functions()
-
 end # module
