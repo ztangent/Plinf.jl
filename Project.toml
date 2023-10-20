@@ -17,6 +17,14 @@ Printf = "de0858da-6303-5e67-8744-51eddeeeb8d7"
 Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
 SymbolicPlanners = "b6fe5377-9711-4fad-95b0-be4eed71ecbb"
 
+[weakdeps]
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
+PDDLViz = "8f72e95f-8ea1-4af3-8b89-086f52abff52"
+
+[extensions]
+PlinfVizExt = ["Makie", "PDDLViz"]
+
 [compat]
 DataStructures = "0.18"
 DocStringExtensions = "0.8, 0.9"
