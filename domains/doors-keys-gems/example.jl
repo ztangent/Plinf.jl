@@ -20,6 +20,9 @@ problem = load_problem(joinpath(path, "problem-6.pddl"))
 state = initstate(domain, problem)
 spec = Specification(problem)
 
+# Compile domain for faster performance
+domain, state = PDDL.compiled(domain, state)
+
 #--- Define Renderer ---#
 
 # Construct gridworld renderer
@@ -65,7 +68,7 @@ canvas = renderer(canvas, domain, state, sol, show_trajectory=false)
 anim = anim_plan(renderer, domain, state, plan;
                  format="gif", framerate=5, trail_length=10)
 
-#--- Goal Inference Setup ---#
+#--- Model Configuration ---#
 
 # Specify possible goals
 goals = @pddl("(has gem1)", "(has gem2)", "(has gem3)")
@@ -82,10 +85,6 @@ end
 # Construct iterator over goal choicemaps for stratified sampling
 goal_addr = :init => :agent => :goal => :goal
 goal_strata = choiceproduct((goal_addr, 1:length(goals)))
-
-# Compile and cache domain for faster performance
-domain, state = PDDL.compiled(domain, state)
-domain = CachedDomain(domain)
 
 # Configure agent model with domain, planner, and goal prior
 heuristic = RelaxedMazeDist()

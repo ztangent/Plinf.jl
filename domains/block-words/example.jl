@@ -16,6 +16,9 @@ problem = load_problem(joinpath(path, "problem-1.pddl"))
 state = initstate(domain, problem)
 spec = Specification(problem)
 
+# Compile domain for faster performance
+domain, state = PDDL.compiled(domain, state)
+
 #--- Define Renderer ---#
 
 # Construct blocksworld renderer
@@ -37,9 +40,9 @@ plan = collect(sol)
 anim = anim_plan(renderer, domain, state, plan;
                  format="gif", move_speed=0.4, framerate=24)
 
-#--- Goal Inference Setup ---#
+#--- Model Configuration ---#
 
-# Read possible goal words from file
+# Define possible goal words
 goal_words = sort(["draw", "crow", "rope", "power", "wade"])
 goals = word_to_terms.(goal_words)
 
@@ -52,10 +55,6 @@ end
 # Construct iterator over goal choicemaps for stratified sampling
 goal_addr = :init => :agent => :goal => :goal
 goal_strata = choiceproduct((goal_addr, 1:length(goals)))
-
-# Compile and cache domain for faster performance
-domain, state = PDDL.compiled(domain, state)
-domain = CachedDomain(domain)
 
 # Configure agent model with domain, planner, and goal prior
 heuristic = precomputed(FFHeuristic(), domain, state)
@@ -95,7 +94,7 @@ if likely_traj
     sol = planner(domain, state, spec)
     obs_traj = sol.trajectory[1:min(length(sol) + 1, 7)]
 else
-    # Use trajectory that comes from a different planner
+    # Use manually-specified trajectory
     plan = @pddl("(pick-up o)","(stack o w)","(unstack r p)","(stack r o)",
                  "(unstack d a)","(put-down d)","(unstack a c)","(put-down a)",
                  "(pick-up c)", "(stack c r)")
@@ -116,32 +115,49 @@ storyboard = render_storyboard(
     xlabelsize = 20, subtitlesize = 24
 )
 
-# Construct iterator over observation timesteps and choicemaps 
+# Construct iterator over observation timesteps and choicemaps
 t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
 
 #--- Online Goal Inference ---#
 
-# Construct callback for logging data
-n_goals = length(goals)
-logger_cb = DataLoggerCallback(
-    t = (t, pf) -> t::Int,
-    goal_probs = pf -> probvec(pf, goal_addr, 1:n_goals)::Vector{Float64},
-    lml_est = pf -> log_ml_estimate(pf)::Float64,
+# Construct callback for logging data and visualizing inference
+callback = BlocksworldCombinedCallback(
+    renderer, domain;
+    goal_addr = goal_addr,
+    goal_names = goal_words,
+    obs_trajectory = obs_traj,
+    print_goal_probs = true,
+    plot_goal_bars = true,
+    plot_goal_lines = true,
+    render = true,
+    record = true
 )
-print_cb = PrintStatsCallback(
-    (goal_addr, 1:n_goals);
-    header="t\t" * join(goal_words, "\t") * "\n"
-)
-callback = CombinedCallback(logger=logger_cb, print=print_cb)
 
 # Configure SIPS particle filter
 sips = SIPS(world_config, resample_cond=:ess, rejuv_cond=:periodic,
             rejuv_kernel=ReplanKernel(2), period=2)
 
 # Run particle filter to perform online goal inference
-n_samples = 25
+n_samples = 50
 pf_state = sips(
     n_samples, t_obs_iter;
     init_args=(init_strata=goal_strata,),
     callback=callback
 );
+
+# Extract animation
+anim = callback.record.animation
+
+# Create goal inference storyboard
+storyboard = render_storyboard(
+    anim, [1, 3, 5, 7],
+    subtitles = ["(i) Initial state",
+                 "(ii) 'o' is stacked on 'w'",
+                 "(iii) 'r' is stacked on 'o'",
+                 "(iv) 'd' is unstacked from 'a'"],
+    xlabels = ["t = 1", "t = 3", "t = 5", "t = 7"],
+    xlabelsize = 20, subtitlesize = 24,
+    n_rows = 2
+);
+resize!(storyboard, 2000, 1200)
+display(storyboard)

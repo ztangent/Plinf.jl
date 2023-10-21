@@ -144,7 +144,7 @@ function DKGCombinedCallback(
     # Construct plotting callbacks
     if plot_goal_bars || plot_goal_lines
         if render
-            resize!(figure, (1200, renderer.resolution[2]))
+            resize!(figure, 1200, renderer.resolution[2])
             side_layout = GridLayout(figure[1, 2])
         else
             figure = Figure(resolution=renderer.resolution)

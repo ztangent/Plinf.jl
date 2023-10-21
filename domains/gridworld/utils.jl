@@ -114,7 +114,7 @@ function GridworldCombinedCallback(
     # Construct plotting callbacks
     if plot_goal_bars || plot_goal_lines
         if render
-            resize!(figure, (1200, 600))
+            resize!(figure, 1200, 600)
         else
             figure = Figure(resolution=(600, 600))
         end
