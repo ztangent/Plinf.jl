@@ -51,6 +51,6 @@ T. Zhi-Xuan, J. L. Mann, T. Silver, J. B. Tenenbaum, and V. K. Mansinghka,
 [“Online Bayesian Goal Inference for Boundedly-Rational Planning Agents,”](http://arxiv.org/abs/2006.07532) arXiv:2006.07532 [cs], Jun. 2020.
 
 Full example code for several domains can be found here:
-[Gridworld](domains/gridworld/example.jl);
-[Doors, Keys & Gems](domains/doors-keys-gems/example.jl);
-[Block Words](domains/block-words/example.jl)
+[Gridworld](examples/gridworld/example.jl);
+[Doors, Keys & Gems](examples/doors-keys-gems/example.jl);
+[Block Words](examples/block-words/example.jl)
