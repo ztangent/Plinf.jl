@@ -197,11 +197,15 @@ function (overlay::GridworldInferenceOverlay)(
             sol = plan_state.sol
             future_states = Vector{typeof(state)}()
             for _ in 1:overlay.max_future_steps
+                if sol isa NullSolution break end
                 act = best_action(sol, state)
                 if ismissing(act) break end
                 state = transition(domain, state, act)
                 push!(future_states, state)
                 if is_goal(spec, domain, state) break end
+            end
+            if isempty(future_states)
+                push!(future_states, state)
             end
             # Render or update future states
             color = overlay.trace_color_fn(tr)
