@@ -11,9 +11,8 @@ include("utils.jl")
 PDDL.Arrays.@register()
 
 # Load domain and problem
-path = joinpath(dirname(pathof(Plinf)), "..", "domains", "gridworld")
-domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, "problem-3.pddl"))
+domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
+problem = load_problem(joinpath(@__DIR__, "problems", "problem-3.pddl"))
 
 # Initialize state, set goal position
 state = initstate(domain, problem)

@@ -8,9 +8,8 @@ include("utils.jl")
 #--- Initial Setup ---#
 
 # Load domain and problem
-path = joinpath(dirname(pathof(Plinf)), "..", "domains", "block-words")
-domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, "problem-1.pddl"))
+domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
+problem = load_problem(joinpath(@__DIR__, "problems", "problem-1.pddl"))
 
 # Initialize state and construct goal specification
 state = initstate(domain, problem)

@@ -4,7 +4,6 @@ using Gen, GenParticleFilters
 using PDDLViz, GLMakie
 
 include("utils.jl")
-include("ascii.jl")
 
 #--- Initial Setup ---#
 
@@ -12,9 +11,8 @@ include("ascii.jl")
 PDDL.Arrays.register!()
 
 # Load domain and problem
-path = joinpath(dirname(pathof(Plinf)), "..", "domains", "doors-keys-gems")
-domain = load_domain(joinpath(path, "domain.pddl"))
-problem = load_problem(joinpath(path, "problem-6.pddl"))
+domain = load_domain(joinpath(@__DIR__, "domain.pddl"))
+problem = load_problem(joinpath(@__DIR__, "problems", "problem-6.pddl"))
 
 # Initialize state and construct goal specification
 state = initstate(domain, problem)
@@ -153,7 +151,7 @@ t_obs_iter = state_choicemap_pairs(obs_traj, obs_terms; batch_size=1)
 callback = DKGCombinedCallback(
     renderer, domain;
     goal_addr = goal_addr,
-    goal_names = ["gem1", "gem2", "gem3"],
+    goal_names = ["red", "yellow", "blue"],
     goal_colors = goal_colors,
     obs_trajectory = obs_traj,
     print_goal_probs = true,
